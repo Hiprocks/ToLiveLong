@@ -1,0 +1,5 @@
+# 1. Rename this file to: .env.local
+# 2. Fill in your Supabase keys below
+
+NEXT_PUBLIC_SUPABASE_URL=https://giigzroemhuyvsfrspfo.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_ykmFmRjL4mAi-n6CdT9DvQ_3Hzn1NRN
