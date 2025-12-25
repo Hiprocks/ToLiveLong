@@ -2,18 +2,23 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
-import { Camera } from "lucide-react";
+import { Camera, Plus } from "lucide-react";
 import CalorieGauge from "@/components/CalorieGauge";
 import MealTable from "@/components/MealTable";
-import AddMealModal from "@/components/AddMealModal";
+import FoodSearchModal from "@/components/FoodSearchModal";
+import IntakeSummaryTable from "@/components/IntakeSummaryTable";
+import PhotoAnalysisModal from "@/components/PhotoAnalysisModal";
 import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
-// === User Stats & Daily Targets ===
-const DAILY_TARGETS = {
+// Default fallback (will be overwritten by onboarding data)
+const DEFAULT_TARGETS = {
   calories: 2300,
   carbs: 320,
   protein: 120,
   fat: 60,
+  sugar: 30,
+  sodium: 2000,
 };
 
 interface MealLog {
@@ -24,12 +29,29 @@ interface MealLog {
   carbs: number;
   protein: number;
   fat: number;
+  sugar: number;
+  sodium: number;
 }
 
 export default function Home() {
+  const router = useRouter();
   const [logs, setLogs] = useState<MealLog[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [dailyTargets, setDailyTargets] = useState(DEFAULT_TARGETS);
+
+  useEffect(() => {
+    // Check for onboarding data
+    const savedTargets = localStorage.getItem("user_targets");
+    if (savedTargets) {
+      try {
+        setDailyTargets(JSON.parse(savedTargets));
+      } catch (e) {
+        console.error("Failed to parse targets", e);
+      }
+    }
+  }, []);
 
   const fetchLogs = useCallback(async () => {
     const today = format(new Date(), "yyyy-MM-dd");
@@ -58,55 +80,39 @@ export default function Home() {
       carbs: acc.carbs + log.carbs,
       protein: acc.protein + log.protein,
       fat: acc.fat + log.fat,
+      sugar: acc.sugar + (log.sugar || 0),
+      sodium: acc.sodium + (log.sodium || 0),
     }),
-    { calories: 0, carbs: 0, protein: 0, fat: 0 }
+    { calories: 0, carbs: 0, protein: 0, fat: 0, sugar: 0, sodium: 0 }
   );
 
   return (
-    <main className="min-h-screen bg-background text-foreground pb-24">
+    <main className="min-h-screen bg-background text-foreground">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border p-4">
-        <div className="max-w-md mx-auto flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">Today's Diet</h1>
-            <p className="text-sm text-muted-foreground">{format(new Date(), "EEEE, MMM do")}</p>
-          </div>
+        <div className="flex justify-between items-center">
+          <h1 className="text-xl font-bold tracking-tight">
+            {format(new Date(), "yyyy-MM-dd")} 식단관리
+          </h1>
           <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-            <span className="font-bold text-xs">JD</span>
+            <span className="font-bold text-xs">ME</span>
           </div>
         </div>
       </header>
 
-      <div className="max-w-md mx-auto p-4 space-y-8">
+      <div className="p-4 space-y-8">
         {/* Calorie Gauge Section */}
-        <section className="bg-card rounded-2xl p-6 shadow-lg border border-border/50">
+        <section className="bg-card rounded-2xl p-6 shadow-lg border border-border/50 flex flex-col items-center">
           <h2 className="text-center text-sm font-medium text-muted-foreground mb-4">Daily Intake</h2>
-          <CalorieGauge current={totals.calories} target={DAILY_TARGETS.calories} />
-
-          {/* Macro Summary */}
-          <div className="grid grid-cols-3 gap-4 mt-6 text-center">
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Carbs</p>
-              <p className="font-semibold">{totals.carbs}g <span className="text-xs text-muted-foreground">/ {DAILY_TARGETS.carbs}g</span></p>
-              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500" style={{ width: `${Math.min(100, (totals.carbs / DAILY_TARGETS.carbs) * 100)}%` }} />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Protein</p>
-              <p className="font-semibold">{totals.protein}g <span className="text-xs text-muted-foreground">/ {DAILY_TARGETS.protein}g</span></p>
-              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, (totals.protein / DAILY_TARGETS.protein) * 100)}%` }} />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Fat</p>
-              <p className="font-semibold">{totals.fat}g <span className="text-xs text-muted-foreground">/ {DAILY_TARGETS.fat}g</span></p>
-              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-amber-500" style={{ width: `${Math.min(100, (totals.fat / DAILY_TARGETS.fat) * 100)}%` }} />
-              </div>
-            </div>
+          <div className="w-48 h-48">
+            <CalorieGauge current={totals.calories} target={dailyTargets.calories} />
           </div>
+        </section>
+
+        {/* Intake Summary Table */}
+        <section>
+          <h3 className="text-lg font-bold mb-3">Today's Summary</h3>
+          <IntakeSummaryTable targets={dailyTargets} totals={totals} />
         </section>
 
         {/* Meal Table Section */}
@@ -119,21 +125,35 @@ export default function Home() {
         </section>
       </div>
 
-      {/* Floating Action Button */}
-      <div className="fixed bottom-6 left-0 right-0 flex justify-center pointer-events-none">
+      {/* Floating Action Buttons */}
+      <div className="fixed bottom-20 right-4 flex flex-col gap-3 z-40">
+        <button
+          onClick={() => setIsPhotoModalOpen(true)}
+          className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-lg rounded-full p-4 flex items-center justify-center transition-transform active:scale-95"
+          aria-label="사진 등록"
+        >
+          <Camera className="w-6 h-6" />
+        </button>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="pointer-events-auto bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-lg shadow-primary/25 rounded-full px-6 py-3 flex items-center gap-2 font-medium transform active:scale-95"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg rounded-full p-4 flex items-center justify-center transition-transform active:scale-95"
+          aria-label="식단 등록"
         >
-          <Camera className="w-5 h-5" />
-          <span>Log Meal</span>
+          <Plus className="w-6 h-6" />
         </button>
       </div>
 
-      {/* Add Meal Modal */}
-      <AddMealModal
+      {/* Food Search Modal (Replaces simple AddMealModal) */}
+      <FoodSearchModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchLogs}
+      />
+
+      {/* Photo Analysis Modal */}
+      <PhotoAnalysisModal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
         onSuccess={fetchLogs}
       />
     </main>
