@@ -1,22 +1,27 @@
-﻿# Todo
+# Todo
 
-## P0 (우선)
-- [ ] Supabase 스키마와 코드 필드 정합성 맞추기 (`sugar`, `sodium` 컬럼 추가 또는 코드 조정)
-- [ ] 한글 인코딩 깨짐 원인 파악 및 파일 인코딩 통일(UTF-8)
-- [ ] `overview.md` 요구사항 대비 구현 갭 분석표 작성
+## P0
+- [x] Google Sheets API Routes 구현 (`records`, `templates`, `user`)
+- [x] 대시보드 Sheets 연동
+- [x] 히스토리 조회/수정/삭제 구현
+- [x] 내 정보(목표값) 조회/수정 구현
+- [x] 식단 입력(수기/템플릿/사진분석) Sheets 저장 연동
 
 ## P1
-- [ ] `history` 페이지 실제 데이터 조회/필터(일간/주간) 구현
-- [ ] `my` 페이지에 사용자 신체정보/목표 표시 및 수정 기능 구현
-- [ ] 온보딩 미완료 사용자 진입 가드(초기 진입 시 `/onboarding` 유도)
-- [ ] 사진 분석 실패/파싱 실패 케이스 UX 개선(명확한 에러 메시지/재시도)
+- [ ] Supabase 완전 제거
+  - [ ] `src/lib/supabase.ts` 삭제
+  - [ ] `src/components/AddMealModal.tsx` 삭제
+  - [ ] `supabase_schema.sql` 정리 또는 제거
+  - [ ] `@supabase/supabase-js` 의존성 제거
+  - [ ] `.env.local`의 Supabase 변수 제거
+- [ ] UI 텍스트/인코딩 정리
+- [ ] 템플릿 UX 개선 (검색/선택/즐겨찾기 정책 확정)
 
 ## P2
-- [ ] 로컬 음식 데이터(`src/lib/food-data.ts`)를 DB 기반 검색으로 전환 검토
-- [ ] 테스트 전략 수립(계산 로직 단위테스트 + 핵심 플로우 통합테스트)
-- [ ] RLS 정책을 사용자 기반으로 강화
+- [ ] 에러 상태 UX 정리 (API 실패 메시지 일관화)
+- [ ] 간단한 수동 테스트 시나리오 문서화
+- [ ] README 실행 가이드 최신화
 
 ## 운영 규칙
-- 신규 작업 추가 시 이 파일에 우선 기록
-- 완료 시 체크 후 관련 변경 파일 경로를 함께 남길 것
-- 실수/회귀가 동반된 항목은 `docs/MistakeNote.md` 링크 추가
+- 작업 완료 시 체크박스 업데이트
+- 실패/회귀 발생 시 `docs/MistakeNote.md` 기록

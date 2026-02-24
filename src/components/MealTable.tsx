@@ -1,18 +1,8 @@
 "use client";
 
-interface MealLog {
-    id: string;
-    meal_type: string;
-    menu_name: string;
-    calories: number;
-    carbs: number;
-    protein: number;
-    fat: number;
-}
+import { MealRecord } from "@/lib/types";
 
-interface MealTableProps {
-    logs: MealLog[];
-}
+interface MealTableProps { logs: MealRecord[]; }
 
 export default function MealTable({ logs }: MealTableProps) {
     const mealOrder = ["breakfast", "lunch", "dinner", "snack"];
@@ -49,9 +39,9 @@ export default function MealTable({ logs }: MealTableProps) {
                                     items.map((item) => (
                                         <tr key={item.id} className="hover:bg-muted/50 transition-colors">
                                             <td className="px-4 py-3 font-medium">
-                                                <div className="line-clamp-1">{item.menu_name}</div>
+                                                <div className="line-clamp-1">{item.food_name}</div>
                                                 <div className="text-[10px] text-muted-foreground sm:hidden">
-                                                    C:{item.carbs} P:{item.protein} F:{item.fat}
+                                                    {item.amount}g | C:{item.carbs} P:{item.protein} F:{item.fat}
                                                 </div>
                                             </td>
                                             <td className="px-3 py-3 text-right font-medium">{item.calories}</td>

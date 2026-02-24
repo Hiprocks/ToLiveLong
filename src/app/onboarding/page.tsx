@@ -27,12 +27,22 @@ export default function OnboardingPage() {
     };
 
     const handleStart = () => {
-        if (targets) {
-            // Save to localStorage for MVP persistence
-            localStorage.setItem("user_targets", JSON.stringify(targets));
-            localStorage.setItem("user_stats", JSON.stringify(stats));
+        if (!targets) return;
+
+        const saveTargets = async () => {
+            const response = await fetch("/api/sheets/user", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(targets),
+            });
+            if (!response.ok) throw new Error("Failed to save targets");
             router.push("/");
-        }
+        };
+
+        void saveTargets().catch((error) => {
+            console.error(error);
+            alert("Failed to save target values.");
+        });
     };
 
     if (step === "result" && targets) {

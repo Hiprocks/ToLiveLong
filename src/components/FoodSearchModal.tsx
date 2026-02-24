@@ -1,241 +1,310 @@
 "use client";
 
-import { useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { X, Search, Star, Check } from "lucide-react";
-import { COMMON_FOODS, FoodItem } from "@/lib/food-data";
+import { useEffect, useMemo, useState } from "react";
+import { Check, Search, X } from "lucide-react";
+import { MealRecord, MealType, TemplateItem } from "@/lib/types";
 
 interface FoodSearchModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onSuccess: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => Promise<void> | void;
 }
+
+interface FormState {
+  meal_type: MealType;
+  food_name: string;
+  amount: number;
+  calories: number;
+  carbs: number;
+  protein: number;
+  fat: number;
+  sugar: number;
+  sodium: number;
+}
+
+const initialForm: FormState = {
+  meal_type: "breakfast",
+  food_name: "",
+  amount: 100,
+  calories: 0,
+  carbs: 0,
+  protein: 0,
+  fat: 0,
+  sugar: 0,
+  sodium: 0,
+};
+
+const mealTypes: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 
 export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSearchModalProps) {
-    const [searchTerm, setSearchTerm] = useState("");
-    const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
-    const [servingSize, setServingSize] = useState(100); // grams or ratio %
-    const [isFavorite, setIsFavorite] = useState(false);
-    const [mealType, setMealType] = useState("breakfast");
-    const [favorites, setFavorites] = useState<string[]>(() => {
-        if (typeof window === "undefined") return [];
+  const [mode, setMode] = useState<"manual" | "template">("manual");
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState("");
+  const [templates, setTemplates] = useState<TemplateItem[]>([]);
+  const [form, setForm] = useState<FormState>(initialForm);
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateItem | null>(null);
+  const [saveAsTemplate, setSaveAsTemplate] = useState(true);
 
-        const savedFavs = localStorage.getItem("favorites");
-        if (!savedFavs) return [];
+  useEffect(() => {
+    if (!isOpen) return;
 
-        try {
-            const parsed: unknown = JSON.parse(savedFavs);
-            if (!Array.isArray(parsed)) return [];
-            return parsed.filter((item): item is string => typeof item === "string");
-        } catch {
-            return [];
-        }
-    });
-
-    const toggleFavorite = (foodId: string) => {
-        let newFavs;
-        if (favorites.includes(foodId)) {
-            newFavs = favorites.filter(id => id !== foodId);
-        } else {
-            newFavs = [...favorites, foodId];
-        }
-        setFavorites(newFavs);
-        localStorage.setItem("favorites", JSON.stringify(newFavs));
-        if (selectedFood?.id === foodId) {
-            setIsFavorite(!isFavorite);
-        }
+    let isActive = true;
+    const loadTemplates = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/sheets/templates", { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to load templates");
+        const data = (await res.json()) as TemplateItem[];
+        if (isActive) setTemplates(data);
+      } catch (error) {
+        if (isActive) console.error(error);
+      } finally {
+        if (isActive) setLoading(false);
+      }
     };
 
-    const filteredFoods = COMMON_FOODS.filter((food) =>
-        food.name.toLowerCase().includes(searchTerm.toLowerCase())
-    ).sort((a, b) => {
-        // Sort favorites to top
-        const aFav = favorites.includes(a.id);
-        const bFav = favorites.includes(b.id);
-        if (aFav && !bFav) return -1;
-        if (!aFav && bFav) return 1;
-        return 0;
-    });
-
-    const handleSelectFood = (food: FoodItem) => {
-        setSelectedFood(food);
-        setServingSize(100); // Default to 100g/1 serving
-        setIsFavorite(favorites.includes(food.id));
+    void loadTemplates();
+    return () => {
+      isActive = false;
     };
+  }, [isOpen]);
 
-    const handleSave = async () => {
-        if (!selectedFood) return;
+  const filteredTemplates = useMemo(
+    () =>
+      templates.filter((item) =>
+        item.food_name.toLowerCase().includes(query.trim().toLowerCase())
+      ),
+    [query, templates]
+  );
 
-        // Calculate nutrition based on serving size (assuming base data is per 100g or 1 serving unit which we treat as 100 'units' for simplicity in this MVP logic, 
-        // but for items like "1 Apple", 100 means 100% of that item. For "Chicken 100g", 100 means 100g.
-        // Let's simplify: The ratio is servingSize / 100.
-        const ratio = servingSize / 100;
+  const applyTemplate = (template: TemplateItem) => {
+    const ratio = form.amount / template.base_amount;
+    setSelectedTemplate(template);
+    setForm((prev) => ({
+      ...prev,
+      food_name: template.food_name,
+      calories: Math.round(template.calories * ratio),
+      carbs: Math.round(template.carbs * ratio),
+      protein: Math.round(template.protein * ratio),
+      fat: Math.round(template.fat * ratio),
+      sugar: Math.round(template.sugar * ratio),
+      sodium: Math.round(template.sodium * ratio),
+    }));
+  };
 
-        const { error } = await supabase.from("daily_logs").insert({
-            meal_type: mealType,
-            menu_name: selectedFood.name,
-            calories: Math.round(selectedFood.calories * ratio),
-            carbs: Math.round(selectedFood.carbs * ratio),
-            protein: Math.round(selectedFood.protein * ratio),
-            fat: Math.round(selectedFood.fat * ratio),
-            sugar: Math.round(selectedFood.sugar * ratio),
-            sodium: Math.round(selectedFood.sodium * ratio),
-        });
+  const recalculateByAmount = (nextAmount: number) => {
+    setForm((prev) => ({ ...prev, amount: nextAmount }));
+    if (!selectedTemplate) return;
 
-        if (error) {
-            console.error("Error saving log:", error);
-            alert("Failed to save.");
-        } else {
-            onSuccess();
-            handleClose();
-        }
-    };
+    const ratio = nextAmount / selectedTemplate.base_amount;
+    setForm((prev) => ({
+      ...prev,
+      amount: nextAmount,
+      calories: Math.round(selectedTemplate.calories * ratio),
+      carbs: Math.round(selectedTemplate.carbs * ratio),
+      protein: Math.round(selectedTemplate.protein * ratio),
+      fat: Math.round(selectedTemplate.fat * ratio),
+      sugar: Math.round(selectedTemplate.sugar * ratio),
+      sodium: Math.round(selectedTemplate.sodium * ratio),
+    }));
+  };
 
-    const handleClose = () => {
-        setSearchTerm("");
-        setSelectedFood(null);
-        onClose();
-    };
+  const resetForm = () => {
+    setMode("manual");
+    setQuery("");
+    setSelectedTemplate(null);
+    setForm(initialForm);
+    setSaveAsTemplate(true);
+  };
 
-    if (!isOpen) return null;
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
 
-    return (
-        <div className="fixed inset-0 z-50 flex flex-col bg-background animate-in slide-in-from-bottom duration-300">
-            {/* Header */}
-            <div className="flex items-center gap-3 p-4 border-b border-border">
-                <button onClick={handleClose} className="p-2 hover:bg-muted rounded-full">
-                    <X className="w-6 h-6" />
-                </button>
-                <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <input
-                        type="text"
-                        placeholder="Search food (e.g. Chicken)"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-muted/50 rounded-full pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                        autoFocus
-                    />
-                </div>
-            </div>
+  const handleSave = async () => {
+    if (!form.food_name.trim()) {
+      alert("Food name is required.");
+      return;
+    }
 
-            {/* List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2 pb-32">
-                {filteredFoods.map((food) => (
-                    <div
-                        key={food.id}
-                        onClick={() => handleSelectFood(food)}
-                        className="flex items-center justify-between p-4 rounded-xl border border-border bg-card hover:bg-muted/50 active:scale-[0.98] transition-all cursor-pointer"
-                    >
-                        <div>
-                            <div className="font-medium flex items-center gap-2">
-                                {food.name}
-                                {favorites.includes(food.id) && <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />}
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                                {food.calories} kcal / 100g (or 1 serving)
-                            </div>
-                        </div>
-                        <div className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md">
-                            + Add
-                        </div>
-                    </div>
-                ))}
-                {filteredFoods.length === 0 && (
-                    <div className="text-center text-muted-foreground py-12">
-                        No foods found.
-                    </div>
-                )}
-            </div>
+    setSaving(true);
+    try {
+      const payload: Partial<MealRecord> & { saveAsTemplate?: boolean } = {
+        date: new Date().toISOString().slice(0, 10),
+        meal_type: form.meal_type,
+        food_name: form.food_name.trim(),
+        amount: form.amount,
+        calories: form.calories,
+        carbs: form.carbs,
+        protein: form.protein,
+        fat: form.fat,
+        sugar: form.sugar,
+        sodium: form.sodium,
+        saveAsTemplate: saveAsTemplate && mode === "manual",
+      };
 
-            {/* Bottom Drawer for Selected Food */}
-            {selectedFood && (
-                <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.2)] p-6 z-50 animate-in slide-in-from-bottom duration-300">
-                    <div className="max-w-md mx-auto space-y-6">
-                        <div className="flex justify-center -mt-2 mb-2">
-                            <div className="w-12 h-1.5 bg-muted rounded-full" />
-                        </div>
+      const res = await fetch("/api/sheets/records", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Failed to save record");
 
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h3 className="text-xl font-bold">{selectedFood.name}</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    {Math.round(selectedFood.calories * (servingSize / 100))} kcal
-                                </p>
-                            </div>
-                            <button
-                                onClick={(e) => { e.stopPropagation(); toggleFavorite(selectedFood.id); }}
-                                className="p-2 hover:bg-muted rounded-full transition-colors"
-                            >
-                                <Star className={`w-6 h-6 ${isFavorite ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} />
-                            </button>
-                        </div>
+      await onSuccess();
+      handleClose();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to save record.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-                        <div className="space-y-4">
-                            {/* Meal Type Selector */}
-                            <div className="flex gap-2 overflow-x-auto pb-2">
-                                {["breakfast", "lunch", "dinner", "snack"].map(type => (
-                                    <button
-                                        key={type}
-                                        onClick={() => setMealType(type)}
-                                        className={`px-4 py-2 rounded-full text-sm font-medium capitalize whitespace-nowrap transition-colors ${mealType === type
-                                                ? "bg-primary text-primary-foreground"
-                                                : "bg-muted text-muted-foreground hover:bg-muted/80"
-                                            }`}
-                                    >
-                                        {type}
-                                    </button>
-                                ))}
-                            </div>
+  if (!isOpen) return null;
 
-                            {/* Serving Size Slider */}
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Amount</span>
-                                    <span className="font-bold">{servingSize}% (approx. {servingSize}g)</span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min="10"
-                                    max="500"
-                                    step="10"
-                                    value={servingSize}
-                                    onChange={(e) => setServingSize(Number(e.target.value))}
-                                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                                />
-                                <div className="flex justify-between text-xs text-muted-foreground">
-                                    <span>0.1x</span>
-                                    <span>1.0x</span>
-                                    <span>5.0x</span>
-                                </div>
-                            </div>
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-background animate-in slide-in-from-bottom duration-300">
+      <div className="flex items-center gap-3 p-4 border-b border-border">
+        <button onClick={handleClose} className="p-2 hover:bg-muted rounded-full">
+          <X className="w-6 h-6" />
+        </button>
+        <h2 className="text-lg font-semibold">Add Meal</h2>
+      </div>
 
-                            {/* Macro Preview */}
-                            <div className="grid grid-cols-3 gap-2 text-center text-xs bg-muted/30 p-3 rounded-xl">
-                                <div>
-                                    <div className="text-muted-foreground">Carbs</div>
-                                    <div className="font-semibold">{Math.round(selectedFood.carbs * (servingSize / 100))}g</div>
-                                </div>
-                                <div>
-                                    <div className="text-muted-foreground">Protein</div>
-                                    <div className="font-semibold text-emerald-600">{Math.round(selectedFood.protein * (servingSize / 100))}g</div>
-                                </div>
-                                <div>
-                                    <div className="text-muted-foreground">Fat</div>
-                                    <div className="font-semibold">{Math.round(selectedFood.fat * (servingSize / 100))}g</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <button
-                            onClick={handleSave}
-                            className="w-full bg-primary text-primary-foreground font-bold py-4 rounded-xl shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all active:scale-95 flex items-center justify-center gap-2"
-                        >
-                            <Check className="w-5 h-5" /> Add to Log
-                        </button>
-                    </div>
-                </div>
-            )}
+      <div className="p-4 border-b border-border">
+        <div className="grid grid-cols-2 gap-2 bg-muted p-1 rounded-xl">
+          <button
+            onClick={() => setMode("manual")}
+            className={`py-2 text-sm rounded-lg ${mode === "manual" ? "bg-background" : ""}`}
+          >
+            Manual
+          </button>
+          <button
+            onClick={() => setMode("template")}
+            className={`py-2 text-sm rounded-lg ${mode === "template" ? "bg-background" : ""}`}
+          >
+            Template
+          </button>
         </div>
-    );
+      </div>
+
+      {mode === "template" && (
+        <div className="p-4 border-b border-border">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search templates"
+              className="w-full bg-muted/50 rounded-full pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+          <div className="max-h-40 overflow-y-auto mt-3 space-y-2">
+            {loading && <p className="text-sm text-muted-foreground">Loading templates...</p>}
+            {!loading &&
+              filteredTemplates.map((template) => (
+                <button
+                  key={template.id}
+                  onClick={() => applyTemplate(template)}
+                  className="w-full text-left p-3 border border-border rounded-lg hover:bg-muted/40"
+                >
+                  <p className="font-medium">{template.food_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {template.base_amount}g / {template.calories} kcal
+                  </p>
+                </button>
+              ))}
+          </div>
+        </div>
+      )}
+
+      <div className="p-4 space-y-4 overflow-y-auto">
+        <div className="grid grid-cols-2 gap-2">
+          {mealTypes.map((type) => (
+            <button
+              key={type}
+              onClick={() => setForm((prev) => ({ ...prev, meal_type: type }))}
+              className={`py-2 rounded-lg capitalize ${
+                form.meal_type === type ? "bg-primary text-primary-foreground" : "bg-muted"
+              }`}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+
+        <div>
+          <label className="text-sm text-muted-foreground">Food Name</label>
+          <input
+            type="text"
+            value={form.food_name}
+            onChange={(e) => setForm((prev) => ({ ...prev, food_name: e.target.value }))}
+            className="w-full bg-input border border-border rounded-lg px-3 py-2 mt-1"
+          />
+        </div>
+
+        <div>
+          <label className="text-sm text-muted-foreground">Amount (g)</label>
+          <input
+            type="number"
+            value={form.amount}
+            min={1}
+            onChange={(e) => recalculateByAmount(Number(e.target.value))}
+            className="w-full bg-input border border-border rounded-lg px-3 py-2 mt-1"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {(
+            [
+              ["calories", "Calories"],
+              ["carbs", "Carbs (g)"],
+              ["protein", "Protein (g)"],
+              ["fat", "Fat (g)"],
+              ["sugar", "Sugar (g)"],
+              ["sodium", "Sodium (mg)"],
+            ] as const
+          ).map(([key, label]) => (
+            <div key={key}>
+              <label className="text-sm text-muted-foreground">{label}</label>
+              <input
+                type="number"
+                value={form[key]}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, [key]: Number(e.target.value) || 0 }))
+                }
+                className="w-full bg-input border border-border rounded-lg px-3 py-2 mt-1"
+              />
+            </div>
+          ))}
+        </div>
+
+        {mode === "manual" && (
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={saveAsTemplate}
+              onChange={(e) => setSaveAsTemplate(e.target.checked)}
+            />
+            Save as template
+          </label>
+        )}
+      </div>
+
+      <div className="p-4 border-t border-border">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full bg-primary text-primary-foreground font-bold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          <Check className="w-5 h-5" />
+          {saving ? "Saving..." : "Save Record"}
+        </button>
+      </div>
+    </div>
+  );
 }
+
