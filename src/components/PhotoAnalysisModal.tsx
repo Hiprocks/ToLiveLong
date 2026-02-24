@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { X, Upload, Camera, Loader2, Check } from "lucide-react";
+import { X, Camera, Loader2, Check } from "lucide-react";
 import Image from "next/image";
 
 interface PhotoAnalysisModalProps {
@@ -14,7 +14,6 @@ interface PhotoAnalysisModalProps {
 export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: PhotoAnalysisModalProps) {
     const [step, setStep] = useState<"upload" | "analyzing" | "confirm">("upload");
     const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const [imageFile, setImageFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [formData, setFormData] = useState({
@@ -31,7 +30,6 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: Photo
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            setImageFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
                 setImagePreview(reader.result as string);
@@ -71,7 +69,6 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: Photo
             alert("Failed to analyze image. Please try again.");
             setStep("upload");
             setImagePreview(null);
-            setImageFile(null);
         }
     };
 
@@ -100,7 +97,6 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: Photo
     const handleClose = () => {
         setStep("upload");
         setImagePreview(null);
-        setImageFile(null);
         setFormData({
             meal_type: "breakfast",
             menu_name: "",

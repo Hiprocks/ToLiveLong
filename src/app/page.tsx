@@ -9,7 +9,6 @@ import FoodSearchModal from "@/components/FoodSearchModal";
 import IntakeSummaryTable from "@/components/IntakeSummaryTable";
 import PhotoAnalysisModal from "@/components/PhotoAnalysisModal";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
 
 // Default fallback (will be overwritten by onboarding data)
 const DEFAULT_TARGETS = {
@@ -34,24 +33,23 @@ interface MealLog {
 }
 
 export default function Home() {
-  const router = useRouter();
   const [logs, setLogs] = useState<MealLog[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [dailyTargets, setDailyTargets] = useState(DEFAULT_TARGETS);
+  const [dailyTargets] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_TARGETS;
 
-  useEffect(() => {
-    // Check for onboarding data
     const savedTargets = localStorage.getItem("user_targets");
-    if (savedTargets) {
-      try {
-        setDailyTargets(JSON.parse(savedTargets));
-      } catch (e) {
-        console.error("Failed to parse targets", e);
-      }
+    if (!savedTargets) return DEFAULT_TARGETS;
+
+    try {
+      return JSON.parse(savedTargets);
+    } catch (e) {
+      console.error("Failed to parse targets", e);
+      return DEFAULT_TARGETS;
     }
-  }, []);
+  });
 
   const fetchLogs = useCallback(async () => {
     const today = format(new Date(), "yyyy-MM-dd");
@@ -70,8 +68,32 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+    let isActive = true;
+
+    const loadLogs = async () => {
+      const today = format(new Date(), "yyyy-MM-dd");
+      const { data, error } = await supabase
+        .from("daily_logs")
+        .select("*")
+        .eq("date", today)
+        .order("created_at", { ascending: true });
+
+      if (!isActive) return;
+
+      if (error) {
+        console.error("Error fetching logs:", error);
+      } else {
+        setLogs(data || []);
+      }
+      setLoading(false);
+    };
+
+    void loadLogs();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   // Calculate totals
   const totals = logs.reduce(
@@ -111,7 +133,7 @@ export default function Home() {
 
         {/* Intake Summary Table */}
         <section>
-          <h3 className="text-lg font-bold mb-3">Today's Summary</h3>
+          <h3 className="text-lg font-bold mb-3">Today&apos;s Summary</h3>
           <IntakeSummaryTable targets={dailyTargets} totals={totals} />
         </section>
 

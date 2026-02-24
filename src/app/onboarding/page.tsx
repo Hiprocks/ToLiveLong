@@ -87,7 +87,7 @@ export default function OnboardingPage() {
         <main className="min-h-screen bg-background p-6 flex flex-col justify-center max-w-md mx-auto">
             <div className="mb-8 space-y-2">
                 <h1 className="text-3xl font-bold tracking-tight">Welcome</h1>
-                <p className="text-muted-foreground">Let's calculate your personalized diet plan.</p>
+                <p className="text-muted-foreground">Let&apos;s calculate your personalized diet plan.</p>
             </div>
 
             <div className="space-y-6">
@@ -155,7 +155,12 @@ export default function OnboardingPage() {
                     </label>
                     <select
                         value={stats.activityLevel}
-                        onChange={(e) => setStats({ ...stats, activityLevel: e.target.value as any })}
+                        onChange={(e) =>
+                            setStats({
+                                ...stats,
+                                activityLevel: e.target.value as UserStats["activityLevel"],
+                            })
+                        }
                         className="w-full bg-input border border-border rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none appearance-none"
                     >
                         <option value="sedentary">Sedentary (Office job, little exercise)</option>

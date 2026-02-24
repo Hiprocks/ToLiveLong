@@ -1,7 +1,5 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
-
 interface MealLog {
     id: string;
     meal_type: string;

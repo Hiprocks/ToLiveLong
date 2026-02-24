@@ -1,7 +1,7 @@
 "use client";
 
 import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from "recharts";
-import { useState, useEffect } from "react";
+import { useSyncExternalStore } from "react";
 
 interface CalorieGaugeProps {
   current: number;
@@ -9,11 +9,11 @@ interface CalorieGaugeProps {
 }
 
 export default function CalorieGauge({ current, target }: CalorieGaugeProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const percentage = Math.min(100, (current / target) * 100);
   const data = [{ name: "Calories", value: percentage, fill: "var(--color-primary)" }];

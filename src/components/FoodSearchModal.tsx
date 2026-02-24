@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { X, Search, Star, ChevronUp, Check, Plus } from "lucide-react";
+import { X, Search, Star, Check } from "lucide-react";
 import { COMMON_FOODS, FoodItem } from "@/lib/food-data";
 
 interface FoodSearchModalProps {
@@ -17,15 +17,20 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
     const [servingSize, setServingSize] = useState(100); // grams or ratio %
     const [isFavorite, setIsFavorite] = useState(false);
     const [mealType, setMealType] = useState("breakfast");
-    const [favorites, setFavorites] = useState<string[]>([]);
+    const [favorites, setFavorites] = useState<string[]>(() => {
+        if (typeof window === "undefined") return [];
 
-    // Load favorites from local storage
-    useEffect(() => {
         const savedFavs = localStorage.getItem("favorites");
-        if (savedFavs) {
-            setFavorites(JSON.parse(savedFavs));
+        if (!savedFavs) return [];
+
+        try {
+            const parsed: unknown = JSON.parse(savedFavs);
+            if (!Array.isArray(parsed)) return [];
+            return parsed.filter((item): item is string => typeof item === "string");
+        } catch {
+            return [];
         }
-    }, []);
+    });
 
     const toggleFavorite = (foodId: string) => {
         let newFavs;

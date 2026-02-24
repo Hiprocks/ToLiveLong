@@ -1,6 +1,6 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const fs = require("fs");
-const path = require("path");
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import fs from "node:fs";
+import path from "node:path";
 
 async function test() {
     try {
