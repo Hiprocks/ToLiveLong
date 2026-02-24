@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DailyTargets } from "@/lib/types";
 import { appendRow, listRows, parseUserTargets, RANGES, updateRow } from "@/lib/sheets";
+import { parseNonNegativeNumber, ValidationError } from "@/lib/apiValidation";
+import { assertSameOrigin, AuthorizationError } from "@/lib/apiGuard";
 
 const defaultTargets: DailyTargets = {
   calories: 2300,
@@ -24,14 +26,21 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   try {
+    assertSameOrigin(req);
     const body = (await req.json()) as Partial<DailyTargets>;
     const targets: DailyTargets = {
-      calories: Number(body.calories ?? defaultTargets.calories),
-      carbs: Number(body.carbs ?? defaultTargets.carbs),
-      protein: Number(body.protein ?? defaultTargets.protein),
-      fat: Number(body.fat ?? defaultTargets.fat),
-      sugar: Number(body.sugar ?? defaultTargets.sugar),
-      sodium: Number(body.sodium ?? defaultTargets.sodium),
+      calories: parseNonNegativeNumber(body.calories ?? defaultTargets.calories, "calories", {
+        max: 20000,
+      }),
+      carbs: parseNonNegativeNumber(body.carbs ?? defaultTargets.carbs, "carbs", { max: 5000 }),
+      protein: parseNonNegativeNumber(body.protein ?? defaultTargets.protein, "protein", {
+        max: 5000,
+      }),
+      fat: parseNonNegativeNumber(body.fat ?? defaultTargets.fat, "fat", { max: 5000 }),
+      sugar: parseNonNegativeNumber(body.sugar ?? defaultTargets.sugar, "sugar", { max: 5000 }),
+      sodium: parseNonNegativeNumber(body.sodium ?? defaultTargets.sodium, "sodium", {
+        max: 100000,
+      }),
     };
 
     const rows = await listRows(RANGES.user);
@@ -53,7 +62,9 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json(targets);
   } catch (error) {
     console.error(error);
+    if (error instanceof ValidationError || error instanceof AuthorizationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     return NextResponse.json({ error: "Failed to update user targets" }, { status: 500 });
   }
 }
-

@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { Camera, Check, Loader2, X } from "lucide-react";
+import ErrorBanner from "@/components/ErrorBanner";
+import { getLocalDateString } from "@/lib/date";
 import { MealType } from "@/lib/types";
 
 interface PhotoAnalysisModalProps {
@@ -41,6 +43,7 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: Photo
   const [saveAsTemplate, setSaveAsTemplate] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<FormDataState>(initialState);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,10 +80,11 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: Photo
         sugar: Number(result.sugar ?? 0),
         sodium: Number(result.sodium ?? 0),
       }));
+      setErrorMessage(null);
       setStep("confirm");
     } catch (error) {
       console.error(error);
-      alert("Failed to analyze image.");
+      setErrorMessage("이미지 분석에 실패했습니다.");
       setStep("upload");
       setImagePreview(null);
     }
@@ -93,18 +97,22 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: Photo
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          date: new Date().toISOString().slice(0, 10),
+          date: getLocalDateString(),
           ...formData,
           saveAsTemplate,
         }),
       });
-      if (!response.ok) throw new Error("Save failed");
+      if (!response.ok) {
+        const result = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(result?.error || "Save failed");
+      }
 
+      setErrorMessage(null);
       await onSuccess();
       handleClose();
     } catch (error) {
       console.error(error);
-      alert("Failed to save.");
+      setErrorMessage(error instanceof Error ? error.message : "저장에 실패했습니다.");
     } finally {
       setSaving(false);
     }
@@ -115,6 +123,7 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: Photo
     setImagePreview(null);
     setSaveAsTemplate(true);
     setFormData(initialState);
+    setErrorMessage(null);
     onClose();
   };
 
@@ -131,6 +140,7 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: Photo
         </div>
 
         <div className="overflow-y-auto p-4 space-y-6">
+          <ErrorBanner message={errorMessage} />
           {step === "upload" && (
             <div
               onClick={() => fileInputRef.current?.click()}
@@ -302,4 +312,3 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: Photo
     </div>
   );
 }
-

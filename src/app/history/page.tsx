@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ErrorBanner from "@/components/ErrorBanner";
+import { getLocalDateString } from "@/lib/date";
 import { MealRecord } from "@/lib/types";
 
-const today = new Date().toISOString().slice(0, 10);
+const today = getLocalDateString();
 
 export default function HistoryPage() {
   const [date, setDate] = useState(today);
   const [records, setRecords] = useState<MealRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<MealRecord | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const load = async (targetDate: string) => {
     setLoading(true);
@@ -20,9 +23,10 @@ export default function HistoryPage() {
       if (!response.ok) throw new Error("Failed to load records");
       const data = (await response.json()) as MealRecord[];
       setRecords(data);
+      setErrorMessage(null);
     } catch (error) {
       console.error(error);
-      alert("Failed to load history.");
+      setErrorMessage("히스토리 조회에 실패했습니다.");
     } finally {
       setLoading(false);
     }
@@ -44,9 +48,10 @@ export default function HistoryPage() {
     if (!confirm("Delete this record?")) return;
     const response = await fetch(`/api/sheets/records/${id}`, { method: "DELETE" });
     if (!response.ok) {
-      alert("Delete failed.");
+      setErrorMessage("삭제에 실패했습니다.");
       return;
     }
+    setErrorMessage(null);
     await load(date);
   };
 
@@ -58,9 +63,10 @@ export default function HistoryPage() {
       body: JSON.stringify(editing),
     });
     if (!response.ok) {
-      alert("Update failed.");
+      setErrorMessage("수정에 실패했습니다.");
       return;
     }
+    setErrorMessage(null);
     setEditing(null);
     await load(date);
   };
@@ -68,6 +74,7 @@ export default function HistoryPage() {
   return (
     <main className="p-4 space-y-4 pb-24">
       <h1 className="text-2xl font-bold">History</h1>
+      <ErrorBanner message={errorMessage} />
       <div className="flex items-center gap-3">
         <label className="text-sm text-muted-foreground">Date</label>
         <input
@@ -196,4 +203,3 @@ export default function HistoryPage() {
     </main>
   );
 }
-

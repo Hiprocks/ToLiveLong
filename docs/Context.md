@@ -31,9 +31,14 @@
   - `src/app/my/page.tsx` 목표값 조회/수정
   - `src/components/FoodSearchModal.tsx` 수기/템플릿 입력 + 저장
   - `src/components/PhotoAnalysisModal.tsx` 분석 결과 저장 + 템플릿 저장 옵션
-- 남은 정리:
-  - Supabase 관련 잔존 파일/의존성 제거
-  - `.env.local` 변수 전환 정리
+  - Supabase 관련 잔존 파일/의존성 제거 완료
+  - API 입력 검증/에러 응답 표준화 적용
+  - same-origin 쓰기 가드 적용
+  - 기록 저장 시 템플릿 저장 실패 롤백 처리
+  - 레코드 조회/수정/삭제에서 전체 시트 스캔 최소화
+  - 공통 에러 배너 UI 적용 (`src/components/ErrorBanner.tsx`)
+  - 날짜 처리 로컬 포맷 유틸 통일 (`src/lib/date.ts`)
+  - 템플릿 모달 메모리 캐시 적용 (60초)
 
 ## 5) Google Sheets 구조
 ### Sheet: `records`
@@ -46,10 +51,10 @@
 - 컬럼: `daily_calories`, `carbs`, `protein`, `fat`, `sugar`, `sodium`
 
 ## 6) API Routes
-- `GET /api/sheets/records`: 날짜 기준 기록 조회
+- `GET /api/sheets/records`: 날짜 기준 기록 조회 (날짜 컬럼 인덱싱 조회)
 - `POST /api/sheets/records`: 기록 추가 (옵션: 템플릿 저장)
-- `PUT /api/sheets/records/[id]`: 기록 수정
-- `DELETE /api/sheets/records/[id]`: 기록 삭제
+- `PUT /api/sheets/records/[id]`: 기록 수정 (id 컬럼 기반 조회)
+- `DELETE /api/sheets/records/[id]`: 기록 삭제 (id 컬럼 기반 조회)
 - `GET /api/sheets/templates`: 템플릿 목록 조회
 - `POST /api/sheets/templates`: 템플릿 추가
 - `GET /api/sheets/user`: 목표값 조회
@@ -59,12 +64,16 @@
 ## 7) 디렉터리 핵심
 - `src/lib/sheets.ts`: Sheets 인증/CRUD 유틸
 - `src/lib/types.ts`: 공통 타입
+- `src/lib/apiValidation.ts`: API 입력 검증
+- `src/lib/apiGuard.ts`: same-origin 쓰기 요청 가드
+- `src/lib/date.ts`: 로컬 날짜 포맷 유틸
 - `src/app/api/sheets/*`: Sheets API 라우트
 - `src/app/page.tsx`: 오늘 대시보드
 - `src/app/history/page.tsx`: 날짜별 기록 관리
 - `src/app/my/page.tsx`: 목표값 관리
 - `src/components/FoodSearchModal.tsx`: 수기/템플릿 입력
 - `src/components/PhotoAnalysisModal.tsx`: 사진 분석 입력
+- `src/components/ErrorBanner.tsx`: 공통 에러 표시
 
 ## 8) 환경 변수
 - `GOOGLE_SHEETS_ID`

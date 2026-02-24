@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Check, Search, X } from "lucide-react";
+import ErrorBanner from "@/components/ErrorBanner";
+import { getLocalDateString } from "@/lib/date";
 import { MealRecord, MealType, TemplateItem } from "@/lib/types";
 
 interface FoodSearchModalProps {
@@ -35,6 +37,8 @@ const initialForm: FormState = {
 };
 
 const mealTypes: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
+const TEMPLATE_CACHE_TTL_MS = 60 * 1000;
+let templateCache: { expiresAt: number; data: TemplateItem[] } | null = null;
 
 export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSearchModalProps) {
   const [mode, setMode] = useState<"manual" | "template">("manual");
@@ -45,9 +49,15 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
   const [form, setForm] = useState<FormState>(initialForm);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateItem | null>(null);
   const [saveAsTemplate, setSaveAsTemplate] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
+
+    if (templateCache && templateCache.expiresAt > Date.now()) {
+      setTemplates(templateCache.data);
+      return;
+    }
 
     let isActive = true;
     const loadTemplates = async () => {
@@ -56,9 +66,16 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
         const res = await fetch("/api/sheets/templates", { cache: "no-store" });
         if (!res.ok) throw new Error("Failed to load templates");
         const data = (await res.json()) as TemplateItem[];
-        if (isActive) setTemplates(data);
+        if (isActive) {
+          setTemplates(data);
+          templateCache = { data, expiresAt: Date.now() + TEMPLATE_CACHE_TTL_MS };
+          setErrorMessage(null);
+        }
       } catch (error) {
-        if (isActive) console.error(error);
+        if (isActive) {
+          console.error(error);
+          setErrorMessage("템플릿 목록을 불러오지 못했습니다.");
+        }
       } finally {
         if (isActive) setLoading(false);
       }
@@ -116,6 +133,7 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
     setSelectedTemplate(null);
     setForm(initialForm);
     setSaveAsTemplate(true);
+    setErrorMessage(null);
   };
 
   const handleClose = () => {
@@ -125,14 +143,14 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
 
   const handleSave = async () => {
     if (!form.food_name.trim()) {
-      alert("Food name is required.");
+      setErrorMessage("음식 이름을 입력해주세요.");
       return;
     }
 
     setSaving(true);
     try {
       const payload: Partial<MealRecord> & { saveAsTemplate?: boolean } = {
-        date: new Date().toISOString().slice(0, 10),
+        date: getLocalDateString(),
         meal_type: form.meal_type,
         food_name: form.food_name.trim(),
         amount: form.amount,
@@ -150,13 +168,20 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Failed to save record");
+      if (!res.ok) {
+        const result = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(result?.error || "Failed to save record");
+      }
 
+      if (saveAsTemplate && mode === "manual") {
+        templateCache = null;
+      }
+      setErrorMessage(null);
       await onSuccess();
       handleClose();
     } catch (error) {
       console.error(error);
-      alert("Failed to save record.");
+      setErrorMessage(error instanceof Error ? error.message : "저장에 실패했습니다.");
     } finally {
       setSaving(false);
     }
@@ -174,6 +199,7 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
       </div>
 
       <div className="p-4 border-b border-border">
+        <ErrorBanner message={errorMessage} />
         <div className="grid grid-cols-2 gap-2 bg-muted p-1 rounded-xl">
           <button
             onClick={() => setMode("manual")}
@@ -307,4 +333,3 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
     </div>
   );
 }
-

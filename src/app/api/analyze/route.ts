@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { assertSameOrigin, AuthorizationError } from "@/lib/apiGuard";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function POST(req: NextRequest) {
     try {
+        assertSameOrigin(req);
         const formData = await req.formData();
         const file = formData.get("image") as File;
 
@@ -57,6 +59,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(data);
     } catch (error) {
         console.error("Error analyzing image:", error);
+        if (error instanceof AuthorizationError) {
+            return NextResponse.json({ error: error.message }, { status: error.status });
+        }
         return NextResponse.json(
             { error: "Failed to analyze image" },
             { status: 500 }

@@ -44,11 +44,17 @@
 | sodium | number | 목표 나트륨(mg) |
 
 ## API 매핑
-- `GET /api/sheets/records`: 날짜 기준 조회
-- `POST /api/sheets/records`: 기록 추가
-- `PUT /api/sheets/records/[id]`: 기록 수정
-- `DELETE /api/sheets/records/[id]`: 기록 삭제
+- `GET /api/sheets/records`: 날짜 기준 조회 (날짜 컬럼 우선 조회)
+- `POST /api/sheets/records`: 기록 추가 (옵션: 템플릿 저장, 실패 시 롤백)
+- `PUT /api/sheets/records/[id]`: 기록 수정 (id 컬럼 기반 대상 행 조회)
+- `DELETE /api/sheets/records/[id]`: 기록 삭제 (id 컬럼 기반 대상 행 조회)
 - `GET /api/sheets/templates`: 템플릿 조회
 - `POST /api/sheets/templates`: 템플릿 추가
 - `GET /api/sheets/user`: 목표값 조회
 - `PUT /api/sheets/user`: 목표값 수정
+
+## 검증/보안 규칙
+- 숫자 필드는 음수 불가, 상한값 검증 적용
+- `date`는 `YYYY-MM-DD` 형식 검증
+- `meal_type`은 `breakfast/lunch/dinner/snack`만 허용
+- 쓰기 요청(POST/PUT/DELETE)은 same-origin 가드 적용

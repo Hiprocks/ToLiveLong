@@ -2,10 +2,16 @@ import { google, sheets_v4 } from "googleapis";
 import { DailyTargets, MealRecord, TemplateItem } from "@/lib/types";
 
 const RECORDS_RANGE = "records!A:K";
+const RECORDS_ID_RANGE = "records!A:A";
+const RECORDS_DATE_RANGE = "records!B:B";
 const TEMPLATES_RANGE = "templates!A:I";
 const USER_RANGE = "user!A:F";
 
 type Primitive = string | number;
+const SHEET_NAME_RE = /^[A-Za-z0-9_]+$/;
+const COLUMN_RE = /^[A-Z]+$/;
+const MAX_BATCH_RANGES = 100;
+const sheetIdCache = new Map<string, number>();
 
 const toNumber = (value: unknown): number => {
   const parsed = Number(value);
@@ -53,12 +59,16 @@ export const listRows = async (range: string): Promise<string[][]> => {
 export const appendRow = async (range: string, row: Primitive[]) => {
   const sheets = await getSheets();
   const spreadsheetId = getSheetId();
-  await sheets.spreadsheets.values.append({
+  const response = await sheets.spreadsheets.values.append({
     spreadsheetId,
     range,
     valueInputOption: "USER_ENTERED",
     requestBody: { values: [row] },
   });
+
+  const updatedRange = response.data.updates?.updatedRange;
+  const rowIndex = updatedRange ? parseUpdatedRangeRowIndex(updatedRange) : null;
+  return { rowIndex };
 };
 
 export const updateRow = async (
@@ -79,9 +89,7 @@ export const updateRow = async (
 export const deleteRowByIndex = async (sheetName: string, rowIndex: number) => {
   const sheets = await getSheets();
   const spreadsheetId = getSheetId();
-  const meta = await sheets.spreadsheets.get({ spreadsheetId });
-  const sheet = meta.data.sheets?.find((item) => item.properties?.title === sheetName);
-  const sheetId = sheet?.properties?.sheetId;
+  const sheetId = await resolveSheetId(sheets, spreadsheetId, sheetName);
 
   if (sheetId === undefined) throw new Error(`Sheet not found: ${sheetName}`);
 
@@ -102,6 +110,49 @@ export const deleteRowByIndex = async (sheetName: string, rowIndex: number) => {
       ],
     },
   });
+};
+
+export const listColumn = async (range: string): Promise<string[]> => {
+  const rows = await listRows(range);
+  return rows.map((row) => row[0] ?? "");
+};
+
+export const listRecordIdColumn = async () => listColumn(RECORDS_ID_RANGE);
+export const listRecordDateColumn = async () => listColumn(RECORDS_DATE_RANGE);
+
+export const getRowsByIndexes = async (
+  sheetName: string,
+  lastColumn: string,
+  rowIndexes: number[]
+): Promise<string[][]> => {
+  if (!SHEET_NAME_RE.test(sheetName)) throw new Error("Invalid sheet name");
+  if (!COLUMN_RE.test(lastColumn)) throw new Error("Invalid column reference");
+
+  const sortedIndexes = Array.from(new Set(rowIndexes))
+    .filter((rowIndex) => Number.isInteger(rowIndex) && rowIndex >= 2)
+    .sort((a, b) => a - b);
+
+  if (sortedIndexes.length === 0) return [];
+
+  const sheets = await getSheets();
+  const spreadsheetId = getSheetId();
+  const rows: string[][] = [];
+
+  for (let i = 0; i < sortedIndexes.length; i += MAX_BATCH_RANGES) {
+    const slice = sortedIndexes.slice(i, i + MAX_BATCH_RANGES);
+    const ranges = slice.map((rowIndex) => `${sheetName}!A${rowIndex}:${lastColumn}${rowIndex}`);
+    const response = await sheets.spreadsheets.values.batchGet({
+      spreadsheetId,
+      ranges,
+    });
+    const values = response.data.valueRanges ?? [];
+    values.forEach((valueRange) => {
+      const row = valueRange.values?.[0] as string[] | undefined;
+      if (row) rows.push(row);
+    });
+  }
+
+  return rows;
 };
 
 export const parseRecord = (row: string[]): MealRecord => ({
@@ -144,7 +195,29 @@ export const parseUserTargets = (row: string[] | null): DailyTargets | null => {
 
 export const RANGES = {
   records: RECORDS_RANGE,
+  recordIds: RECORDS_ID_RANGE,
+  recordDates: RECORDS_DATE_RANGE,
   templates: TEMPLATES_RANGE,
   user: USER_RANGE,
 } as const;
 
+const parseUpdatedRangeRowIndex = (updatedRange: string): number | null => {
+  const match = /![A-Z]+(\d+):/.exec(updatedRange);
+  if (!match) return null;
+  const rowIndex = Number(match[1]);
+  return Number.isInteger(rowIndex) ? rowIndex : null;
+};
+
+const resolveSheetId = async (
+  sheets: sheets_v4.Sheets,
+  spreadsheetId: string,
+  sheetName: string
+): Promise<number | undefined> => {
+  if (sheetIdCache.has(sheetName)) return sheetIdCache.get(sheetName);
+
+  const meta = await sheets.spreadsheets.get({ spreadsheetId });
+  const sheet = meta.data.sheets?.find((item) => item.properties?.title === sheetName);
+  const sheetId = sheet?.properties?.sheetId;
+  if (sheetId !== undefined) sheetIdCache.set(sheetName, sheetId);
+  return sheetId;
+};

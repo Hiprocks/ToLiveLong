@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { appendRow, listRows, parseTemplate, RANGES } from "@/lib/sheets";
 import { TemplateItem } from "@/lib/types";
+import {
+  assertFoodName,
+  parseNonNegativeNumber,
+  ValidationError,
+} from "@/lib/apiValidation";
+import { assertSameOrigin, AuthorizationError } from "@/lib/apiGuard";
 
 const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -20,21 +26,22 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    assertSameOrigin(req);
     const body = (await req.json()) as Partial<TemplateItem>;
-    if (!body.food_name) {
-      return NextResponse.json({ error: "food_name is required" }, { status: 400 });
-    }
 
     const template: TemplateItem = {
       id: body.id ?? createId(),
-      food_name: body.food_name,
-      base_amount: Number(body.base_amount ?? 100),
-      calories: Number(body.calories ?? 0),
-      carbs: Number(body.carbs ?? 0),
-      protein: Number(body.protein ?? 0),
-      fat: Number(body.fat ?? 0),
-      sugar: Number(body.sugar ?? 0),
-      sodium: Number(body.sodium ?? 0),
+      food_name: assertFoodName(body.food_name),
+      base_amount: parseNonNegativeNumber(body.base_amount ?? 100, "base_amount", {
+        min: 1,
+        max: 10000,
+      }),
+      calories: parseNonNegativeNumber(body.calories ?? 0, "calories", { max: 20000 }),
+      carbs: parseNonNegativeNumber(body.carbs ?? 0, "carbs", { max: 5000 }),
+      protein: parseNonNegativeNumber(body.protein ?? 0, "protein", { max: 5000 }),
+      fat: parseNonNegativeNumber(body.fat ?? 0, "fat", { max: 5000 }),
+      sugar: parseNonNegativeNumber(body.sugar ?? 0, "sugar", { max: 5000 }),
+      sodium: parseNonNegativeNumber(body.sodium ?? 0, "sodium", { max: 100000 }),
     };
 
     await appendRow(RANGES.templates, [
@@ -52,7 +59,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(template, { status: 201 });
   } catch (error) {
     console.error(error);
+    if (error instanceof ValidationError || error instanceof AuthorizationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     return NextResponse.json({ error: "Failed to create template" }, { status: 500 });
   }
 }
-

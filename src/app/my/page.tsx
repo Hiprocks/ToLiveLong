@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ErrorBanner from "@/components/ErrorBanner";
 import { DailyTargets } from "@/lib/types";
 
 const defaultTargets: DailyTargets = {
@@ -16,6 +17,8 @@ export default function MyPage() {
   const [targets, setTargets] = useState<DailyTargets>(defaultTargets);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let isActive = true;
@@ -25,8 +28,12 @@ export default function MyPage() {
         if (!response.ok) throw new Error("Failed to load targets");
         const data = (await response.json()) as DailyTargets;
         if (isActive) setTargets(data);
+        if (isActive) setErrorMessage(null);
       } catch (error) {
-        if (isActive) console.error(error);
+        if (isActive) {
+          console.error(error);
+          setErrorMessage("목표값 조회에 실패했습니다.");
+        }
       } finally {
         if (isActive) setLoading(false);
       }
@@ -39,6 +46,7 @@ export default function MyPage() {
 
   const handleSave = async () => {
     setSaving(true);
+    setSuccessMessage(null);
     try {
       const response = await fetch("/api/sheets/user", {
         method: "PUT",
@@ -46,10 +54,11 @@ export default function MyPage() {
         body: JSON.stringify(targets),
       });
       if (!response.ok) throw new Error("Failed to save targets");
-      alert("Saved.");
+      setErrorMessage(null);
+      setSuccessMessage("저장되었습니다.");
     } catch (error) {
       console.error(error);
-      alert("Failed to save.");
+      setErrorMessage("저장에 실패했습니다.");
     } finally {
       setSaving(false);
     }
@@ -62,6 +71,12 @@ export default function MyPage() {
   return (
     <main className="p-4 space-y-4 pb-24">
       <h1 className="text-2xl font-bold">My Targets</h1>
+      <ErrorBanner message={errorMessage} />
+      {successMessage && (
+        <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          {successMessage}
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3">
         {(
           [
@@ -96,4 +111,3 @@ export default function MyPage() {
     </main>
   );
 }
-

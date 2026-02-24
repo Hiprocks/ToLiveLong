@@ -4,10 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Camera, Plus } from "lucide-react";
 import CalorieGauge from "@/components/CalorieGauge";
+import ErrorBanner from "@/components/ErrorBanner";
 import MealTable from "@/components/MealTable";
 import FoodSearchModal from "@/components/FoodSearchModal";
 import IntakeSummaryTable from "@/components/IntakeSummaryTable";
 import PhotoAnalysisModal from "@/components/PhotoAnalysisModal";
+import { getLocalDateString } from "@/lib/date";
 import { DailyTargets, MealRecord } from "@/lib/types";
 
 const DEFAULT_TARGETS: DailyTargets = {
@@ -25,9 +27,10 @@ export default function Home() {
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dailyTargets, setDailyTargets] = useState<DailyTargets>(DEFAULT_TARGETS);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const fetchLogs = useCallback(async () => {
-    const today = format(new Date(), "yyyy-MM-dd");
+    const today = getLocalDateString();
     const response = await fetch(`/api/sheets/records?date=${today}`, { cache: "no-store" });
     if (!response.ok) throw new Error("Failed to fetch records");
     const data = (await response.json()) as MealRecord[];
@@ -47,8 +50,12 @@ export default function Home() {
     const load = async () => {
       try {
         await Promise.all([fetchLogs(), fetchTargets()]);
+        if (isActive) setErrorMessage(null);
       } catch (error) {
-        if (isActive) console.error(error);
+        if (isActive) {
+          console.error(error);
+          setErrorMessage("데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+        }
       } finally {
         if (isActive) setLoading(false);
       }
@@ -83,6 +90,7 @@ export default function Home() {
       </header>
 
       <div className="p-4 space-y-8">
+        <ErrorBanner message={errorMessage} />
         <section className="bg-card rounded-2xl p-6 shadow-lg border border-border/50 flex flex-col items-center">
           <h2 className="text-center text-sm font-medium text-muted-foreground mb-4">
             Daily Intake
@@ -137,4 +145,3 @@ export default function Home() {
     </main>
   );
 }
-

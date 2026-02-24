@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import ErrorBanner from "@/components/ErrorBanner";
 import { calculateTargets, UserStats, DailyTargets } from "@/lib/calculations";
 import { ChevronRight, Activity, Ruler, Weight, Calendar, Target } from "lucide-react";
 
@@ -19,11 +20,13 @@ export default function OnboardingPage() {
     });
 
     const [targets, setTargets] = useState<DailyTargets | null>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const handleCalculate = () => {
         const result = calculateTargets(stats);
         setTargets(result);
         setStep("result");
+        setErrorMessage(null);
     };
 
     const handleStart = () => {
@@ -41,7 +44,7 @@ export default function OnboardingPage() {
 
         void saveTargets().catch((error) => {
             console.error(error);
-            alert("Failed to save target values.");
+            setErrorMessage("목표값 저장에 실패했습니다.");
         });
     };
 
@@ -52,6 +55,7 @@ export default function OnboardingPage() {
                     <h1 className="text-2xl font-bold">Your Daily Plan</h1>
                     <p className="text-muted-foreground">Based on your stats & goal</p>
                 </div>
+                <ErrorBanner message={errorMessage} />
 
                 <div className="w-full max-w-sm bg-card border border-border rounded-3xl p-8 shadow-xl text-center space-y-6">
                     <div className="space-y-2">
@@ -99,6 +103,7 @@ export default function OnboardingPage() {
                 <h1 className="text-3xl font-bold tracking-tight">Welcome</h1>
                 <p className="text-muted-foreground">Let&apos;s calculate your personalized diet plan.</p>
             </div>
+            <ErrorBanner message={errorMessage} />
 
             <div className="space-y-6">
                 {/* Gender */}
