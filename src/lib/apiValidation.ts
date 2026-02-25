@@ -1,4 +1,3 @@
-import { MealType } from "@/lib/types";
 import { normalizeUtf8Text, utf8ByteLength } from "@/lib/text";
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -15,13 +14,6 @@ export const assertIsoDate = (value: unknown, fieldName = "date"): string => {
     throw new ValidationError(`${fieldName} must be YYYY-MM-DD`);
   }
   return date;
-};
-
-export const assertMealType = (value: unknown): MealType => {
-  if (value === "breakfast" || value === "lunch" || value === "dinner" || value === "snack") {
-    return value;
-  }
-  throw new ValidationError("Invalid meal_type");
 };
 
 export const assertFoodName = (value: unknown): string => {

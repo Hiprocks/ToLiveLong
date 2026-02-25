@@ -103,3 +103,11 @@
 - Analyze normalization logic extracted into `src/lib/analyzePayload.ts`.
 - Analyze unit test added: `src/lib/analyzePayload.test.ts`.
 - Build gate updated: `prebuild -> test:analyze -> build`.
+
+---
+
+## 11) Context Update (2026-02-25, Meal Type Removal)
+
+- `MealRecord` no longer includes `meal_type` in app-level type/API payload.
+- Records sheet compatibility is kept by preserving column position while writing empty value for legacy `meal_type` slot.
+- Dashboard target UI now uses progress bars (current/target) under calorie gauge.

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Check, Search, X } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
 import { getLocalDateString } from "@/lib/date";
-import { MealRecord, MealType, TemplateItem } from "@/lib/types";
+import { MealRecord, TemplateItem } from "@/lib/types";
 
 interface FoodSearchModalProps {
   isOpen: boolean;
@@ -15,7 +15,6 @@ interface FoodSearchModalProps {
 }
 
 interface FormState {
-  meal_type: MealType;
   food_name: string;
   amount: number;
   calories: number;
@@ -27,7 +26,6 @@ interface FormState {
 }
 
 const initialForm: FormState = {
-  meal_type: "breakfast",
   food_name: "",
   amount: 100,
   calories: 0,
@@ -38,7 +36,6 @@ const initialForm: FormState = {
   sodium: 0,
 };
 
-const mealTypes: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 const TEMPLATE_CACHE_TTL_MS = 60 * 1000;
 const RECENT_TEMPLATE_KEY = "toLiveLong.recentTemplates";
 let templateCache: { expiresAt: number; data: TemplateItem[] } | null = null;
@@ -209,7 +206,6 @@ export default function FoodSearchModal({
     try {
       const payload: Partial<MealRecord> & { saveAsTemplate?: boolean } = {
         date: getLocalDateString(),
-        meal_type: form.meal_type,
         food_name: form.food_name.trim(),
         amount: form.amount,
         calories: form.calories,
@@ -307,20 +303,6 @@ export default function FoodSearchModal({
       )}
 
       <div className="p-4 space-y-4 overflow-y-auto">
-        <div className="grid grid-cols-2 gap-2">
-          {mealTypes.map((type) => (
-            <button
-              key={type}
-              onClick={() => setForm((prev) => ({ ...prev, meal_type: type }))}
-              className={`py-2 rounded-lg capitalize ${
-                form.meal_type === type ? "bg-primary text-primary-foreground" : "bg-muted"
-              }`}
-            >
-              {type}
-            </button>
-          ))}
-        </div>
-
         <div>
           <label className="text-sm text-muted-foreground">Food Name *</label>
           <input

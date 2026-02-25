@@ -97,7 +97,7 @@ export default function HistoryPage() {
                 <div>
                   <p className="font-semibold">{record.food_name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {record.meal_type} | {record.amount}g | {record.calories} kcal
+                    {record.amount}g | {record.calories} kcal
                   </p>
                 </div>
                 <div className="flex gap-2">

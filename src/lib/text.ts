@@ -1,8 +1,9 @@
-import { decodeUtf8, encodeUtf8 } from "bkit";
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
 
 export const normalizeUtf8Text = (value: string): string => {
   // Keep text normalization deterministic across environments.
-  return decodeUtf8(encodeUtf8(value));
+  return textDecoder.decode(textEncoder.encode(value));
 };
 
-export const utf8ByteLength = (value: string): number => encodeUtf8(value).length;
+export const utf8ByteLength = (value: string): number => textEncoder.encode(value).length;

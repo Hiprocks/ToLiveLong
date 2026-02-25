@@ -1,25 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { assertSameOrigin, AuthorizationError } from "@/lib/apiGuard";
+import { normalizeAnalyzePayload, parseModelJson } from "@/lib/analyzePayload";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function POST(req: NextRequest) {
-    try {
-        assertSameOrigin(req);
-        const formData = await req.formData();
-        const file = formData.get("image") as File;
+  try {
+    assertSameOrigin(req);
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json({ error: "GEMINI_API_KEY is not configured" }, { status: 500 });
+    }
+    const formData = await req.formData();
+    const file = formData.get("image") as File;
 
-        if (!file) {
-            return NextResponse.json({ error: "No image provided" }, { status: 400 });
-        }
+    if (!file) {
+      return NextResponse.json({ error: "No image provided" }, { status: 400 });
+    }
 
-        const buffer = await file.arrayBuffer();
-        const base64Image = Buffer.from(buffer).toString("base64");
+    const buffer = await file.arrayBuffer();
+    const base64Image = Buffer.from(buffer).toString("base64");
 
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
-        const prompt = `
+    const prompt = `
       Analyze this image of food or a nutrition label.
       Identify the food item and estimate its nutritional content.
       If it's a nutrition label, extract the values.
@@ -39,32 +43,27 @@ export async function POST(req: NextRequest) {
       Ensure the response is valid JSON.
     `;
 
-        const result = await model.generateContent([
-            prompt,
-            {
-                inlineData: {
-                    data: base64Image,
-                    mimeType: file.type,
-                },
-            },
-        ]);
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: base64Image,
+          mimeType: file.type,
+        },
+      },
+    ]);
 
-        const response = await result.response;
-        const text = response.text();
+    const response = await result.response;
+    const text = response.text();
+    const parsed = parseModelJson(text);
+    const data = normalizeAnalyzePayload(parsed);
 
-        // Clean up markdown code blocks if present
-        const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
-        const data = JSON.parse(jsonStr);
-
-        return NextResponse.json(data);
-    } catch (error) {
-        console.error("Error analyzing image:", error);
-        if (error instanceof AuthorizationError) {
-            return NextResponse.json({ error: error.message }, { status: error.status });
-        }
-        return NextResponse.json(
-            { error: "Failed to analyze image" },
-            { status: 500 }
-        );
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error("Error analyzing image:", error);
+    if (error instanceof AuthorizationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
     }
+    return NextResponse.json({ error: "Failed to analyze image" }, { status: 500 });
+  }
 }

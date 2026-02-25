@@ -1,5 +1,3 @@
-export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
-
 export interface DailyTargets {
   calories: number;
   carbs: number;
@@ -12,7 +10,6 @@ export interface DailyTargets {
 export interface MealRecord {
   id: string;
   date: string;
-  meal_type: MealType;
   food_name: string;
   amount: number;
   calories: number;
@@ -34,4 +31,3 @@ export interface TemplateItem {
   sugar: number;
   sodium: number;
 }
-

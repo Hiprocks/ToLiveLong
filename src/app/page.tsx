@@ -122,11 +122,9 @@ export default function Home() {
           <div className="w-48 h-48">
             <CalorieGauge current={totals.calories} target={dailyTargets.calories} />
           </div>
-        </section>
-
-        <section>
-          <h3 className="text-lg font-bold mb-3">Today&apos;s Summary</h3>
-          <IntakeSummaryTable targets={dailyTargets} totals={totals} />
+          <div className="mt-5 w-full">
+            <IntakeSummaryTable targets={dailyTargets} totals={totals} />
+          </div>
         </section>
 
         <section>

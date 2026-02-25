@@ -52,3 +52,8 @@
 ### Remaining
 - [ ] Favorites feature implementation (requires product decision + schema/API update)
 - [ ] Additional visual polish after user feedback
+
+### 2026-02-25 Additional UX Update
+- [x] Remove breakfast/lunch/dinner/snack category from registration and records UI
+- [x] Remove `meal_type` dependency from records API/type validation flow
+- [x] Show today's targets as bar graph below total calories

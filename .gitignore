@@ -40,3 +40,6 @@ dev-smoke*.log
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# bkit-codex
+.bkit-codex/

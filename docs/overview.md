@@ -60,3 +60,11 @@
   - normalized nutrition payload with numeric bounds
 - Build quality gate updated:
   - `prebuild` runs `test:analyze` before `next build`
+
+---
+
+## 7) Update Log (2026-02-25)
+
+- Meal category (`meal_type`) removed from UI and API payload.
+- Dashboard target section changed from table style to bar-graph style under total calorie gauge.
+- Daily records are now displayed as a single unified list.

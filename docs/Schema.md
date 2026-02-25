@@ -58,3 +58,10 @@
 - `date`는 `YYYY-MM-DD` 형식 검증
 - `meal_type`은 `breakfast/lunch/dinner/snack`만 허용
 - 쓰기 요청(POST/PUT/DELETE)은 same-origin 가드 적용
+
+---
+
+## Schema Note (2026-02-25)
+
+- App-level contract no longer uses `meal_type`.
+- Legacy sheet column may still exist for backward compatibility, but clients should ignore it.

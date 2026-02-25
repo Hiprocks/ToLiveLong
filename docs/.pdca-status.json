@@ -1,0 +1,22 @@
+{
+  "current_feature": "meal-entry-ux",
+  "level": "dynamic",
+  "updated_at": "2026-02-25",
+  "features": {
+    "meal-entry-ux": {
+      "phase": "plan",
+      "progress": 20,
+      "status": "active",
+      "next": "design",
+      "checklist": {
+        "plan": true,
+        "design": false,
+        "do": false,
+        "analyze": false,
+        "iterate": false,
+        "report": false,
+        "archive": false
+      }
+    }
+  }
+}

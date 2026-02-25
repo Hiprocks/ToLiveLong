@@ -8,11 +8,10 @@ import {
   parseRecord,
   RANGES,
 } from "@/lib/sheets";
-import { MealRecord, MealType } from "@/lib/types";
+import { MealRecord } from "@/lib/types";
 import {
   assertFoodName,
   assertIsoDate,
-  assertMealType,
   parseNonNegativeNumber,
   ValidationError,
 } from "@/lib/apiValidation";
@@ -74,14 +73,12 @@ export async function POST(req: NextRequest) {
   try {
     assertSameOrigin(req);
     const body = (await req.json()) as Partial<MealRecord> & { saveAsTemplate?: boolean };
-    const mealType: MealType = assertMealType(body.meal_type ?? "breakfast");
     const foodName = assertFoodName(body.food_name);
     const date = assertIsoDate(body.date ?? getLocalDateString());
 
     const record: MealRecord = {
       id: body.id ?? createId(),
       date,
-      meal_type: mealType,
       food_name: foodName,
       amount: parseNonNegativeNumber(body.amount ?? 0, "amount", { min: 1, max: 10000 }),
       calories: parseNonNegativeNumber(body.calories ?? 0, "calories", { max: 20000 }),
@@ -95,7 +92,7 @@ export async function POST(req: NextRequest) {
     const { rowIndex } = await appendRow(RANGES.records, [
       record.id,
       record.date,
-      record.meal_type,
+      "",
       record.food_name,
       record.amount,
       record.calories,

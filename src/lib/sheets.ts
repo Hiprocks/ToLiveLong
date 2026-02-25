@@ -158,7 +158,6 @@ export const getRowsByIndexes = async (
 export const parseRecord = (row: string[]): MealRecord => ({
   id: row[0] ?? "",
   date: row[1] ?? "",
-  meal_type: (row[2] as MealRecord["meal_type"]) ?? "breakfast",
   food_name: row[3] ?? "",
   amount: toNumber(row[4]),
   calories: toNumber(row[5]),
@@ -217,7 +216,8 @@ const resolveSheetId = async (
 
   const meta = await sheets.spreadsheets.get({ spreadsheetId });
   const sheet = meta.data.sheets?.find((item) => item.properties?.title === sheetName);
-  const sheetId = sheet?.properties?.sheetId;
+  const rawSheetId = sheet?.properties?.sheetId;
+  const sheetId = typeof rawSheetId === "number" ? rawSheetId : undefined;
   if (sheetId !== undefined) sheetIdCache.set(sheetName, sheetId);
   return sheetId;
 };

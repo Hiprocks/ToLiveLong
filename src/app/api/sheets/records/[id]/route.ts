@@ -11,7 +11,6 @@ import { MealRecord } from "@/lib/types";
 import {
   assertFoodName,
   assertIsoDate,
-  assertMealType,
   parseNonNegativeNumber,
   ValidationError,
 } from "@/lib/apiValidation";
@@ -49,7 +48,6 @@ export async function PUT(
     const merged: MealRecord = {
       id,
       date: assertIsoDate(mergedWithBody.date),
-      meal_type: assertMealType(mergedWithBody.meal_type),
       food_name: assertFoodName(mergedWithBody.food_name),
       amount: parseNonNegativeNumber(mergedWithBody.amount, "amount", { min: 1, max: 10000 }),
       calories: parseNonNegativeNumber(mergedWithBody.calories, "calories", { max: 20000 }),
@@ -63,7 +61,7 @@ export async function PUT(
     await updateRow(RANGES.records, found.rowIndex, [
       merged.id,
       merged.date,
-      merged.meal_type,
+      "",
       merged.food_name,
       merged.amount,
       merged.calories,

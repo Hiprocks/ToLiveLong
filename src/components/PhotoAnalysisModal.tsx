@@ -5,7 +5,6 @@ import Image from "next/image";
 import { Camera, Check, Loader2, X } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
 import { getLocalDateString } from "@/lib/date";
-import { MealType } from "@/lib/types";
 
 interface PhotoAnalysisModalProps {
   isOpen: boolean;
@@ -15,7 +14,6 @@ interface PhotoAnalysisModalProps {
 }
 
 interface FormDataState {
-  meal_type: MealType;
   food_name: string;
   amount: number;
   calories: number;
@@ -27,7 +25,6 @@ interface FormDataState {
 }
 
 const initialState: FormDataState = {
-  meal_type: "breakfast",
   food_name: "",
   amount: 100,
   calories: 0,
@@ -204,22 +201,6 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess, onSaved
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground uppercase">Meal Type</label>
-                  <select
-                    value={formData.meal_type}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, meal_type: e.target.value as MealType }))
-                    }
-                    className="w-full bg-input border border-border rounded-lg px-3 py-2 mt-1"
-                  >
-                    <option value="breakfast">Breakfast</option>
-                    <option value="lunch">Lunch</option>
-                    <option value="dinner">Dinner</option>
-                    <option value="snack">Snack</option>
-                  </select>
-                </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
                     <label className="text-xs font-medium text-muted-foreground uppercase">Food Name *</label>

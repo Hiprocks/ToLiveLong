@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Project-local tooling/vendor directories:
+    ".bkit-codex/**",
+    ".agents/**",
   ]),
 ]);
 
