@@ -87,3 +87,19 @@
 - 할 일 추가/완료: `docs/Todo.md` 갱신
 - 실수/회귀: `docs/MistakeNote.md` 기록
 - 데이터 스키마 변경: `docs/Schema.md` 갱신
+
+---
+
+## 10) Context Update (2026-02-25)
+
+- Dashboard entry UX changed to single floating action button with mode sheet.
+- `FoodSearchModal` now supports:
+  - `initialMode` prop (`manual` | `template`)
+  - recent-template prioritization via localStorage
+  - required-field validation for `food_name` and `amount`
+- `PhotoAnalysisModal` now supports:
+  - required-field validation before save
+  - optional `onSaved` callback for global success feedback
+- Analyze normalization logic extracted into `src/lib/analyzePayload.ts`.
+- Analyze unit test added: `src/lib/analyzePayload.test.ts`.
+- Build gate updated: `prebuild -> test:analyze -> build`.

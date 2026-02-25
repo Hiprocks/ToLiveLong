@@ -11,6 +11,7 @@ interface PhotoAnalysisModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => Promise<void> | void;
+  onSaved?: (message: string) => void;
 }
 
 interface FormDataState {
@@ -37,11 +38,13 @@ const initialState: FormDataState = {
   sodium: 0,
 };
 
-export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: PhotoAnalysisModalProps) {
+type SaveState = "idle" | "saving" | "success" | "error";
+
+export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess, onSaved }: PhotoAnalysisModalProps) {
   const [step, setStep] = useState<"upload" | "analyzing" | "confirm">("upload");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saveAsTemplate, setSaveAsTemplate] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
   const [formData, setFormData] = useState<FormDataState>(initialState);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -60,6 +63,7 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: Photo
 
   const analyzeImage = async (file: File) => {
     setStep("analyzing");
+    setErrorMessage(null);
     const data = new FormData();
     data.append("image", file);
 
@@ -80,18 +84,35 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: Photo
         sugar: Number(result.sugar ?? 0),
         sodium: Number(result.sodium ?? 0),
       }));
-      setErrorMessage(null);
       setStep("confirm");
     } catch (error) {
       console.error(error);
-      setErrorMessage("이미지 분석에 실패했습니다.");
+      setErrorMessage("Failed to analyze image. Try another photo.");
       setStep("upload");
       setImagePreview(null);
     }
   };
 
+  const validate = () => {
+    if (!formData.food_name.trim()) {
+      return "Food name is required.";
+    }
+    if (!Number.isFinite(formData.amount) || formData.amount < 1) {
+      return "Amount must be at least 1g.";
+    }
+    return null;
+  };
+
   const handleSave = async () => {
-    setSaving(true);
+    const validationError = validate();
+    if (validationError) {
+      setSaveState("error");
+      setErrorMessage(validationError);
+      return;
+    }
+
+    setSaveState("saving");
+    setErrorMessage(null);
     try {
       const response = await fetch("/api/sheets/records", {
         method: "POST",
@@ -107,14 +128,14 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: Photo
         throw new Error(result?.error || "Save failed");
       }
 
-      setErrorMessage(null);
+      setSaveState("success");
+      onSaved?.("Meal record saved from photo.");
       await onSuccess();
       handleClose();
     } catch (error) {
       console.error(error);
-      setErrorMessage(error instanceof Error ? error.message : "저장에 실패했습니다.");
-    } finally {
-      setSaving(false);
+      setSaveState("error");
+      setErrorMessage(error instanceof Error ? error.message : "Failed to save record.");
     }
   };
 
@@ -124,6 +145,7 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: Photo
     setSaveAsTemplate(true);
     setFormData(initialState);
     setErrorMessage(null);
+    setSaveState("idle");
     onClose();
   };
 
@@ -200,7 +222,7 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: Photo
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
-                    <label className="text-xs font-medium text-muted-foreground uppercase">Food Name</label>
+                    <label className="text-xs font-medium text-muted-foreground uppercase">Food Name *</label>
                     <input
                       type="text"
                       value={formData.food_name}
@@ -211,7 +233,7 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: Photo
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase">Amount (g)</label>
+                    <label className="text-xs font-medium text-muted-foreground uppercase">Amount (g) *</label>
                     <input
                       type="number"
                       value={formData.amount}
@@ -300,10 +322,10 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess }: Photo
 
               <button
                 onClick={handleSave}
-                disabled={saving}
+                disabled={saveState === "saving"}
                 className="w-full bg-primary text-primary-foreground font-bold py-4 rounded-xl shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                <Check className="w-5 h-5" /> {saving ? "Saving..." : "Save Record"}
+                <Check className="w-5 h-5" /> {saveState === "saving" ? "Saving..." : "Save Record"}
               </button>
             </div>
           )}

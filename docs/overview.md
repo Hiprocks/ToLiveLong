@@ -38,3 +38,25 @@
 - 등록 과정 UX 개선 (수기/템플릿/사진분석 진입 흐름 단순화)
 - 등록 UI 개선 (입력 단계, 저장 상태, 에러/성공 피드백 개선)
 - 템플릿 UX 정책 확정 (검색/선택/즐겨찾기)
+
+---
+
+## 6) Update Log (2026-02-25)
+
+- Meal entry flow simplified to a single `+` action button with three options:
+  - Manual entry
+  - Use template
+  - Analyze photo
+- Save feedback is now unified at the dashboard level (success flash banner).
+- Entry validation baseline aligned:
+  - `food_name` required
+  - `amount >= 1g` required
+- Template UX policy updated:
+  - Keep search + select flow
+  - Recently used templates are prioritized client-side
+  - Favorites are deferred (policy only, no DB schema change)
+- Analyze API response robustness improved:
+  - tolerant JSON extraction
+  - normalized nutrition payload with numeric bounds
+- Build quality gate updated:
+  - `prebuild` runs `test:analyze` before `next build`

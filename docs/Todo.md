@@ -37,3 +37,18 @@
 ## 테스트 메모
 - [x] Google Sheets 실데이터 저장/로드 스모크 테스트
   - 2026-02-25 기준: `POST /api/sheets/records` -> `GET /api/sheets/records?date=...` -> `PUT /api/sheets/records/[id]` -> `DELETE /api/sheets/records/[id]` 정상 확인
+
+---
+
+## Progress Update (2026-02-25)
+
+### Done in this iteration
+- [x] Registration flow simplified to one `+` entry point with mode selector
+- [x] Template UX policy applied: search + select + recent-first ordering (favorites deferred)
+- [x] Registration form validation baseline aligned (`food_name`, `amount >= 1`)
+- [x] Save status UX aligned (`saving` / success feedback / error banner)
+- [x] Manual test scenarios documented
+
+### Remaining
+- [ ] Favorites feature implementation (requires product decision + schema/API update)
+- [ ] Additional visual polish after user feedback

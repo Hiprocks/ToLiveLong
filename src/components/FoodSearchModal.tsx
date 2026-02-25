@@ -10,6 +10,8 @@ interface FoodSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => Promise<void> | void;
+  initialMode?: "manual" | "template";
+  onSaved?: (message: string) => void;
 }
 
 interface FormState {
@@ -38,18 +40,45 @@ const initialForm: FormState = {
 
 const mealTypes: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 const TEMPLATE_CACHE_TTL_MS = 60 * 1000;
+const RECENT_TEMPLATE_KEY = "toLiveLong.recentTemplates";
 let templateCache: { expiresAt: number; data: TemplateItem[] } | null = null;
 
-export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSearchModalProps) {
-  const [mode, setMode] = useState<"manual" | "template">("manual");
+type SaveState = "idle" | "saving" | "success" | "error";
+
+export default function FoodSearchModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  initialMode = "manual",
+  onSaved,
+}: FoodSearchModalProps) {
+  const [mode, setMode] = useState<"manual" | "template">(initialMode);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
   const [query, setQuery] = useState("");
   const [templates, setTemplates] = useState<TemplateItem[]>([]);
+  const [recentTemplateIds, setRecentTemplateIds] = useState<string[]>([]);
   const [form, setForm] = useState<FormState>(initialForm);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateItem | null>(null);
   const [saveAsTemplate, setSaveAsTemplate] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setMode(initialMode);
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(RECENT_TEMPLATE_KEY);
+      if (!raw) {
+        setRecentTemplateIds([]);
+        return;
+      }
+      const parsed = JSON.parse(raw) as string[];
+      setRecentTemplateIds(Array.isArray(parsed) ? parsed.filter((item) => typeof item === "string") : []);
+    } catch {
+      setRecentTemplateIds([]);
+    }
+  }, [isOpen, initialMode]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -74,7 +103,7 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
       } catch (error) {
         if (isActive) {
           console.error(error);
-          setErrorMessage("템플릿 목록을 불러오지 못했습니다.");
+          setErrorMessage("Failed to load templates.");
         }
       } finally {
         if (isActive) setLoading(false);
@@ -87,16 +116,30 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
     };
   }, [isOpen]);
 
-  const filteredTemplates = useMemo(
-    () =>
-      templates.filter((item) =>
-        item.food_name.toLowerCase().includes(query.trim().toLowerCase())
-      ),
-    [query, templates]
-  );
+  const filteredTemplates = useMemo(() => {
+    const keyword = query.trim().toLowerCase();
+    const base = templates.filter((item) => item.food_name.toLowerCase().includes(keyword));
+    const recentRank = new Map(recentTemplateIds.map((id, index) => [id, index]));
+
+    return [...base].sort((a, b) => {
+      const rankA = recentRank.has(a.id) ? (recentRank.get(a.id) as number) : Number.MAX_SAFE_INTEGER;
+      const rankB = recentRank.has(b.id) ? (recentRank.get(b.id) as number) : Number.MAX_SAFE_INTEGER;
+      if (rankA !== rankB) return rankA - rankB;
+      return a.food_name.localeCompare(b.food_name);
+    });
+  }, [query, recentTemplateIds, templates]);
+
+  const rememberTemplate = (templateId: string) => {
+    const next = [templateId, ...recentTemplateIds.filter((id) => id !== templateId)].slice(0, 8);
+    setRecentTemplateIds(next);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(RECENT_TEMPLATE_KEY, JSON.stringify(next));
+    }
+  };
 
   const applyTemplate = (template: TemplateItem) => {
     const ratio = form.amount / template.base_amount;
+    rememberTemplate(template.id);
     setSelectedTemplate(template);
     setForm((prev) => ({
       ...prev,
@@ -111,13 +154,14 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
   };
 
   const recalculateByAmount = (nextAmount: number) => {
-    setForm((prev) => ({ ...prev, amount: nextAmount }));
-    if (!selectedTemplate) return;
+    const safeAmount = Number.isFinite(nextAmount) && nextAmount > 0 ? nextAmount : 0;
+    setForm((prev) => ({ ...prev, amount: safeAmount }));
+    if (!selectedTemplate || safeAmount <= 0) return;
 
-    const ratio = nextAmount / selectedTemplate.base_amount;
+    const ratio = safeAmount / selectedTemplate.base_amount;
     setForm((prev) => ({
       ...prev,
-      amount: nextAmount,
+      amount: safeAmount,
       calories: Math.round(selectedTemplate.calories * ratio),
       carbs: Math.round(selectedTemplate.carbs * ratio),
       protein: Math.round(selectedTemplate.protein * ratio),
@@ -128,12 +172,13 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
   };
 
   const resetForm = () => {
-    setMode("manual");
+    setMode(initialMode);
     setQuery("");
     setSelectedTemplate(null);
     setForm(initialForm);
     setSaveAsTemplate(true);
     setErrorMessage(null);
+    setSaveState("idle");
   };
 
   const handleClose = () => {
@@ -141,13 +186,26 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
     onClose();
   };
 
-  const handleSave = async () => {
+  const validate = () => {
     if (!form.food_name.trim()) {
-      setErrorMessage("음식 이름을 입력해주세요.");
+      return "Food name is required.";
+    }
+    if (!Number.isFinite(form.amount) || form.amount < 1) {
+      return "Amount must be at least 1g.";
+    }
+    return null;
+  };
+
+  const handleSave = async () => {
+    const validationError = validate();
+    if (validationError) {
+      setSaveState("error");
+      setErrorMessage(validationError);
       return;
     }
 
-    setSaving(true);
+    setSaveState("saving");
+    setErrorMessage(null);
     try {
       const payload: Partial<MealRecord> & { saveAsTemplate?: boolean } = {
         date: getLocalDateString(),
@@ -176,14 +234,14 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
       if (saveAsTemplate && mode === "manual") {
         templateCache = null;
       }
-      setErrorMessage(null);
+      setSaveState("success");
+      onSaved?.("Meal record saved.");
       await onSuccess();
       handleClose();
     } catch (error) {
       console.error(error);
-      setErrorMessage(error instanceof Error ? error.message : "저장에 실패했습니다.");
-    } finally {
-      setSaving(false);
+      setSaveState("error");
+      setErrorMessage(error instanceof Error ? error.message : "Failed to save record.");
     }
   };
 
@@ -228,6 +286,7 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
               className="w-full bg-muted/50 rounded-full pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
+          <p className="mt-2 text-xs text-muted-foreground">Recently used templates appear first.</p>
           <div className="max-h-40 overflow-y-auto mt-3 space-y-2">
             {loading && <p className="text-sm text-muted-foreground">Loading templates...</p>}
             {!loading &&
@@ -263,7 +322,7 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
         </div>
 
         <div>
-          <label className="text-sm text-muted-foreground">Food Name</label>
+          <label className="text-sm text-muted-foreground">Food Name *</label>
           <input
             type="text"
             value={form.food_name}
@@ -273,7 +332,7 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
         </div>
 
         <div>
-          <label className="text-sm text-muted-foreground">Amount (g)</label>
+          <label className="text-sm text-muted-foreground">Amount (g) *</label>
           <input
             type="number"
             value={form.amount}
@@ -323,11 +382,11 @@ export default function FoodSearchModal({ isOpen, onClose, onSuccess }: FoodSear
       <div className="p-4 border-t border-border">
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saveState === "saving"}
           className="w-full bg-primary text-primary-foreground font-bold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50"
         >
           <Check className="w-5 h-5" />
-          {saving ? "Saving..." : "Save Record"}
+          {saveState === "saving" ? "Saving..." : "Save Record"}
         </button>
       </div>
     </div>
