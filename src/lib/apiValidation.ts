@@ -1,7 +1,9 @@
 import { MealType } from "@/lib/types";
+import { normalizeUtf8Text, utf8ByteLength } from "@/lib/text";
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const FOOD_NAME_MAX = 120;
+const FOOD_NAME_MAX_BYTES = 240;
 
 export class ValidationError extends Error {
   status = 400;
@@ -23,10 +25,13 @@ export const assertMealType = (value: unknown): MealType => {
 };
 
 export const assertFoodName = (value: unknown): string => {
-  const foodName = typeof value === "string" ? value.trim() : "";
+  const foodName = typeof value === "string" ? normalizeUtf8Text(value).trim() : "";
   if (!foodName) throw new ValidationError("food_name is required");
   if (foodName.length > FOOD_NAME_MAX) {
     throw new ValidationError(`food_name must be <= ${FOOD_NAME_MAX} characters`);
+  }
+  if (utf8ByteLength(foodName) > FOOD_NAME_MAX_BYTES) {
+    throw new ValidationError(`food_name must be <= ${FOOD_NAME_MAX_BYTES} UTF-8 bytes`);
   }
   return foodName;
 };
