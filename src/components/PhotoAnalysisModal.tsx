@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Camera, Check, Loader2, X } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
@@ -61,16 +61,14 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess, onSaved
   const analyzeImage = async (file: File) => {
     setStep("analyzing");
     setErrorMessage(null);
+
     const data = new FormData();
     data.append("image", file);
 
     try {
       const response = await fetch("/api/analyze", { method: "POST", body: data });
-      if (!response.ok) throw new Error("Analysis failed");
-      const result = (await response.json()) as Partial<FormDataState> & {
-        menu_name?: string;
-      };
-
+      if (!response.ok) throw new Error("사진 분석에 실패했습니다.");
+      const result = (await response.json()) as Partial<FormDataState> & { menu_name?: string };
       setFormData((prev) => ({
         ...prev,
         food_name: result.food_name ?? result.menu_name ?? "",
@@ -84,19 +82,15 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess, onSaved
       setStep("confirm");
     } catch (error) {
       console.error(error);
-      setErrorMessage("Failed to analyze image. Try another photo.");
+      setErrorMessage("사진 분석에 실패했습니다. 다른 사진으로 다시 시도해 주세요.");
       setStep("upload");
       setImagePreview(null);
     }
   };
 
   const validate = () => {
-    if (!formData.food_name.trim()) {
-      return "Food name is required.";
-    }
-    if (!Number.isFinite(formData.amount) || formData.amount < 1) {
-      return "Amount must be at least 1g.";
-    }
+    if (!formData.food_name.trim()) return "음식 이름은 필수입니다.";
+    if (!Number.isFinite(formData.amount) || formData.amount < 1) return "중량은 1g 이상이어야 합니다.";
     return null;
   };
 
@@ -114,29 +108,25 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess, onSaved
       const response = await fetch("/api/sheets/records", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date: getLocalDateString(),
-          ...formData,
-          saveAsTemplate,
-        }),
+        body: JSON.stringify({ date: getLocalDateString(), ...formData, saveAsTemplate }),
       });
       if (!response.ok) {
         const result = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(result?.error || "Save failed");
+        throw new Error(result?.error || "저장에 실패했습니다.");
       }
 
       setSaveState("success");
-      onSaved?.("Meal record saved from photo.");
+      onSaved?.("사진 분석 기록이 저장되었습니다.");
       await onSuccess();
       handleClose();
     } catch (error) {
       console.error(error);
       setSaveState("error");
-      setErrorMessage(error instanceof Error ? error.message : "Failed to save record.");
+      setErrorMessage(error instanceof Error ? error.message : "기록 저장에 실패했습니다.");
     }
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setStep("upload");
     setImagePreview(null);
     setSaveAsTemplate(true);
@@ -144,174 +134,132 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onSuccess, onSaved
     setErrorMessage(null);
     setSaveState("idle");
     onClose();
-  };
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleClose, isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
-          <h2 className="text-lg font-semibold">AI Food Analysis</h2>
-          <button onClick={handleClose} className="p-1 hover:bg-muted rounded-full transition-colors">
-            <X className="w-5 h-5" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+        <div className="flex shrink-0 items-center justify-between border-b border-border p-4">
+          <h2 className="text-lg font-semibold">사진 분석</h2>
+          <button onClick={handleClose} className="rounded-full p-1 hover:bg-muted" aria-label="사진 분석 닫기">
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="overflow-y-auto p-4 space-y-6">
+        <div className="space-y-6 overflow-y-auto p-4">
           <ErrorBanner message={errorMessage} />
+
           {step === "upload" && (
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-muted-foreground/25 rounded-xl p-12 flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-muted/50 transition-colors"
+              className="flex cursor-pointer flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-muted-foreground/25 p-12 transition-colors hover:bg-muted/50"
             >
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                <Camera className="w-8 h-8" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Camera className="h-8 w-8" />
               </div>
               <div className="text-center">
-                <p className="font-medium">Tap to upload</p>
-                <p className="text-sm text-muted-foreground">Analyze food photo automatically</p>
+                <p className="font-medium">사진 업로드</p>
+                <p className="text-sm text-muted-foreground">음식 사진을 분석해 자동 입력합니다.</p>
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileChange}
-              />
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
             </div>
           )}
 
           {step === "analyzing" && (
-            <div className="flex flex-col items-center justify-center py-12 space-y-4">
-              <div className="relative w-32 h-32 rounded-xl overflow-hidden shadow-lg">
-                {imagePreview && <Image src={imagePreview} alt="Preview" fill className="object-cover" />}
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <Loader2 className="w-8 h-8 text-white animate-spin" />
+            <div className="flex flex-col items-center justify-center space-y-4 py-12">
+              <div className="relative h-32 w-32 overflow-hidden rounded-xl shadow-lg">
+                {imagePreview && <Image src={imagePreview} alt="미리보기" fill className="object-cover" />}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                  <Loader2 className="h-8 w-8 animate-spin text-white" />
                 </div>
               </div>
-              <p className="text-muted-foreground animate-pulse">Analyzing food...</p>
+              <p className="animate-pulse text-muted-foreground">분석 중...</p>
             </div>
           )}
 
           {step === "confirm" && (
             <div className="space-y-6">
-              <div className="relative w-full h-48 rounded-xl overflow-hidden shadow-sm">
-                {imagePreview && <Image src={imagePreview} alt="Preview" fill className="object-cover" />}
+              <div className="relative h-48 w-full overflow-hidden rounded-xl shadow-sm">
+                {imagePreview && <Image src={imagePreview} alt="미리보기" fill className="object-cover" />}
               </div>
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <label className="text-xs font-medium text-muted-foreground uppercase">Food Name *</label>
-                    <input
-                      type="text"
-                      value={formData.food_name}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, food_name: e.target.value }))
-                      }
-                      className="w-full bg-input border border-border rounded-lg px-3 py-2 mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase">Amount (g) *</label>
-                    <input
-                      type="number"
-                      value={formData.amount}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, amount: Number(e.target.value) || 0 }))
-                      }
-                      className="w-full bg-input border border-border rounded-lg px-3 py-2 mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase">Calories</label>
-                    <input
-                      type="number"
-                      value={formData.calories}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, calories: Number(e.target.value) || 0 }))
-                      }
-                      className="w-full bg-input border border-border rounded-lg px-3 py-2 mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase">Carbs (g)</label>
-                    <input
-                      type="number"
-                      value={formData.carbs}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, carbs: Number(e.target.value) || 0 }))
-                      }
-                      className="w-full bg-input border border-border rounded-lg px-3 py-2 mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase">Protein (g)</label>
-                    <input
-                      type="number"
-                      value={formData.protein}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, protein: Number(e.target.value) || 0 }))
-                      }
-                      className="w-full bg-input border border-border rounded-lg px-3 py-2 mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase">Fat (g)</label>
-                    <input
-                      type="number"
-                      value={formData.fat}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, fat: Number(e.target.value) || 0 }))
-                      }
-                      className="w-full bg-input border border-border rounded-lg px-3 py-2 mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase">Sugar (g)</label>
-                    <input
-                      type="number"
-                      value={formData.sugar}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, sugar: Number(e.target.value) || 0 }))
-                      }
-                      className="w-full bg-input border border-border rounded-lg px-3 py-2 mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase">Sodium (mg)</label>
-                    <input
-                      type="number"
-                      value={formData.sodium}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, sodium: Number(e.target.value) || 0 }))
-                      }
-                      className="w-full bg-input border border-border rounded-lg px-3 py-2 mt-1"
-                    />
-                  </div>
-                </div>
-                <label className="flex items-center gap-2 text-sm">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="text-xs font-medium text-muted-foreground">음식 이름 *</label>
                   <input
-                    type="checkbox"
-                    checked={saveAsTemplate}
-                    onChange={(e) => setSaveAsTemplate(e.target.checked)}
+                    type="text"
+                    value={formData.food_name}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, food_name: e.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-border bg-input px-3 py-2"
                   />
-                  Save as template
-                </label>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">중량(g) *</label>
+                  <input
+                    type="number"
+                    value={formData.amount}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, amount: Number(e.target.value) || 0 }))}
+                    className="mt-1 w-full rounded-lg border border-border bg-input px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">칼로리</label>
+                  <input
+                    type="number"
+                    value={formData.calories}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, calories: Number(e.target.value) || 0 }))}
+                    className="mt-1 w-full rounded-lg border border-border bg-input px-3 py-2"
+                  />
+                </div>
+                <FieldNumber label="탄수화물 (g)" value={formData.carbs} onChange={(value) => setFormData((prev) => ({ ...prev, carbs: value }))} />
+                <FieldNumber label="단백질 (g)" value={formData.protein} onChange={(value) => setFormData((prev) => ({ ...prev, protein: value }))} />
+                <FieldNumber label="지방 (g)" value={formData.fat} onChange={(value) => setFormData((prev) => ({ ...prev, fat: value }))} />
+                <FieldNumber label="당 (g)" value={formData.sugar} onChange={(value) => setFormData((prev) => ({ ...prev, sugar: value }))} />
+                <FieldNumber label="나트륨 (mg)" value={formData.sodium} onChange={(value) => setFormData((prev) => ({ ...prev, sodium: value }))} />
               </div>
+
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={saveAsTemplate} onChange={(e) => setSaveAsTemplate(e.target.checked)} />
+                템플릿으로 저장
+              </label>
 
               <button
                 onClick={handleSave}
                 disabled={saveState === "saving"}
-                className="w-full bg-primary text-primary-foreground font-bold py-4 rounded-xl shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-bold text-primary-foreground disabled:opacity-50"
               >
-                <Check className="w-5 h-5" /> {saveState === "saving" ? "Saving..." : "Save Record"}
+                <Check className="h-5 w-5" />
+                {saveState === "saving" ? "저장 중..." : "기록 저장"}
               </button>
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function FieldNumber({ label, value, onChange }: { label: string; value: number; onChange: (next: number) => void }) {
+  return (
+    <div>
+      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value) || 0)}
+        className="mt-1 w-full rounded-lg border border-border bg-input px-3 py-2"
+      />
     </div>
   );
 }

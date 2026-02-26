@@ -111,3 +111,17 @@
 - `MealRecord` no longer includes `meal_type` in app-level type/API payload.
 - Records sheet compatibility is kept by preserving column position while writing empty value for legacy `meal_type` slot.
 - Dashboard target UI now uses progress bars (current/target) under calorie gauge.
+
+---
+
+## 12) UI Language Policy (2026-02-27)
+
+- 사용자에게 노출되는 메뉴명/탭명/주요 액션명은 한글만 사용한다.
+- 신규 UI 추가 시 영어 메뉴명은 금지한다.
+- 기존 영어 메뉴명 발견 시 기능 변경 여부와 무관하게 한글로 우선 치환한다.
+
+## 13) UI Language Policy (2026-02-26, enforced)
+
+- User-facing menu names, tab names, and primary action labels must be Korean only.
+- New English menu labels are not allowed.
+- If an English label is found in existing UI, replace it with Korean in the same change set.

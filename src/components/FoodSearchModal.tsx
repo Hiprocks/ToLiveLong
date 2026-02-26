@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, Search, X } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
 import { getLocalDateString } from "@/lib/date";
@@ -36,11 +36,9 @@ const initialForm: FormState = {
   sodium: 0,
 };
 
-const TEMPLATE_CACHE_TTL_MS = 60 * 1000;
-const RECENT_TEMPLATE_KEY = "toLiveLong.recentTemplates";
-let templateCache: { expiresAt: number; data: TemplateItem[] } | null = null;
-
 type SaveState = "idle" | "saving" | "success" | "error";
+const RECENT_TEMPLATE_KEY = "toLiveLong.recentTemplates";
+let templateCache: TemplateItem[] | null = null;
 
 export default function FoodSearchModal({
   isOpen,
@@ -63,15 +61,12 @@ export default function FoodSearchModal({
   useEffect(() => {
     if (!isOpen) return;
     setMode(initialMode);
-    if (typeof window === "undefined") return;
+    setSaveState("idle");
+    setErrorMessage(null);
     try {
       const raw = window.localStorage.getItem(RECENT_TEMPLATE_KEY);
-      if (!raw) {
-        setRecentTemplateIds([]);
-        return;
-      }
-      const parsed = JSON.parse(raw) as string[];
-      setRecentTemplateIds(Array.isArray(parsed) ? parsed.filter((item) => typeof item === "string") : []);
+      const parsed = raw ? (JSON.parse(raw) as string[]) : [];
+      setRecentTemplateIds(Array.isArray(parsed) ? parsed : []);
     } catch {
       setRecentTemplateIds([]);
     }
@@ -79,9 +74,8 @@ export default function FoodSearchModal({
 
   useEffect(() => {
     if (!isOpen) return;
-
-    if (templateCache && templateCache.expiresAt > Date.now()) {
-      setTemplates(templateCache.data);
+    if (templateCache) {
+      setTemplates(templateCache);
       return;
     }
 
@@ -90,17 +84,17 @@ export default function FoodSearchModal({
       setLoading(true);
       try {
         const res = await fetch("/api/sheets/templates", { cache: "no-store" });
-        if (!res.ok) throw new Error("Failed to load templates");
+        if (!res.ok) throw new Error("템플릿을 불러오지 못했습니다.");
         const data = (await res.json()) as TemplateItem[];
         if (isActive) {
           setTemplates(data);
-          templateCache = { data, expiresAt: Date.now() + TEMPLATE_CACHE_TTL_MS };
+          templateCache = data;
           setErrorMessage(null);
         }
       } catch (error) {
         if (isActive) {
           console.error(error);
-          setErrorMessage("Failed to load templates.");
+          setErrorMessage("템플릿을 불러오지 못했습니다.");
         }
       } finally {
         if (isActive) setLoading(false);
@@ -117,7 +111,6 @@ export default function FoodSearchModal({
     const keyword = query.trim().toLowerCase();
     const base = templates.filter((item) => item.food_name.toLowerCase().includes(keyword));
     const recentRank = new Map(recentTemplateIds.map((id, index) => [id, index]));
-
     return [...base].sort((a, b) => {
       const rankA = recentRank.has(a.id) ? (recentRank.get(a.id) as number) : Number.MAX_SAFE_INTEGER;
       const rankB = recentRank.has(b.id) ? (recentRank.get(b.id) as number) : Number.MAX_SAFE_INTEGER;
@@ -129,9 +122,7 @@ export default function FoodSearchModal({
   const rememberTemplate = (templateId: string) => {
     const next = [templateId, ...recentTemplateIds.filter((id) => id !== templateId)].slice(0, 8);
     setRecentTemplateIds(next);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(RECENT_TEMPLATE_KEY, JSON.stringify(next));
-    }
+    window.localStorage.setItem(RECENT_TEMPLATE_KEY, JSON.stringify(next));
   };
 
   const applyTemplate = (template: TemplateItem) => {
@@ -154,7 +145,6 @@ export default function FoodSearchModal({
     const safeAmount = Number.isFinite(nextAmount) && nextAmount > 0 ? nextAmount : 0;
     setForm((prev) => ({ ...prev, amount: safeAmount }));
     if (!selectedTemplate || safeAmount <= 0) return;
-
     const ratio = safeAmount / selectedTemplate.base_amount;
     setForm((prev) => ({
       ...prev,
@@ -168,7 +158,7 @@ export default function FoodSearchModal({
     }));
   };
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setMode(initialMode);
     setQuery("");
     setSelectedTemplate(null);
@@ -176,20 +166,25 @@ export default function FoodSearchModal({
     setSaveAsTemplate(true);
     setErrorMessage(null);
     setSaveState("idle");
-  };
+  }, [initialMode]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     resetForm();
     onClose();
-  };
+  }, [onClose, resetForm]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleClose, isOpen]);
 
   const validate = () => {
-    if (!form.food_name.trim()) {
-      return "Food name is required.";
-    }
-    if (!Number.isFinite(form.amount) || form.amount < 1) {
-      return "Amount must be at least 1g.";
-    }
+    if (!form.food_name.trim()) return "음식 이름은 필수입니다.";
+    if (!Number.isFinite(form.amount) || form.amount < 1) return "중량은 1g 이상이어야 합니다.";
     return null;
   };
 
@@ -216,7 +211,6 @@ export default function FoodSearchModal({
         sodium: form.sodium,
         saveAsTemplate: saveAsTemplate && mode === "manual",
       };
-
       const res = await fetch("/api/sheets/records", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -224,73 +218,67 @@ export default function FoodSearchModal({
       });
       if (!res.ok) {
         const result = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(result?.error || "Failed to save record");
+        throw new Error(result?.error || "기록 저장에 실패했습니다.");
       }
-
       if (saveAsTemplate && mode === "manual") {
         templateCache = null;
       }
       setSaveState("success");
-      onSaved?.("Meal record saved.");
+      onSaved?.("식단 기록이 저장되었습니다.");
       await onSuccess();
       handleClose();
     } catch (error) {
       console.error(error);
       setSaveState("error");
-      setErrorMessage(error instanceof Error ? error.message : "Failed to save record.");
+      setErrorMessage(error instanceof Error ? error.message : "기록 저장에 실패했습니다.");
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background animate-in slide-in-from-bottom duration-300">
-      <div className="flex items-center gap-3 p-4 border-b border-border">
-        <button onClick={handleClose} className="p-2 hover:bg-muted rounded-full">
-          <X className="w-6 h-6" />
+    <div className="fixed inset-0 z-50 flex flex-col animate-in slide-in-from-bottom duration-300 bg-background">
+      <div className="flex items-center gap-3 border-b border-border p-4">
+        <button onClick={handleClose} className="rounded-full p-2 hover:bg-muted" aria-label="식단 등록 닫기">
+          <X className="h-6 w-6" />
         </button>
-        <h2 className="text-lg font-semibold">Add Meal</h2>
+        <h2 className="text-lg font-semibold">식단 등록</h2>
       </div>
 
-      <div className="p-4 border-b border-border">
+      <div className="border-b border-border p-4">
         <ErrorBanner message={errorMessage} />
-        <div className="grid grid-cols-2 gap-2 bg-muted p-1 rounded-xl">
-          <button
-            onClick={() => setMode("manual")}
-            className={`py-2 text-sm rounded-lg ${mode === "manual" ? "bg-background" : ""}`}
-          >
-            Manual
+        <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted p-1">
+          <button onClick={() => setMode("manual")} className={`rounded-lg py-2 text-sm ${mode === "manual" ? "bg-background" : ""}`}>
+            수기
           </button>
-          <button
-            onClick={() => setMode("template")}
-            className={`py-2 text-sm rounded-lg ${mode === "template" ? "bg-background" : ""}`}
-          >
-            Template
+          <button onClick={() => setMode("template")} className={`rounded-lg py-2 text-sm ${mode === "template" ? "bg-background" : ""}`}>
+            템플릿
           </button>
         </div>
       </div>
 
       {mode === "template" && (
-        <div className="p-4 border-b border-border">
+        <div className="border-b border-border p-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search templates"
-              className="w-full bg-muted/50 rounded-full pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="템플릿 검색"
+              className="w-full rounded-full bg-muted/50 py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">Recently used templates appear first.</p>
-          <div className="max-h-40 overflow-y-auto mt-3 space-y-2">
-            {loading && <p className="text-sm text-muted-foreground">Loading templates...</p>}
+          <p className="mt-2 text-xs text-muted-foreground">최근 사용 템플릿이 먼저 표시됩니다.</p>
+          <div className="mt-3 max-h-40 space-y-2 overflow-y-auto">
+            {loading && <p className="text-sm text-muted-foreground">템플릿 불러오는 중...</p>}
+            {!loading && filteredTemplates.length === 0 && <p className="text-sm text-muted-foreground">템플릿이 없습니다.</p>}
             {!loading &&
               filteredTemplates.map((template) => (
                 <button
                   key={template.id}
                   onClick={() => applyTemplate(template)}
-                  className="w-full text-left p-3 border border-border rounded-lg hover:bg-muted/40"
+                  className="w-full rounded-lg border border-border p-3 text-left hover:bg-muted/40"
                 >
                   <p className="font-medium">{template.food_name}</p>
                   <p className="text-xs text-muted-foreground">
@@ -302,37 +290,37 @@ export default function FoodSearchModal({
         </div>
       )}
 
-      <div className="p-4 space-y-4 overflow-y-auto">
+      <div className="space-y-4 overflow-y-auto p-4">
         <div>
-          <label className="text-sm text-muted-foreground">Food Name *</label>
+          <label className="text-sm text-muted-foreground">음식 이름 *</label>
           <input
             type="text"
             value={form.food_name}
             onChange={(e) => setForm((prev) => ({ ...prev, food_name: e.target.value }))}
-            className="w-full bg-input border border-border rounded-lg px-3 py-2 mt-1"
+            className="mt-1 w-full rounded-lg border border-border bg-input px-3 py-2"
           />
         </div>
 
         <div>
-          <label className="text-sm text-muted-foreground">Amount (g) *</label>
+          <label className="text-sm text-muted-foreground">중량(g) *</label>
           <input
             type="number"
             value={form.amount}
             min={1}
             onChange={(e) => recalculateByAmount(Number(e.target.value))}
-            className="w-full bg-input border border-border rounded-lg px-3 py-2 mt-1"
+            className="mt-1 w-full rounded-lg border border-border bg-input px-3 py-2"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           {(
             [
-              ["calories", "Calories"],
-              ["carbs", "Carbs (g)"],
-              ["protein", "Protein (g)"],
-              ["fat", "Fat (g)"],
-              ["sugar", "Sugar (g)"],
-              ["sodium", "Sodium (mg)"],
+              ["calories", "칼로리"],
+              ["carbs", "탄수화물 (g)"],
+              ["protein", "단백질 (g)"],
+              ["fat", "지방 (g)"],
+              ["sugar", "당 (g)"],
+              ["sodium", "나트륨 (mg)"],
             ] as const
           ).map(([key, label]) => (
             <div key={key}>
@@ -340,10 +328,8 @@ export default function FoodSearchModal({
               <input
                 type="number"
                 value={form[key]}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, [key]: Number(e.target.value) || 0 }))
-                }
-                className="w-full bg-input border border-border rounded-lg px-3 py-2 mt-1"
+                onChange={(e) => setForm((prev) => ({ ...prev, [key]: Number(e.target.value) || 0 }))}
+                className="mt-1 w-full rounded-lg border border-border bg-input px-3 py-2"
               />
             </div>
           ))}
@@ -351,24 +337,20 @@ export default function FoodSearchModal({
 
         {mode === "manual" && (
           <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={saveAsTemplate}
-              onChange={(e) => setSaveAsTemplate(e.target.checked)}
-            />
-            Save as template
+            <input type="checkbox" checked={saveAsTemplate} onChange={(e) => setSaveAsTemplate(e.target.checked)} />
+            템플릿으로 저장
           </label>
         )}
       </div>
 
-      <div className="p-4 border-t border-border">
+      <div className="border-t border-border p-4">
         <button
           onClick={handleSave}
           disabled={saveState === "saving"}
-          className="w-full bg-primary text-primary-foreground font-bold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-bold text-primary-foreground disabled:opacity-50"
         >
-          <Check className="w-5 h-5" />
-          {saveState === "saving" ? "Saving..." : "Save Record"}
+          <Check className="h-5 w-5" />
+          {saveState === "saving" ? "저장 중..." : "기록 저장"}
         </button>
       </div>
     </div>

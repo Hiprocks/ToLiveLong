@@ -57,3 +57,10 @@
 - [x] Remove breakfast/lunch/dinner/snack category from registration and records UI
 - [x] Remove `meal_type` dependency from records API/type validation flow
 - [x] Show today's targets as bar graph below total calories
+
+## Deferred - Deployment (Handle Later)
+- [ ] Deploy full Next.js app (frontend + `/api/*`) for phone usage
+- [ ] Set production env vars (`GEMINI_API_KEY`, Google Sheets credentials)
+- [ ] Validate mobile production flow (`/api/analyze`, `/api/sheets/*`)
+- [ ] Configure domain/HTTPS and basic operational checks
+- Note: Static frontend-only deployment is not sufficient for this project.

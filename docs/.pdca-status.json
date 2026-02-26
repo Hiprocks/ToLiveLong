@@ -1,22 +1,82 @@
-{
-  "current_feature": "meal-entry-ux",
-  "level": "dynamic",
-  "updated_at": "2026-02-25",
-  "features": {
-    "meal-entry-ux": {
-      "phase": "plan",
-      "progress": 20,
-      "status": "active",
-      "next": "design",
-      "checklist": {
-        "plan": true,
-        "design": false,
-        "do": false,
-        "analyze": false,
-        "iterate": false,
-        "report": false,
-        "archive": false
-      }
-    }
-  }
+﻿{
+    "current_feature":  "my-menu-koreanization-goal-expansion",
+    "level":  "dynamic",
+    "updated_at":  "2026-02-26",
+    "features":  {
+                     "meal-entry-ux":  {
+                                           "phase":  "archive",
+                                           "progress":  100,
+                                           "status":  "archived",
+                                           "next":  null,
+                                           "checklist":  {
+                                                             "plan":  true,
+                                                             "design":  true,
+                                                             "do":  true,
+                                                             "analyze":  true,
+                                                             "iterate":  false,
+                                                             "report":  true,
+                                                             "archive":  true
+                                                         }
+                                       },
+                     "my-menu-replan":  {
+                                            "phase":  "archive",
+                                            "progress":  100,
+                                            "status":  "archived",
+                                            "next":  null,
+                                            "checklist":  {
+                                                              "plan":  true,
+                                                              "design":  true,
+                                                              "do":  true,
+                                                              "analyze":  true,
+                                                              "iterate":  false,
+                                                              "report":  true,
+                                                              "archive":  true
+                                                          }
+                                        },
+                     "number-input-spinless":  {
+                                                   "phase":  "archive",
+                                                   "progress":  100,
+                                                   "status":  "archived",
+                                                   "next":  null,
+                                                   "checklist":  {
+                                                                     "plan":  true,
+                                                                     "design":  true,
+                                                                     "do":  true,
+                                                                     "analyze":  true,
+                                                                     "iterate":  false,
+                                                                     "report":  true,
+                                                                     "archive":  true
+                                                                 }
+                                               },
+                     "number-input-empty-lock":  {
+                                                     "phase":  "report",
+                                                     "progress":  90,
+                                                     "status":  "active",
+                                                     "next":  "archive",
+                                                     "checklist":  {
+                                                                       "plan":  true,
+                                                                       "design":  true,
+                                                                       "do":  true,
+                                                                       "analyze":  true,
+                                                                       "iterate":  false,
+                                                                       "report":  true,
+                                                                       "archive":  false
+                                                                   }
+                                                 },
+                     "my-menu-koreanization-goal-expansion":  {
+                                                                  "phase":  "archive",
+                                                                  "progress":  100,
+                                                                  "status":  "archived",
+                                                                  "next":  null,
+                                                                  "checklist":  {
+                                                                                    "plan":  true,
+                                                                                    "design":  true,
+                                                                                    "do":  true,
+                                                                                    "analyze":  true,
+                                                                                    "iterate":  false,
+                                                                                    "report":  true,
+                                                                                    "archive":  true
+                                                                                }
+                                                              }
+                 }
 }

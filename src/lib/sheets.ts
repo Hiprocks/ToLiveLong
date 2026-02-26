@@ -1,11 +1,11 @@
 import { google, sheets_v4 } from "googleapis";
-import { DailyTargets, MealRecord, TemplateItem } from "@/lib/types";
+import { DailyTargets, MealRecord, TemplateItem, UserProfileInput } from "@/lib/types";
 
 const RECORDS_RANGE = "records!A:K";
 const RECORDS_ID_RANGE = "records!A:A";
 const RECORDS_DATE_RANGE = "records!B:B";
 const TEMPLATES_RANGE = "templates!A:I";
-const USER_RANGE = "user!A:F";
+const USER_RANGE = "user!A:U";
 
 type Primitive = string | number;
 const SHEET_NAME_RE = /^[A-Za-z0-9_]+$/;
@@ -191,6 +191,86 @@ export const parseUserTargets = (row: string[] | null): DailyTargets | null => {
     sodium: toNumber(row[5]),
   };
 };
+
+const parseOptionalNumber = (value: string | undefined): number | undefined => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+const parseOptionalString = <T extends string>(
+  value: string | undefined,
+  allowed: readonly T[]
+): T | undefined => {
+  if (!value) return undefined;
+  return allowed.includes(value as T) ? (value as T) : undefined;
+};
+
+export const parseUserProfile = (row: string[] | null): UserProfileInput | null => {
+  if (!row) return null;
+  const gender = parseOptionalString(row[6], ["male", "female"] as const);
+  const age = parseOptionalNumber(row[7]);
+  const heightCm = parseOptionalNumber(row[8]);
+  const weightKg = parseOptionalNumber(row[9]);
+  const primaryGoal = parseOptionalString(
+    row[10],
+    ["cutting", "maintenance", "bulking", "overfat", "obese", "severe_obese"] as const
+  );
+  const macroPreference = parseOptionalString(row[11], ["balanced", "low_carb", "high_protein"] as const);
+
+  if (!gender || !age || !heightCm || !weightKg || !primaryGoal || !macroPreference) {
+    return null;
+  }
+
+  return {
+    gender,
+    age,
+    heightCm,
+    weightKg,
+    primaryGoal,
+    macroPreference,
+    occupationalActivityLevel: parseOptionalString(row[12], [
+      "sedentary",
+      "light",
+      "moderate",
+      "very",
+      "extra",
+    ] as const),
+    exerciseFrequencyWeekly: parseOptionalNumber(row[13]),
+    exerciseDurationMin: parseOptionalNumber(row[14]),
+    exerciseIntensity: parseOptionalString(row[15], ["low", "medium", "high"] as const),
+    neatLevel: parseOptionalString(row[16], ["sedentary", "light", "moderate", "very", "extra"] as const),
+    bodyFatPct: parseOptionalNumber(row[17]),
+    skeletalMuscleKg: parseOptionalNumber(row[18]),
+    waistHipRatio: parseOptionalNumber(row[19]),
+  };
+};
+
+export const serializeUserRow = (
+  targets: DailyTargets,
+  profile: UserProfileInput | null | undefined
+): Array<string | number> => [
+  targets.calories,
+  targets.carbs,
+  targets.protein,
+  targets.fat,
+  targets.sugar,
+  targets.sodium,
+  profile?.gender ?? "",
+  profile?.age ?? "",
+  profile?.heightCm ?? "",
+  profile?.weightKg ?? "",
+  profile?.primaryGoal ?? "",
+  profile?.macroPreference ?? "",
+  profile?.occupationalActivityLevel ?? "",
+  profile?.exerciseFrequencyWeekly ?? "",
+  profile?.exerciseDurationMin ?? "",
+  profile?.exerciseIntensity ?? "",
+  profile?.neatLevel ?? "",
+  profile?.bodyFatPct ?? "",
+  profile?.skeletalMuscleKg ?? "",
+  profile?.waistHipRatio ?? "",
+  "",
+];
 
 export const RANGES = {
   records: RECORDS_RANGE,

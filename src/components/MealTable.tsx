@@ -21,8 +21,8 @@ export default function MealTable({ logs }: MealTableProps) {
         <table className="w-full text-sm text-left">
           <thead className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wider">
             <tr>
-              <th className="px-4 py-3 font-medium">Menu</th>
-              <th className="px-3 py-3 font-medium text-right">Kcal</th>
+              <th className="px-4 py-3 font-medium">메뉴</th>
+              <th className="px-3 py-3 font-medium text-right">kcal</th>
               <th className="px-2 py-3 font-medium text-right hidden xs:table-cell">C</th>
               <th className="px-2 py-3 font-medium text-right hidden xs:table-cell">P</th>
               <th className="px-2 py-3 font-medium text-right hidden xs:table-cell">F</th>
