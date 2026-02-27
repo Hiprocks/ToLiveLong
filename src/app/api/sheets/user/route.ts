@@ -3,6 +3,7 @@ import { DailyTargets, UserProfileInput } from "@/lib/types";
 import {
   appendRow,
   listRows,
+  parseUserAi,
   parseUserProfile,
   parseUserTargets,
   RANGES,
@@ -12,6 +13,7 @@ import {
 import { parseNonNegativeNumber, ValidationError } from "@/lib/apiValidation";
 import { assertSameOrigin, AuthorizationError } from "@/lib/apiGuard";
 import { calculateNutritionTargets, toDailyTargets } from "@/lib/nutrition/calculateTargets";
+import { calculateNutritionTargetsWithAi } from "@/lib/nutrition/aiTargets";
 
 const defaultTargets: DailyTargets = {
   calories: 2300,
@@ -28,7 +30,8 @@ export async function GET() {
     const row = rows[0] ?? null;
     const targets = parseUserTargets(row) ?? defaultTargets;
     const profile = parseUserProfile(row);
-    const computed = profile ? calculateNutritionTargets(profile) : null;
+    const storedAi = parseUserAi(row);
+    const computed = profile ? storedAi ?? calculateNutritionTargets(profile) : null;
     return NextResponse.json({
       ...targets,
       profileRegistered: Boolean(profile),
@@ -57,6 +60,7 @@ export async function PUT(req: NextRequest) {
     const rows = await listRows(RANGES.user);
     const existingRow = rows[0] ?? null;
     const existingProfile = parseUserProfile(existingRow);
+    const existingAi = parseUserAi(existingRow);
 
     const rawProfile = (body.profile ?? body) as Partial<UserProfileInput>;
     const hasProfilePayload = rawProfile.gender !== undefined || rawProfile.age !== undefined;
@@ -66,8 +70,22 @@ export async function PUT(req: NextRequest) {
 
     if (hasProfilePayload) {
       profile = parseProfile(rawProfile);
-      const computed = calculateNutritionTargets(profile);
+      const computed = await calculateNutritionTargetsWithAi(profile);
+      const nowIso = new Date().toISOString();
+      computed.aiUpdatedAt = nowIso;
       targets = toDailyTargets(computed);
+      const rowValues = serializeUserRow(targets, profile, computed);
+      if (rows.length === 0) {
+        await appendRow(RANGES.user, rowValues);
+      } else {
+        await updateRow(RANGES.user, 2, rowValues);
+      }
+      return NextResponse.json({
+        ...targets,
+        profileRegistered: Boolean(profile),
+        profile,
+        computed,
+      });
     } else {
       targets = {
         calories: parseNonNegativeNumber(body.calories ?? defaultTargets.calories, "calories", {
@@ -85,7 +103,7 @@ export async function PUT(req: NextRequest) {
       };
     }
 
-    const rowValues = serializeUserRow(targets, profile);
+    const rowValues = serializeUserRow(targets, profile, existingAi);
 
     if (rows.length === 0) {
       await appendRow(RANGES.user, rowValues);
@@ -97,14 +115,18 @@ export async function PUT(req: NextRequest) {
       ...targets,
       profileRegistered: Boolean(profile),
       profile,
-      computed: profile ? calculateNutritionTargets(profile) : null,
+      computed: profile ? existingAi ?? calculateNutritionTargets(profile) : null,
     });
   } catch (error) {
     console.error(error);
     if (error instanceof ValidationError || error instanceof AuthorizationError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
-    return NextResponse.json({ error: "Failed to update user targets" }, { status: 500 });
+    const detail = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json(
+      { error: `Failed to update user targets: ${detail}` },
+      { status: 500 }
+    );
   }
 }
 
@@ -134,24 +156,41 @@ const parseOptionalNumber = (
   return parseNonNegativeNumber(value, fieldName, options);
 };
 
+const normalizePrimaryGoal = (value: unknown): unknown => {
+  if (value === "overfat" || value === "obese" || value === "severe_obese") return "cutting";
+  return value;
+};
+
+const normalizeMacroPreference = (value: unknown): unknown => {
+  if (value === "high_fat") return "keto";
+  return value;
+};
+
+const normalizeWaistHipRatio = (value: unknown): unknown => {
+  if (value === undefined || value === null || value === "") return undefined;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return value;
+  if (parsed < 0.5) return undefined;
+  return value;
+};
+
 const parseProfile = (payload: Partial<UserProfileInput>): UserProfileInput => {
   return {
     gender: parseEnum(payload.gender, "gender", ["male", "female"] as const),
     age: parseNonNegativeNumber(payload.age, "age", { min: 10, max: 120 }),
     heightCm: parseNonNegativeNumber(payload.heightCm, "heightCm", { min: 100, max: 250 }),
     weightKg: parseNonNegativeNumber(payload.weightKg, "weightKg", { min: 20, max: 400 }),
-    primaryGoal: parseEnum(payload.primaryGoal, "primaryGoal", [
+    primaryGoal: parseEnum(normalizePrimaryGoal(payload.primaryGoal), "primaryGoal", [
       "cutting",
       "maintenance",
       "bulking",
-      "overfat",
-      "obese",
-      "severe_obese",
+      "recomposition",
     ] as const),
-    macroPreference: parseEnum(payload.macroPreference, "macroPreference", [
+    macroPreference: parseEnum(normalizeMacroPreference(payload.macroPreference), "macroPreference", [
       "balanced",
       "low_carb",
       "high_protein",
+      "keto",
     ] as const),
     occupationalActivityLevel: parseEnum(
       payload.occupationalActivityLevel,
@@ -184,6 +223,10 @@ const parseProfile = (payload: Partial<UserProfileInput>): UserProfileInput => {
       min: 1,
       max: 200,
     }),
-    waistHipRatio: parseOptionalNumber(payload.waistHipRatio, "waistHipRatio", { min: 0.5, max: 2 }),
+    waistHipRatio: parseOptionalNumber(
+      normalizeWaistHipRatio(payload.waistHipRatio),
+      "waistHipRatio",
+      { min: 0.5, max: 2 }
+    ),
   };
 };

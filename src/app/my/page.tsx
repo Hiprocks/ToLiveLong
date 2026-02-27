@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import ErrorBanner from "@/components/ErrorBanner";
@@ -13,28 +13,31 @@ export default function MyPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [aiTestMessage, setAiTestMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let isActive = true;
+
     const loadData = async () => {
       try {
         const response = await fetch("/api/sheets/user", { cache: "no-store" });
         if (!response.ok) throw new Error("내 정보를 불러오지 못했습니다.");
+
         const nextData = (await response.json()) as UserTargetsResponse;
-        if (isActive) {
-          setData(nextData);
-          if (!nextData.profileRegistered) setIsEditOpen(true);
-        }
-        if (isActive) setErrorMessage(null);
+        if (!isActive) return;
+
+        setData(nextData);
+        setErrorMessage(null);
+        if (!nextData.profileRegistered) setIsEditOpen(true);
       } catch (error) {
-        if (isActive) {
-          console.error(error);
-          setErrorMessage("내 정보를 불러오지 못했습니다.");
-        }
+        if (!isActive) return;
+        console.error(error);
+        setErrorMessage("내 정보를 불러오지 못했습니다.");
       } finally {
         if (isActive) setLoading(false);
       }
     };
+
     void loadData();
     return () => {
       isActive = false;
@@ -44,16 +47,26 @@ export default function MyPage() {
   const handleSave = async (profile: UserProfileInput) => {
     setSaveState("saving");
     setSuccessMessage(null);
+
     try {
       const response = await fetch("/api/sheets/user", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(profile),
       });
+
       if (!response.ok) {
-        const result = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(result?.error || "프로필 저장에 실패했습니다.");
+        const raw = await response.text();
+        let message = "";
+        try {
+          const result = JSON.parse(raw) as { error?: string };
+          message = result?.error ?? "";
+        } catch {
+          message = raw;
+        }
+        throw new Error(message || `프로필 저장에 실패했습니다. (HTTP ${response.status})`);
       }
+
       const nextData = (await response.json()) as UserTargetsResponse;
       setData(nextData);
       setSaveState("success");
@@ -70,19 +83,63 @@ export default function MyPage() {
     }
   };
 
+  const handleAiTest = async () => {
+    setAiTestMessage(null);
+    try {
+      const response = await fetch("/api/sheets/user", { cache: "no-store" });
+      if (!response.ok) throw new Error("AI 테스트 요청에 실패했습니다.");
+
+      const result = (await response.json()) as UserTargetsResponse;
+      const note = result.computed?.aiNotes?.trim();
+      if (!note) {
+        setAiTestMessage("AI 메모가 비어 있습니다.");
+        return;
+      }
+
+      const source = result.computed?.aiSource === "ai" ? "AI" : "기본 계산";
+      const debug = result.computed?.aiDebug ? ` (${result.computed.aiDebug})` : "";
+      setAiTestMessage(`${source}: ${note}${debug}`);
+    } catch (error) {
+      console.error(error);
+      setAiTestMessage("AI 응답 테스트에 실패했습니다.");
+    }
+  };
+
   if (loading) {
     return <div className="p-4 text-muted-foreground">불러오는 중...</div>;
   }
 
   return (
     <main className="space-y-4 p-4 pb-24">
-      <h1 className="text-2xl font-bold">내정보</h1>
+      <h1 className="text-2xl font-bold">내 정보</h1>
       <ErrorBanner message={errorMessage} />
+
       {successMessage && (
         <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
           {successMessage}
         </div>
       )}
+
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold">AI 응답 테스트</p>
+            <p className="text-xs text-muted-foreground">Gemini 응답 메모와 디버그 정보를 확인합니다.</p>
+          </div>
+          <button
+            onClick={handleAiTest}
+            className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+          >
+            테스트 실행
+          </button>
+        </div>
+
+        {aiTestMessage && (
+          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            {aiTestMessage}
+          </div>
+        )}
+      </div>
 
       {!data?.profileRegistered || !data.profile ? (
         <div className="rounded-2xl border border-border bg-card p-5">
@@ -125,7 +182,7 @@ export default function MyPage() {
 
       {!data?.profileRegistered && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          등록 전에는 서비스를 이용할 수 없습니다.
+          등록 전에는 서비스 이용이 제한됩니다.
         </div>
       )}
     </main>

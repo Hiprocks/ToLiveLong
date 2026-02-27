@@ -1,11 +1,11 @@
 import { google, sheets_v4 } from "googleapis";
-import { DailyTargets, MealRecord, TemplateItem, UserProfileInput } from "@/lib/types";
+import { DailyTargets, MealRecord, NutritionTargets, TemplateItem, UserProfileInput } from "@/lib/types";
 
 const RECORDS_RANGE = "records!A:K";
 const RECORDS_ID_RANGE = "records!A:A";
 const RECORDS_DATE_RANGE = "records!B:B";
 const TEMPLATES_RANGE = "templates!A:I";
-const USER_RANGE = "user!A:U";
+const USER_RANGE = "user!A:AA";
 
 type Primitive = string | number;
 const SHEET_NAME_RE = /^[A-Za-z0-9_]+$/;
@@ -192,6 +192,12 @@ export const parseUserTargets = (row: string[] | null): DailyTargets | null => {
   };
 };
 
+const parseOptionalText = (value: string | undefined): string | undefined => {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+};
+
 const parseOptionalNumber = (value: string | undefined): number | undefined => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
@@ -211,11 +217,17 @@ export const parseUserProfile = (row: string[] | null): UserProfileInput | null 
   const age = parseOptionalNumber(row[7]);
   const heightCm = parseOptionalNumber(row[8]);
   const weightKg = parseOptionalNumber(row[9]);
+  const rawGoal = row[10];
+  const normalizedGoal =
+    rawGoal === "overfat" || rawGoal === "obese" || rawGoal === "severe_obese" ? "cutting" : rawGoal;
   const primaryGoal = parseOptionalString(
-    row[10],
-    ["cutting", "maintenance", "bulking", "overfat", "obese", "severe_obese"] as const
+    normalizedGoal,
+    ["cutting", "maintenance", "bulking", "recomposition"] as const
   );
-  const macroPreference = parseOptionalString(row[11], ["balanced", "low_carb", "high_protein"] as const);
+  const macroPreference = parseOptionalString(
+    row[11],
+    ["balanced", "low_carb", "high_protein", "keto"] as const
+  );
 
   if (!gender || !age || !heightCm || !weightKg || !primaryGoal || !macroPreference) {
     return null;
@@ -245,9 +257,37 @@ export const parseUserProfile = (row: string[] | null): UserProfileInput | null 
   };
 };
 
+export const parseUserAi = (row: string[] | null): NutritionTargets | null => {
+  if (!row) return null;
+  const bmr = parseOptionalNumber(row[20]);
+  const tdee = parseOptionalNumber(row[21]);
+  const targetCalories = parseOptionalNumber(row[22]);
+  const notes = parseOptionalText(row[23]);
+  const source = parseOptionalString(row[24], ["ai", "fallback"] as const);
+  const updatedAt = parseOptionalText(row[25]);
+
+  if (bmr === undefined || tdee === undefined || targetCalories === undefined) return null;
+
+  return {
+    bmr,
+    tdee,
+    targetCalories,
+    calories: toNumber(row[0]),
+    carbs: toNumber(row[1]),
+    protein: toNumber(row[2]),
+    fat: toNumber(row[3]),
+    sugar: toNumber(row[4]),
+    sodium: toNumber(row[5]),
+    aiNotes: notes,
+    aiSource: source,
+    aiUpdatedAt: updatedAt,
+  };
+};
+
 export const serializeUserRow = (
   targets: DailyTargets,
-  profile: UserProfileInput | null | undefined
+  profile: UserProfileInput | null | undefined,
+  ai?: NutritionTargets | null
 ): Array<string | number> => [
   targets.calories,
   targets.carbs,
@@ -269,7 +309,12 @@ export const serializeUserRow = (
   profile?.bodyFatPct ?? "",
   profile?.skeletalMuscleKg ?? "",
   profile?.waistHipRatio ?? "",
-  "",
+  ai?.bmr ?? "",
+  ai?.tdee ?? "",
+  ai?.targetCalories ?? "",
+  ai?.aiNotes ?? "",
+  ai?.aiSource ?? "",
+  ai?.aiUpdatedAt ?? "",
 ];
 
 export const RANGES = {
@@ -279,6 +324,7 @@ export const RANGES = {
   templates: TEMPLATES_RANGE,
   user: USER_RANGE,
 } as const;
+
 
 const parseUpdatedRangeRowIndex = (updatedRange: string): number | null => {
   const match = /![A-Z]+(\d+):/.exec(updatedRange);

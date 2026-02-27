@@ -8,6 +8,7 @@
 - [x] 식단 입력(수기/템플릿/사진분석) Sheets 저장 연동
 
 ## P1
+- [ ] 최적화 작업 - 메뉴 열 때마다 API 호출 및 데이터 불러오는 부분 수정
 - [x] Supabase 완전 제거
   - [x] `src/lib/supabase.ts` 삭제
   - [x] `src/components/AddMealModal.tsx` 삭제

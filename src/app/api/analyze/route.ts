@@ -5,6 +5,16 @@ import { normalizeAnalyzePayload, parseModelJson } from "@/lib/analyzePayload";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
+const DEFAULT_MODEL_CANDIDATES = ["gemini-1.5-pro", "gemini-1.5-flash"] as const;
+
+const getModelCandidates = (): string[] => {
+  const fromEnv = (process.env.GEMINI_MODEL ?? "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+  return Array.from(new Set([...fromEnv, ...DEFAULT_MODEL_CANDIDATES]));
+};
+
 export async function POST(req: NextRequest) {
   try {
     assertSameOrigin(req);
@@ -20,8 +30,6 @@ export async function POST(req: NextRequest) {
 
     const buffer = await file.arrayBuffer();
     const base64Image = Buffer.from(buffer).toString("base64");
-
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
     const prompt = `
       Analyze this image of food or a nutrition label.
@@ -43,27 +51,45 @@ export async function POST(req: NextRequest) {
       Ensure the response is valid JSON.
     `;
 
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: base64Image,
-          mimeType: file.type,
-        },
-      },
-    ]);
+    const modelCandidates = getModelCandidates();
+    let lastError = "Unknown error";
 
-    const response = await result.response;
-    const text = response.text();
-    const parsed = parseModelJson(text);
-    const data = normalizeAnalyzePayload(parsed);
+    for (const modelName of modelCandidates) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent([
+          prompt,
+          {
+            inlineData: {
+              data: base64Image,
+              mimeType: file.type,
+            },
+          },
+        ]);
+        const response = await result.response;
+        const text = response.text();
+        const parsed = parseModelJson(text);
+        const data = normalizeAnalyzePayload(parsed);
+        return NextResponse.json(data);
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : String(error);
+        console.warn(`[analyze] Gemini model failed: ${modelName}`, error);
+      }
+    }
 
-    return NextResponse.json(data);
+    throw new Error(
+      `Gemini request failed for models (${modelCandidates.join(", ")}). Last error: ${lastError}`
+    );
   } catch (error) {
     console.error("Error analyzing image:", error);
     if (error instanceof AuthorizationError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
-    return NextResponse.json({ error: "Failed to analyze image" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Failed to analyze image",
+      },
+      { status: 500 }
+    );
   }
 }
