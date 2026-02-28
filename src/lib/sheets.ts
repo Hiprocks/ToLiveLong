@@ -13,16 +13,31 @@ const COLUMN_RE = /^[A-Z]+$/;
 const MAX_BATCH_RANGES = 100;
 const sheetIdCache = new Map<string, number>();
 
+const normalizeEnv = (name: string): string => {
+  const raw = process.env[name];
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("\"") && trimmed.endsWith("\"")) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+};
+
 const toNumber = (value: unknown): number => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const escapePrivateKey = (privateKey: string) => privateKey.replace(/\\n/g, "\n");
+const escapePrivateKey = (privateKey: string) => {
+  const trimmed = privateKey.trim();
+  const unquoted =
+    trimmed.startsWith("\"") && trimmed.endsWith("\"") ? trimmed.slice(1, -1).trim() : trimmed;
+  return unquoted.replace(/\\n/g, "\n");
+};
 
 const buildAuth = () => {
-  const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY;
+  const clientEmail = normalizeEnv("GOOGLE_SERVICE_ACCOUNT_EMAIL");
+  const privateKey = normalizeEnv("GOOGLE_PRIVATE_KEY");
 
   if (!clientEmail || !privateKey) {
     throw new Error("Missing Google service account credentials");
@@ -42,7 +57,7 @@ export const getSheets = async (): Promise<sheets_v4.Sheets> => {
 };
 
 export const getSheetId = (): string => {
-  const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
+  const spreadsheetId = normalizeEnv("GOOGLE_SHEETS_ID");
   if (!spreadsheetId) throw new Error("Missing GOOGLE_SHEETS_ID");
   return spreadsheetId;
 };
