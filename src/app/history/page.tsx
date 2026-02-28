@@ -13,6 +13,7 @@ const historyCache = new Map<string, { fetchedAt: number; records: MealRecord[] 
 type Tone = "normal" | "low" | "high";
 
 type EditDraft = {
+  date: string;
   food_name: string;
   amount: string;
   calories: string;
@@ -24,6 +25,7 @@ type EditDraft = {
 };
 
 const toEditDraft = (record: MealRecord): EditDraft => ({
+  date: record.date,
   food_name: record.food_name,
   amount: String(record.amount),
   calories: String(record.calories),
@@ -133,6 +135,18 @@ export default function HistoryPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!editing) return;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+    };
+  }, [editing]);
+
   const totals = records.reduce(
     (acc, record) => ({
       carbs: acc.carbs + record.carbs,
@@ -215,6 +229,10 @@ export default function HistoryPage() {
       setErrorMessage("음식명은 필수입니다.");
       return;
     }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(editDraft.date)) {
+      setErrorMessage("날짜를 확인해 주세요.");
+      return;
+    }
     if (!amount) {
       setErrorMessage("섭취량은 1g 이상이어야 합니다.");
       return;
@@ -222,6 +240,7 @@ export default function HistoryPage() {
 
     const payload: MealRecord = {
       ...editing,
+      date: editDraft.date,
       food_name: editDraft.food_name.trim(),
       amount,
       calories: parseNumber(editDraft.calories),
@@ -315,6 +334,15 @@ export default function HistoryPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-md space-y-3 rounded-xl border border-border bg-card p-4">
             <h2 className="text-lg font-semibold">기록 수정</h2>
+            <label className="space-y-1 text-sm">
+              <span className="text-muted-foreground">섭취 날짜</span>
+              <input
+                type="date"
+                value={editDraft.date}
+                onChange={(e) => setEditDraft({ ...editDraft, date: e.target.value })}
+                className="w-full rounded-lg border border-border bg-input px-3 py-2"
+              />
+            </label>
             <label className="space-y-1 text-sm">
               <span className="text-muted-foreground">음식명</span>
               <input

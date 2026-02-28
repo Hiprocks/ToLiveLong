@@ -16,6 +16,7 @@ interface FoodSearchModalProps {
 }
 
 interface FormState {
+  date: string;
   food_name: string;
   amount: number;
   calories: number;
@@ -35,7 +36,8 @@ type SelectedSource =
   | { kind: "template"; item: TemplateItem }
   | { kind: "database"; item: FoodIndexItem };
 
-const initialForm: FormState = {
+const getInitialForm = (): FormState => ({
+  date: getLocalDateString(),
   food_name: "",
   amount: 100,
   calories: 0,
@@ -44,7 +46,7 @@ const initialForm: FormState = {
   fat: 0,
   sugar: 0,
   sodium: 0,
-};
+});
 
 const RECENT_TEMPLATE_KEY = "toLiveLong.recentTemplates";
 let templateCache: TemplateItem[] | null = null;
@@ -101,6 +103,7 @@ export default function FoodSearchModal({
   onSaved,
   initialPrefill = null,
 }: FoodSearchModalProps) {
+  const initialForm = useMemo(() => getInitialForm(), []);
   const [mode, setMode] = useState<"manual" | "template" | "database">(initialMode);
   const [loading, setLoading] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -133,6 +136,18 @@ export default function FoodSearchModal({
   }, [isOpen, initialMode]);
 
   useEffect(() => {
+    if (!isOpen) return;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
     if (!isOpen || !initialPrefill) return;
     const nextForm: FormState = {
       ...initialForm,
@@ -145,7 +160,7 @@ export default function FoodSearchModal({
     setMode("manual");
     setSelectedSource(null);
     setFormAndDraft(nextForm);
-  }, [initialPrefill, isOpen]);
+  }, [initialForm, initialPrefill, isOpen]);
 
   useEffect(() => {
     if (!isOpen || templateCache) {
@@ -338,7 +353,7 @@ export default function FoodSearchModal({
     setDraft(toDraft(initialForm));
     setErrorMessage(null);
     setSaveState("idle");
-  }, [initialMode]);
+  }, [initialForm, initialMode]);
 
   const handleClose = useCallback(() => {
     resetForm();
@@ -355,6 +370,7 @@ export default function FoodSearchModal({
   }, [handleClose, isOpen]);
 
   const validate = () => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date)) return "섭취 날짜를 확인해 주세요.";
     if (!form.food_name.trim()) return "음식 이름은 필수입니다.";
     const amount = parsePositiveAmount(draft.amount);
     if (!amount) return "중량은 1g 이상이어야 합니다.";
@@ -373,7 +389,7 @@ export default function FoodSearchModal({
     setErrorMessage(null);
     try {
       const payload: Partial<MealRecord> & { saveAsTemplate?: boolean } = {
-        date: getLocalDateString(),
+        date: form.date,
         food_name: form.food_name.trim(),
         amount: parseNumber(draft.amount),
         calories: parseNumber(draft.calories),
@@ -494,6 +510,15 @@ export default function FoodSearchModal({
         )}
 
         <div className="space-y-4 p-4">
+        <div>
+          <label className="text-sm text-muted-foreground">섭취 날짜 *</label>
+          <input
+            type="date"
+            value={form.date}
+            onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
+            className="mt-1 w-full rounded-lg border border-border bg-input px-3 py-2"
+          />
+        </div>
         <div>
           <label className="text-sm text-muted-foreground">음식 이름 *</label>
           <input
