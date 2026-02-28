@@ -1,50 +1,114 @@
 ﻿"use client";
 
 import { MealRecord } from "@/lib/types";
+import { DailyTargets } from "@/lib/types";
 
 interface MealTableProps {
   logs: MealRecord[];
+  targets?: DailyTargets;
 }
 
-export default function MealTable({ logs }: MealTableProps) {
+type Tone = "normal" | "low" | "high";
+
+const getTone = (
+  key: "carbs" | "protein" | "fat" | "sugar" | "sodium",
+  value: number,
+  targets?: DailyTargets
+): Tone => {
+  if (!targets) return "normal";
+  const target = targets[key];
+  if (!target || target <= 0) return "normal";
+  const ratio = value / target;
+
+  if (key === "sugar" || key === "sodium") {
+    return ratio > 1 ? "high" : "normal";
+  }
+
+  if (ratio < 0.85) return "low";
+  if (ratio > 1.05) return "high";
+  return "normal";
+};
+
+export default function MealTable({ logs, targets }: MealTableProps) {
   if (logs.length === 0) {
     return (
-      <div className="rounded-xl border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+      <div className="rounded-2xl border border-border/80 bg-card px-4 py-8 text-center text-sm text-muted-foreground shadow-sm">
         오늘 등록된 식단이 없습니다.
       </div>
     );
   }
 
+  const totals = logs.reduce(
+    (acc, item) => ({
+      carbs: acc.carbs + item.carbs,
+      protein: acc.protein + item.protein,
+      fat: acc.fat + item.fat,
+      sugar: acc.sugar + item.sugar,
+      sodium: acc.sodium + item.sodium,
+    }),
+    { carbs: 0, protein: 0, fat: 0, sugar: 0, sodium: 0 }
+  );
+
+  const tones = {
+    carbs: getTone("carbs", totals.carbs, targets),
+    protein: getTone("protein", totals.protein, targets),
+    fat: getTone("fat", totals.fat, targets),
+    sugar: getTone("sugar", totals.sugar, targets),
+    sodium: getTone("sodium", totals.sodium, targets),
+  };
+
   return (
-    <div className="w-full pb-24">
-      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wider">
-            <tr>
-              <th className="px-4 py-3 font-medium">메뉴</th>
-              <th className="px-3 py-3 font-medium text-right">kcal</th>
-              <th className="px-2 py-3 font-medium text-right hidden xs:table-cell">탄</th>
-              <th className="px-2 py-3 font-medium text-right hidden xs:table-cell">단</th>
-              <th className="px-2 py-3 font-medium text-right hidden xs:table-cell">지</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {logs.map((item) => (
-              <tr key={item.id} className="hover:bg-muted/50 transition-colors">
-                <td className="px-4 py-3 font-medium">
-                  <div className="line-clamp-1">{item.food_name}</div>
-                  <div className="text-[10px] text-muted-foreground sm:hidden">
-                    {item.amount}g | 탄:{item.carbs} 단:{item.protein} 지:{item.fat}
-                  </div>
-                </td>
-                <td className="px-3 py-3 text-right font-medium">{item.calories}</td>
-                <td className="px-2 py-3 text-right hidden xs:table-cell text-muted-foreground">{item.carbs}</td>
-                <td className="px-2 py-3 text-right hidden xs:table-cell text-emerald-600 font-medium">{item.protein}</td>
-                <td className="px-2 py-3 text-right hidden xs:table-cell text-muted-foreground">{item.fat}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="w-full space-y-3 pb-24">
+      {logs.map((item) => (
+        <article
+          key={item.id}
+          className="rounded-2xl border border-border/80 bg-card/95 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <h3 className="max-w-[65%] truncate text-sm font-semibold sm:text-base">{item.food_name}</h3>
+            <div className="text-xs font-medium text-muted-foreground">{item.amount}g</div>
+            <div className="text-sm font-bold text-primary sm:text-base">{item.calories} kcal</div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+            <MetricChip label="탄수" value={`${item.carbs}g`} tone={tones.carbs} />
+            <MetricChip label="단백질" value={`${item.protein}g`} tone={tones.protein} />
+            <MetricChip label="지방" value={`${item.fat}g`} tone={tones.fat} />
+            <MetricChip label="당" value={`${item.sugar}g`} tone={tones.sugar} />
+            <MetricChip label="나트륨" value={`${item.sodium}mg`} tone={tones.sodium} />
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function MetricChip({
+  label,
+  value,
+  tone = "normal",
+}: {
+  label: string;
+  value: string;
+  tone?: Tone;
+}) {
+  return (
+    <div
+      className={`rounded-lg border px-2 py-1.5 ${
+        tone === "low"
+          ? "border-sky-400/40 bg-sky-500/10"
+          : tone === "high"
+            ? "border-rose-400/40 bg-rose-500/10"
+            : "border-border/70 bg-background/60"
+      }`}
+    >
+      <div className="text-[10px] text-muted-foreground">{label}</div>
+      <div
+        className={`text-xs font-semibold ${
+          tone === "low" ? "text-sky-300" : tone === "high" ? "text-rose-300" : "text-foreground"
+        }`}
+      >
+        {value}
       </div>
     </div>
   );

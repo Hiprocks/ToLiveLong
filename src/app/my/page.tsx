@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import ErrorBanner from "@/components/ErrorBanner";
@@ -131,31 +131,10 @@ export default function MyPage() {
       <ErrorBanner message={errorMessage} />
 
       {successMessage && (
-        <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+        <div className="rounded-lg border border-emerald-300/60 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
           {successMessage}
         </div>
       )}
-
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold">AI 응답 테스트</p>
-            <p className="text-xs text-muted-foreground">Gemini 응답 메모와 디버그 정보를 확인합니다.</p>
-          </div>
-          <button
-            onClick={handleAiTest}
-            className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
-          >
-            테스트 실행
-          </button>
-        </div>
-
-        {aiTestMessage && (
-          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            {aiTestMessage}
-          </div>
-        )}
-      </div>
 
       {!data?.profileRegistered || !data.profile ? (
         <div className="rounded-2xl border border-border bg-card p-5">
@@ -181,6 +160,33 @@ export default function MyPage() {
         </>
       )}
 
+      {!data?.profileRegistered && (
+        <div className="rounded-lg border border-amber-300/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+          등록 전에는 서비스 이용이 제한됩니다.
+        </div>
+      )}
+
+      <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold">AI 응답 테스트</p>
+            <p className="text-xs text-muted-foreground">Gemini 응답 메모와 디버그 정보를 확인합니다.</p>
+          </div>
+          <button
+            onClick={handleAiTest}
+            className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+          >
+            테스트 실행
+          </button>
+        </div>
+
+        {aiTestMessage && (
+          <div className="mt-3 rounded-lg border border-amber-300/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+            {aiTestMessage}
+          </div>
+        )}
+      </div>
+
       {isEditOpen && (
         <ProfileEditModal
           key={data?.profileRegistered ? "edit-existing" : "edit-new"}
@@ -196,11 +202,6 @@ export default function MyPage() {
         />
       )}
 
-      {!data?.profileRegistered && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          등록 전에는 서비스 이용이 제한됩니다.
-        </div>
-      )}
     </main>
   );
 }

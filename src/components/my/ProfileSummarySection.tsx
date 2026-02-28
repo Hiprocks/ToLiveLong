@@ -31,7 +31,9 @@ const macroLabels: Record<UserProfileInput["macroPreference"], string> = {
 export default function ProfileSummarySection({ profile, computed }: ProfileSummarySectionProps) {
   return (
     <section className="space-y-4">
-      <div className="rounded-2xl border border-border bg-card p-4">
+      <NutritionResultCard computed={computed} />
+
+      <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
         <h2 className="text-sm font-semibold text-muted-foreground">기본 정보</h2>
         <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
           <SummaryItem label="성별" value={profile.gender === "male" ? "남성" : "여성"} />
@@ -41,7 +43,7 @@ export default function ProfileSummarySection({ profile, computed }: ProfileSumm
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-4">
+      <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
         <h2 className="text-sm font-semibold text-muted-foreground">목표/활동</h2>
         <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
           <SummaryItem label="목표" value={goalLabels[profile.primaryGoal]} />
@@ -61,15 +63,13 @@ export default function ProfileSummarySection({ profile, computed }: ProfileSumm
           />
         </div>
       </div>
-
-      <NutritionResultCard computed={computed} />
     </section>
   );
 }
 
 function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border/60 bg-background px-3 py-2">
+    <div className="rounded-lg border border-border/60 bg-background/70 px-3 py-2">
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="mt-1 font-medium">{value}</div>
     </div>

@@ -1,32 +1,33 @@
 @import "tailwindcss";
 
 :root {
-  --background: #09090b; /* Zinc 950 */
-  --foreground: #fafafa; /* Zinc 50 */
-  
-  /* Custom Colors */
-  --card: #18181b; /* Zinc 900 */
+  --background: #080f1a;
+  --foreground: #e6edf8;
+
+  /* Surface */
+  --card: #111a2b;
   --card-foreground: #fafafa;
-  
-  --primary: #10b981; /* Emerald 500 */
+
+  /* Accent */
+  --primary: #2dd4bf;
   --primary-foreground: #ffffff;
-  
-  --secondary: #27272a; /* Zinc 800 */
-  --secondary-foreground: #fafafa;
-  
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa; /* Zinc 400 */
-  
-  --accent: #27272a;
+
+  --secondary: #1a2538;
+  --secondary-foreground: #eef4ff;
+
+  --muted: #1a2538;
+  --muted-foreground: #9db0cd;
+
+  --accent: #1d2940;
   --accent-foreground: #fafafa;
-  
+
   --destructive: #ef4444;
   --destructive-foreground: #fafafa;
-  
-  --border: #27272a;
-  --input: #27272a;
-  --ring: #10b981;
-  
+
+  --border: #2b3852;
+  --input: #16243a;
+  --ring: #2dd4bf;
+
   --radius: 0.5rem;
 }
 
@@ -54,7 +55,10 @@
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(1200px 700px at 5% -10%, rgba(45, 212, 191, 0.18), transparent 60%),
+    radial-gradient(900px 550px at 95% -5%, rgba(56, 189, 248, 0.12), transparent 58%),
+    var(--background);
   color: var(--foreground);
   font-family: var(--font-sans, system-ui, sans-serif);
   -webkit-font-smoothing: antialiased;

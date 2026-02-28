@@ -185,7 +185,7 @@ export default function Home() {
           {loading ? (
             <div className="py-8 text-center text-muted-foreground">불러오는 중...</div>
           ) : (
-            <MealTable logs={logs} />
+            <MealTable logs={logs} targets={dailyTargets} />
           )}
         </section>
       </div>
