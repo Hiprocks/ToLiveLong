@@ -12,6 +12,7 @@ interface FoodSearchModalProps {
   onSuccess: () => Promise<void> | void;
   initialMode?: "manual" | "template";
   onSaved?: (message: string) => void;
+  initialPrefill?: Partial<FormState> | null;
 }
 
 interface FormState {
@@ -46,6 +47,7 @@ export default function FoodSearchModal({
   onSuccess,
   initialMode = "manual",
   onSaved,
+  initialPrefill = null,
 }: FoodSearchModalProps) {
   const [mode, setMode] = useState<"manual" | "template">(initialMode);
   const [loading, setLoading] = useState(false);
@@ -71,6 +73,20 @@ export default function FoodSearchModal({
       setRecentTemplateIds([]);
     }
   }, [isOpen, initialMode]);
+
+  useEffect(() => {
+    if (!isOpen || !initialPrefill) return;
+    setMode("manual");
+    setSelectedTemplate(null);
+    setForm((prev) => ({
+      ...prev,
+      ...initialPrefill,
+      amount:
+        typeof initialPrefill.amount === "number" && Number.isFinite(initialPrefill.amount)
+          ? initialPrefill.amount
+          : prev.amount,
+    }));
+  }, [initialPrefill, isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;

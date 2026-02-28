@@ -6,6 +6,9 @@ import ProfileEditModal from "@/components/my/ProfileEditModal";
 import ProfileSummarySection from "@/components/my/ProfileSummarySection";
 import { UserProfileInput, UserTargetsResponse } from "@/lib/types";
 
+const USER_CACHE_TTL_MS = 30_000;
+let userPageCache: { fetchedAt: number; data: UserTargetsResponse } | null = null;
+
 export default function MyPage() {
   const [data, setData] = useState<UserTargetsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,12 +23,22 @@ export default function MyPage() {
 
     const loadData = async () => {
       try {
+        const now = Date.now();
+        if (userPageCache && now - userPageCache.fetchedAt < USER_CACHE_TTL_MS) {
+          if (!isActive) return;
+          setData(userPageCache.data);
+          setErrorMessage(null);
+          if (!userPageCache.data.profileRegistered) setIsEditOpen(true);
+          return;
+        }
+
         const response = await fetch("/api/sheets/user", { cache: "no-store" });
         if (!response.ok) throw new Error("내 정보를 불러오지 못했습니다.");
 
         const nextData = (await response.json()) as UserTargetsResponse;
         if (!isActive) return;
 
+        userPageCache = { fetchedAt: Date.now(), data: nextData };
         setData(nextData);
         setErrorMessage(null);
         if (!nextData.profileRegistered) setIsEditOpen(true);
@@ -68,6 +81,7 @@ export default function MyPage() {
       }
 
       const nextData = (await response.json()) as UserTargetsResponse;
+      userPageCache = { fetchedAt: Date.now(), data: nextData };
       setData(nextData);
       setSaveState("success");
       setIsEditOpen(false);
@@ -86,10 +100,12 @@ export default function MyPage() {
   const handleAiTest = async () => {
     setAiTestMessage(null);
     try {
-      const response = await fetch("/api/sheets/user", { cache: "no-store" });
+      const response = await fetch("/api/sheets/user?refreshAi=1", { cache: "no-store" });
       if (!response.ok) throw new Error("AI 테스트 요청에 실패했습니다.");
 
       const result = (await response.json()) as UserTargetsResponse;
+      userPageCache = { fetchedAt: Date.now(), data: result };
+      setData(result);
       const note = result.computed?.aiNotes?.trim();
       if (!note) {
         setAiTestMessage("AI 메모가 비어 있습니다.");

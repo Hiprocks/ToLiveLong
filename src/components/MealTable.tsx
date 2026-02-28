@@ -23,9 +23,9 @@ export default function MealTable({ logs }: MealTableProps) {
             <tr>
               <th className="px-4 py-3 font-medium">메뉴</th>
               <th className="px-3 py-3 font-medium text-right">kcal</th>
-              <th className="px-2 py-3 font-medium text-right hidden xs:table-cell">C</th>
-              <th className="px-2 py-3 font-medium text-right hidden xs:table-cell">P</th>
-              <th className="px-2 py-3 font-medium text-right hidden xs:table-cell">F</th>
+              <th className="px-2 py-3 font-medium text-right hidden xs:table-cell">탄</th>
+              <th className="px-2 py-3 font-medium text-right hidden xs:table-cell">단</th>
+              <th className="px-2 py-3 font-medium text-right hidden xs:table-cell">지</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -34,7 +34,7 @@ export default function MealTable({ logs }: MealTableProps) {
                 <td className="px-4 py-3 font-medium">
                   <div className="line-clamp-1">{item.food_name}</div>
                   <div className="text-[10px] text-muted-foreground sm:hidden">
-                    {item.amount}g | C:{item.carbs} P:{item.protein} F:{item.fat}
+                    {item.amount}g | 탄:{item.carbs} 단:{item.protein} 지:{item.fat}
                   </div>
                 </td>
                 <td className="px-3 py-3 text-right font-medium">{item.calories}</td>

@@ -6,6 +6,8 @@ import { getLocalDateString } from "@/lib/date";
 import { MealRecord } from "@/lib/types";
 
 const today = getLocalDateString();
+const HISTORY_CACHE_TTL_MS = 30_000;
+const historyCache = new Map<string, { fetchedAt: number; records: MealRecord[] }>();
 
 export default function HistoryPage() {
   const [date, setDate] = useState(today);
@@ -14,12 +16,20 @@ export default function HistoryPage() {
   const [editing, setEditing] = useState<MealRecord | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const load = async (targetDate: string) => {
+  const load = async (targetDate: string, force = false) => {
     setLoading(true);
     try {
+      const cached = historyCache.get(targetDate);
+      if (!force && cached && Date.now() - cached.fetchedAt < HISTORY_CACHE_TTL_MS) {
+        setRecords(cached.records);
+        setErrorMessage(null);
+        return;
+      }
+
       const response = await fetch(`/api/sheets/records?date=${targetDate}`, { cache: "no-store" });
       if (!response.ok) throw new Error("기록을 불러오지 못했습니다.");
       const data = (await response.json()) as MealRecord[];
+      historyCache.set(targetDate, { fetchedAt: Date.now(), records: data });
       setRecords(data);
       setErrorMessage(null);
     } catch (error) {
@@ -42,7 +52,7 @@ export default function HistoryPage() {
       return;
     }
     setErrorMessage(null);
-    await load(date);
+    await load(date, true);
   };
 
   const handleUpdate = async () => {
@@ -58,7 +68,7 @@ export default function HistoryPage() {
     }
     setErrorMessage(null);
     setEditing(null);
-    await load(date);
+    await load(date, true);
   };
 
   return (

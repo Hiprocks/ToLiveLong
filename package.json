@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:analyze": "node --import tsx --test src/lib/analyzePayload.test.ts"
+    "test:analyze": "node --import tsx --test src/lib/analyzePayload.test.ts src/lib/nutrition/aiTargets.test.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

@@ -3,7 +3,7 @@
 ## 1) 결정사항 요약
 - Supabase 제거, Google Sheets API v4로 전환
 - 범위 축소: 개인용 핵심 3개 도메인
-- 사용자 신체정보는 저장하지 않고 목표값만 저장
+- 사용자 신체정보 기반 목표 계산(내 정보 저장) 지원
 
 ## 2) 최종 기능 범위 (Target)
 1. 목표값 설정
@@ -68,3 +68,10 @@
 - Meal category (`meal_type`) removed from UI and API payload.
 - Dashboard target section changed from table style to bar-graph style under total calorie gauge.
 - Daily records are now displayed as a single unified list.
+
+---
+
+## 8) Update Log (2026-02-27)
+
+- 린매스업 목표 추가 및 매크로 타입(균형/고단백/저탄고지) 반영.
+- 체지방률 입력 시 Katch-McArdle 기반 BMR 계산 적용.

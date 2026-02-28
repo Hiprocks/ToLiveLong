@@ -18,15 +18,14 @@ const goalLabels: Record<UserProfileInput["primaryGoal"], string> = {
   cutting: "감량",
   maintenance: "유지",
   bulking: "증량",
-  overfat: "과지방",
-  obese: "비만",
-  severe_obese: "고도비만",
+  recomposition: "린매스업",
 };
 
 const macroLabels: Record<UserProfileInput["macroPreference"], string> = {
   balanced: "균형형",
   low_carb: "저탄수형",
   high_protein: "고단백형",
+  keto: "저탄고지",
 };
 
 export default function ProfileSummarySection({ profile, computed }: ProfileSummarySectionProps) {
@@ -46,7 +45,7 @@ export default function ProfileSummarySection({ profile, computed }: ProfileSumm
         <h2 className="text-sm font-semibold text-muted-foreground">목표/활동</h2>
         <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
           <SummaryItem label="목표" value={goalLabels[profile.primaryGoal]} />
-          <SummaryItem label="영양 비율" value={macroLabels[profile.macroPreference]} />
+          <SummaryItem label="선호 식단" value={macroLabels[profile.macroPreference]} />
           <SummaryItem
             label="직업 활동량"
             value={activityLabels[profile.occupationalActivityLevel ?? "sedentary"]}

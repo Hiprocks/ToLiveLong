@@ -66,6 +66,14 @@ export default function ProfileEditModal({
     weightKg: draft.weightKg.trim() === "",
   };
 
+  const goalMacroWarning = useMemo(() => {
+    if (form.macroPreference !== "keto") return null;
+    if (form.primaryGoal === "bulking" || form.primaryGoal === "recomposition") {
+      return "저탄고지 식단은 증량/린매스업 목표와 상충할 수 있습니다. 균형형 또는 고단백 식단을 권장합니다.";
+    }
+    return null;
+  }, [form.macroPreference, form.primaryGoal]);
+
   const isSaveBlocked = saving || requiredInvalid.age || requiredInvalid.heightCm || requiredInvalid.weightKg;
 
   const handleSave = () => {
@@ -203,12 +211,10 @@ export default function ProfileEditModal({
                 <option value="cutting">감량</option>
                 <option value="maintenance">유지</option>
                 <option value="bulking">증량</option>
-                <option value="overfat">과지방</option>
-                <option value="obese">비만</option>
-                <option value="severe_obese">고도비만</option>
+                <option value="recomposition">린매스업</option>
               </select>
             </Field>
-            <Field label="영양 비율">
+            <Field label="선호 식단">
               <select
                 value={form.macroPreference}
                 onChange={(e) => setForm((prev) => ({ ...prev, macroPreference: e.target.value as UserProfileInput["macroPreference"] }))}
@@ -217,12 +223,18 @@ export default function ProfileEditModal({
                 <option value="balanced">균형형</option>
                 <option value="low_carb">저탄수형</option>
                 <option value="high_protein">고단백형</option>
+                <option value="keto">저탄고지</option>
               </select>
             </Field>
           </section>
         </div>
 
         <div className="sticky bottom-0 mt-4 border-t border-border bg-card pt-3">
+          {goalMacroWarning && (
+            <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              {goalMacroWarning}
+            </div>
+          )}
           <button
             onClick={handleSave}
             disabled={isSaveBlocked}

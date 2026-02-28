@@ -1,82 +1,212 @@
-﻿{
-    "current_feature":  "my-menu-koreanization-goal-expansion",
-    "level":  "dynamic",
-    "updated_at":  "2026-02-26",
-    "features":  {
-                     "meal-entry-ux":  {
-                                           "phase":  "archive",
-                                           "progress":  100,
-                                           "status":  "archived",
-                                           "next":  null,
-                                           "checklist":  {
-                                                             "plan":  true,
-                                                             "design":  true,
-                                                             "do":  true,
-                                                             "analyze":  true,
-                                                             "iterate":  false,
-                                                             "report":  true,
-                                                             "archive":  true
-                                                         }
-                                       },
-                     "my-menu-replan":  {
-                                            "phase":  "archive",
-                                            "progress":  100,
-                                            "status":  "archived",
-                                            "next":  null,
-                                            "checklist":  {
-                                                              "plan":  true,
-                                                              "design":  true,
-                                                              "do":  true,
-                                                              "analyze":  true,
-                                                              "iterate":  false,
-                                                              "report":  true,
-                                                              "archive":  true
-                                                          }
-                                        },
-                     "number-input-spinless":  {
-                                                   "phase":  "archive",
-                                                   "progress":  100,
-                                                   "status":  "archived",
-                                                   "next":  null,
-                                                   "checklist":  {
-                                                                     "plan":  true,
-                                                                     "design":  true,
-                                                                     "do":  true,
-                                                                     "analyze":  true,
-                                                                     "iterate":  false,
-                                                                     "report":  true,
-                                                                     "archive":  true
-                                                                 }
-                                               },
-                     "number-input-empty-lock":  {
-                                                     "phase":  "report",
-                                                     "progress":  90,
-                                                     "status":  "active",
-                                                     "next":  "archive",
-                                                     "checklist":  {
-                                                                       "plan":  true,
-                                                                       "design":  true,
-                                                                       "do":  true,
-                                                                       "analyze":  true,
-                                                                       "iterate":  false,
-                                                                       "report":  true,
-                                                                       "archive":  false
-                                                                   }
-                                                 },
-                     "my-menu-koreanization-goal-expansion":  {
-                                                                  "phase":  "archive",
-                                                                  "progress":  100,
-                                                                  "status":  "archived",
-                                                                  "next":  null,
-                                                                  "checklist":  {
-                                                                                    "plan":  true,
-                                                                                    "design":  true,
-                                                                                    "do":  true,
-                                                                                    "analyze":  true,
-                                                                                    "iterate":  false,
-                                                                                    "report":  true,
-                                                                                    "archive":  true
-                                                                                }
-                                                              }
-                 }
+{
+  "version": "2.0",
+  "lastUpdated": "2026-02-28T08:43:22.090Z",
+  "activeFeatures": [],
+  "primaryFeature": null,
+  "features": {
+    "meal-entry-ux": {
+      "phase": "archive",
+      "matchRate": null,
+      "iterationCount": 0,
+      "documents": {},
+      "archived": true,
+      "legacy": {
+        "progress": 100,
+        "status": "archived",
+        "next": null,
+        "checklist": {
+          "plan": true,
+          "design": true,
+          "do": true,
+          "analyze": true,
+          "iterate": false,
+          "report": true,
+          "archive": true
+        }
+      }
+    },
+    "my-menu-replan": {
+      "phase": "archive",
+      "matchRate": null,
+      "iterationCount": 0,
+      "documents": {},
+      "archived": true,
+      "legacy": {
+        "progress": 100,
+        "status": "archived",
+        "next": null,
+        "checklist": {
+          "plan": true,
+          "design": true,
+          "do": true,
+          "analyze": true,
+          "iterate": false,
+          "report": true,
+          "archive": true
+        }
+      }
+    },
+    "number-input-spinless": {
+      "phase": "archive",
+      "matchRate": null,
+      "iterationCount": 0,
+      "documents": {},
+      "archived": true,
+      "legacy": {
+        "progress": 100,
+        "status": "archived",
+        "next": null,
+        "checklist": {
+          "plan": true,
+          "design": true,
+          "do": true,
+          "analyze": true,
+          "iterate": false,
+          "report": true,
+          "archive": true
+        }
+      }
+    },
+    "number-input-empty-lock": {
+      "phase": "archive",
+      "matchRate": null,
+      "iterationCount": 0,
+      "documents": {},
+      "archived": true,
+      "legacy": {
+        "progress": 100,
+        "status": "archived",
+        "next": null,
+        "checklist": {
+          "plan": true,
+          "design": true,
+          "do": true,
+          "analyze": true,
+          "iterate": false,
+          "report": true,
+          "archive": true
+        }
+      }
+    },
+    "my-menu-koreanization-goal-expansion": {
+      "phase": "archive",
+      "matchRate": null,
+      "iterationCount": 0,
+      "documents": {},
+      "archived": true,
+      "legacy": {
+        "progress": 100,
+        "status": "archived",
+        "next": null,
+        "checklist": {
+          "plan": true,
+          "design": true,
+          "do": true,
+          "analyze": true,
+          "iterate": false,
+          "report": true,
+          "archive": true
+        }
+      }
+    },
+    "ui-text-koreanization-cleanup": {
+      "phase": "archive",
+      "matchRate": null,
+      "iterationCount": 0,
+      "documents": {},
+      "archived": true,
+      "legacy": {
+        "progress": 100,
+        "status": "archived",
+        "next": null,
+        "checklist": {
+          "plan": true,
+          "design": true,
+          "do": true,
+          "analyze": true,
+          "iterate": false,
+          "report": true,
+          "archive": true
+        }
+      }
+    },
+    "my-bodycomp-algorithm-upgrade": {
+      "phase": "completed",
+      "matchRate": null,
+      "iterationCount": 0,
+      "documents": {},
+      "legacy": {
+        "progress": 90,
+        "status": "active",
+        "next": "archive",
+        "checklist": {
+          "plan": true,
+          "design": true,
+          "do": true,
+          "analyze": true,
+          "iterate": false,
+          "report": true,
+          "archive": false
+        }
+      },
+      "archived": true,
+      "archivedAt": "2026-02-28T08:43:22.063Z",
+      "completedAt": "2026-02-28T08:43:22.088Z"
+    },
+    "my-ai-goal-summary": {
+      "phase": "completed",
+      "matchRate": null,
+      "iterationCount": 0,
+      "documents": {},
+      "legacy": {
+        "progress": 90,
+        "status": "active",
+        "next": "archive",
+        "checklist": {
+          "plan": true,
+          "design": true,
+          "do": true,
+          "analyze": true,
+          "iterate": false,
+          "report": true,
+          "archive": false
+        }
+      },
+      "completedAt": "2026-02-28T08:42:15.590Z",
+      "archived": true,
+      "archivedAt": "2026-02-28T08:42:47.152Z"
+    }
+  },
+  "pipeline": {
+    "currentPhase": 1,
+    "level": "Dynamic",
+    "phaseHistory": []
+  },
+  "session": {
+    "startedAt": "2026-02-28T08:36:29.766Z",
+    "onboardingCompleted": false,
+    "lastActivity": "2026-02-28T08:43:22.090Z",
+    "platform": "codex"
+  },
+  "history": [
+    {
+      "feature": "my-ai-goal-summary",
+      "action": "phase_complete",
+      "phase": "report",
+      "nextPhase": "completed",
+      "timestamp": "2026-02-28T08:42:15.592Z"
+    },
+    {
+      "feature": "my-bodycomp-algorithm-upgrade",
+      "action": "phase_complete",
+      "phase": "report",
+      "nextPhase": "completed",
+      "timestamp": "2026-02-28T08:43:22.090Z"
+    }
+  ],
+  "legacyStatus": {
+    "current_feature": "my-ai-goal-summary",
+    "level": "dynamic",
+    "updated_at": "2026-02-27"
+  }
 }

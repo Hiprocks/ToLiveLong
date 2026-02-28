@@ -125,3 +125,21 @@
 - User-facing menu names, tab names, and primary action labels must be Korean only.
 - New English menu labels are not allowed.
 - If an English label is found in existing UI, replace it with Korean in the same change set.
+
+---
+
+## 14) Context Update (2026-02-27, My Body Composition)
+
+- My 프로필에 린매스업(Body Recomposition) 목표 추가.
+- 식단 타입(균형/고단백/저탄고지) 선택을 매크로 계산에 반영.
+- 체지방률 입력 시 Katch-McArdle 기반 BMR 계산 적용.
+- 목표-식단 타입 상충 시 경고 안내 문구 추가.
+
+## 15) Reference (2026-02-27)
+
+- 코드베이스 요약 문서: `docs/CodebaseAnalysis.md`
+
+## 16) Context Update (2026-02-27, My AI Notes Storage)
+
+- My AI 조언 결과를 `user` 시트에 저장하고 표시하도록 변경.
+- GET 시 AI 재호출하지 않고 저장된 AI 결과를 사용.

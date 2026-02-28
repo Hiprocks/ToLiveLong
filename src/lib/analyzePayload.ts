@@ -18,6 +18,8 @@ export type AnalyzePayload = {
   sodium: number;
 };
 
+export const FALLBACK_ANALYZED_FOOD_NAME = "추정 식품";
+
 export const parseModelJson = (rawText: string) => {
   const cleaned = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
   try {
@@ -50,10 +52,11 @@ export const normalizeAnalyzePayload = (value: unknown): AnalyzePayload => {
   const payload = value as Record<string, unknown>;
   const rawName = payload.food_name ?? payload.menu_name;
   const normalizedName = typeof rawName === "string" ? rawName.trim() : "";
+  const safeName = normalizedName || FALLBACK_ANALYZED_FOOD_NAME;
 
   return {
-    menu_name: normalizedName,
-    food_name: normalizedName,
+    menu_name: safeName,
+    food_name: safeName,
     calories: toSafeNumber(payload.calories, NUTRIENT_MAX.calories),
     carbs: toSafeNumber(payload.carbs, NUTRIENT_MAX.carbs),
     protein: toSafeNumber(payload.protein, NUTRIENT_MAX.protein),

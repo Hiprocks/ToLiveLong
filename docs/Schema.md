@@ -42,6 +42,26 @@
 | fat | number | 목표 지방(g) |
 | sugar | number | 목표 당(g) |
 | sodium | number | 목표 나트륨(mg) |
+| gender | string | `male/female` |
+| age | number | 나이 |
+| height_cm | number | 키(cm) |
+| weight_kg | number | 체중(kg) |
+| primary_goal | string | `cutting/maintenance/bulking/recomposition/overfat/obese/severe_obese` |
+| macro_preference | string | `balanced/low_carb/high_protein/keto` |
+| occupational_activity_level | string | `sedentary/light/moderate/very/extra` |
+| exercise_frequency_weekly | number | 주간 운동 빈도 |
+| exercise_duration_min | number | 운동 시간(분) |
+| exercise_intensity | string | `low/medium/high` |
+| neat_level | string | `sedentary/light/moderate/very/extra` |
+| body_fat_pct | number | 체지방률(%) |
+| skeletal_muscle_kg | number | 골격근량(kg) |
+| waist_hip_ratio | number | WHR |
+| ai_bmr | number | AI 산출 BMR |
+| ai_tdee | number | AI 산출 TDEE |
+| ai_target_calories | number | AI 산출 목표 칼로리 |
+| ai_notes | string | AI 조언 요약(200자 이내) |
+| ai_source | string | `ai/fallback` |
+| ai_updated_at | string | ISO timestamp |
 
 ## API 매핑
 - `GET /api/sheets/records`: 날짜 기준 조회 (날짜 컬럼 우선 조회)

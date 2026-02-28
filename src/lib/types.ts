@@ -12,10 +12,8 @@ export type PrimaryGoal =
   | "cutting"
   | "maintenance"
   | "bulking"
-  | "overfat"
-  | "obese"
-  | "severe_obese";
-export type MacroPreference = "balanced" | "low_carb" | "high_protein";
+  | "recomposition";
+export type MacroPreference = "balanced" | "low_carb" | "high_protein" | "keto";
 export type ActivityLevel = "sedentary" | "light" | "moderate" | "very" | "extra";
 export type ExerciseIntensity = "low" | "medium" | "high";
 
@@ -40,6 +38,10 @@ export interface NutritionTargets extends DailyTargets {
   bmr: number;
   tdee: number;
   targetCalories: number;
+  aiNotes?: string;
+  aiSource?: "ai" | "fallback";
+  aiDebug?: string;
+  aiUpdatedAt?: string;
 }
 
 export interface UserTargetsResponse extends DailyTargets {

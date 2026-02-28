@@ -8,7 +8,7 @@ import ErrorBanner from "@/components/ErrorBanner";
 import FoodSearchModal from "@/components/FoodSearchModal";
 import IntakeSummaryTable from "@/components/IntakeSummaryTable";
 import MealTable from "@/components/MealTable";
-import PhotoAnalysisModal from "@/components/PhotoAnalysisModal";
+import PhotoAnalysisModal, { PhotoAnalysisPrefill } from "@/components/PhotoAnalysisModal";
 import { getLocalDateString } from "@/lib/date";
 import { DailyTargets, MealRecord } from "@/lib/types";
 
@@ -21,6 +21,15 @@ const DEFAULT_TARGETS: DailyTargets = {
   sodium: 2000,
 };
 
+const DASHBOARD_CACHE_TTL_MS = 30_000;
+let dashboardCache:
+  | {
+      fetchedAt: number;
+      logs: MealRecord[];
+      targets: DailyTargets;
+    }
+  | null = null;
+
 export default function Home() {
   const [logs, setLogs] = useState<MealRecord[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,28 +40,61 @@ export default function Home() {
   const [dailyTargets, setDailyTargets] = useState<DailyTargets>(DEFAULT_TARGETS);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [flashMessage, setFlashMessage] = useState<string | null>(null);
+  const [photoPrefill, setPhotoPrefill] = useState<PhotoAnalysisPrefill | null>(null);
 
-  const fetchLogs = useCallback(async () => {
+  const fetchLogs = useCallback(async (): Promise<MealRecord[]> => {
     const today = getLocalDateString();
     const response = await fetch(`/api/sheets/records?date=${today}`, { cache: "no-store" });
     if (!response.ok) throw new Error("기록을 불러오지 못했습니다.");
     const data = (await response.json()) as MealRecord[];
-    setLogs(data);
+    return data;
   }, []);
 
-  const fetchTargets = useCallback(async () => {
+  const fetchTargets = useCallback(async (): Promise<DailyTargets> => {
     const response = await fetch("/api/sheets/user", { cache: "no-store" });
     if (!response.ok) throw new Error("목표 정보를 불러오지 못했습니다.");
     const data = (await response.json()) as DailyTargets;
-    setDailyTargets(data);
+    return data;
   }, []);
+
+  const refreshLogs = useCallback(async () => {
+    const nextLogs = await fetchLogs();
+    setLogs(nextLogs);
+    if (dashboardCache) {
+      dashboardCache = {
+        ...dashboardCache,
+        fetchedAt: Date.now(),
+        logs: nextLogs,
+      };
+    }
+  }, [fetchLogs]);
 
   useEffect(() => {
     let isActive = true;
     const load = async () => {
       try {
-        await Promise.all([fetchLogs(), fetchTargets()]);
-        if (isActive) setErrorMessage(null);
+        const now = Date.now();
+        if (dashboardCache && now - dashboardCache.fetchedAt < DASHBOARD_CACHE_TTL_MS) {
+          if (isActive) {
+            setLogs(dashboardCache.logs);
+            setDailyTargets(dashboardCache.targets);
+            setErrorMessage(null);
+          }
+          return;
+        }
+
+        const [nextLogs, nextTargets] = await Promise.all([fetchLogs(), fetchTargets()]);
+        dashboardCache = {
+          fetchedAt: Date.now(),
+          logs: nextLogs,
+          targets: nextTargets,
+        };
+
+        if (isActive) {
+          setLogs(nextLogs);
+          setDailyTargets(nextTargets);
+          setErrorMessage(null);
+        }
       } catch (error) {
         if (isActive) {
           console.error(error);
@@ -96,6 +138,9 @@ export default function Home() {
 
   const openFoodModal = (mode: "manual" | "template") => {
     setFoodModalMode(mode);
+    if (mode !== "manual") {
+      setPhotoPrefill(null);
+    }
     setIsEntrySheetOpen(false);
     setIsModalOpen(true);
   };
@@ -191,17 +236,25 @@ export default function Home() {
 
       <FoodSearchModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={fetchLogs}
+        onClose={() => {
+          setIsModalOpen(false);
+          setPhotoPrefill(null);
+        }}
+        onSuccess={refreshLogs}
         onSaved={handleSaved}
         initialMode={foodModalMode}
+        initialPrefill={foodModalMode === "manual" ? photoPrefill : null}
       />
 
       <PhotoAnalysisModal
         isOpen={isPhotoModalOpen}
         onClose={() => setIsPhotoModalOpen(false)}
-        onSuccess={fetchLogs}
-        onSaved={handleSaved}
+        onAnalyzed={(prefill) => {
+          setPhotoPrefill(prefill);
+          setFoodModalMode("manual");
+          setIsPhotoModalOpen(false);
+          setIsModalOpen(true);
+        }}
       />
     </main>
   );

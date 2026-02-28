@@ -16,7 +16,7 @@ export default function CalorieGauge({ current, target }: CalorieGaugeProps) {
   );
 
   const percentage = Math.min(100, (current / target) * 100);
-  const data = [{ name: "Calories", value: percentage, fill: "var(--color-primary)" }];
+  const data = [{ name: "칼로리", value: percentage, fill: "var(--color-primary)" }];
 
   if (!mounted) {
     return (

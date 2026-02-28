@@ -3,9 +3,13 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { assertSameOrigin, AuthorizationError } from "@/lib/apiGuard";
 import { normalizeAnalyzePayload, parseModelJson } from "@/lib/analyzePayload";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-
-const DEFAULT_MODEL_CANDIDATES = ["gemini-1.5-pro", "gemini-1.5-flash"] as const;
+const DEFAULT_MODEL_CANDIDATES = [
+  "gemini-2.5-pro",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro",
+] as const;
 
 const getModelCandidates = (): string[] => {
   const fromEnv = (process.env.GEMINI_MODEL ?? "")
@@ -27,9 +31,13 @@ export async function POST(req: NextRequest) {
     if (!file) {
       return NextResponse.json({ error: "No image provided" }, { status: 400 });
     }
+    if (!file.type || !file.type.startsWith("image/")) {
+      return NextResponse.json({ error: "Invalid image type" }, { status: 400 });
+    }
 
     const buffer = await file.arrayBuffer();
     const base64Image = Buffer.from(buffer).toString("base64");
+    const mimeType = file.type || "image/jpeg";
 
     const prompt = `
       Analyze this image of food or a nutrition label.
@@ -56,13 +64,19 @@ export async function POST(req: NextRequest) {
 
     for (const modelName of modelCandidates) {
       try {
-        const model = genAI.getGenerativeModel({ model: modelName });
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: {
+            responseMimeType: "application/json",
+          },
+        });
         const result = await model.generateContent([
           prompt,
           {
             inlineData: {
               data: base64Image,
-              mimeType: file.type,
+              mimeType,
             },
           },
         ]);

@@ -3,7 +3,13 @@ import { parseModelJson } from "@/lib/analyzePayload";
 import { NutritionTargets, UserProfileInput } from "@/lib/types";
 import { calculateNutritionTargets } from "@/lib/nutrition/calculateTargets";
 
-const DEFAULT_MODEL_CANDIDATES = ["gemini-1.5-pro", "gemini-1.5-flash"] as const;
+const DEFAULT_MODEL_CANDIDATES = [
+  "gemini-2.5-pro",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro",
+] as const;
 
 const MAX = {
   bmr: 10000,
@@ -23,6 +29,8 @@ const getModelCandidates = (): string[] => {
     .filter(Boolean);
   return Array.from(new Set([...fromEnv, ...DEFAULT_MODEL_CANDIDATES]));
 };
+
+export const getAiModelCandidates = getModelCandidates;
 
 const toSafeNumber = (value: unknown, max: number): number => {
   const parsed = Number(value);
@@ -64,6 +72,8 @@ const normalizeAiTargets = (value: unknown): NutritionTargets | null => {
     aiSource: "ai",
   };
 };
+
+export const normalizeAiTargetsPayload = normalizeAiTargets;
 
 const buildPrompt = (profile: UserProfileInput, baseline: NutritionTargets) => {
   return `
@@ -145,18 +155,13 @@ export const calculateNutritionTargetsWithAi = async (
         const normalized = normalizeAiTargets(parsed);
 
         if (!normalized) {
-          return {
-            ...baseline,
-            aiNotes: buildFallbackNotes(profile, baseline),
-            aiSource: "fallback",
-            aiDebug: "AI response missing required numeric fields",
-          };
+          lastError = `${modelName}: AI response missing required numeric fields`;
+          continue;
         }
 
         if (!normalized.aiNotes) {
           normalized.aiNotes = buildFallbackNotes(profile, baseline);
-          normalized.aiSource = "fallback";
-          normalized.aiDebug = "AI response missing notes; using fallback notes";
+          normalized.aiDebug = "AI response missing notes; fallback notes injected";
         }
 
         return normalized;

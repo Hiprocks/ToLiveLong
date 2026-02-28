@@ -24,14 +24,19 @@ const defaultTargets: DailyTargets = {
   sodium: 2000,
 };
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const refreshAi = req.nextUrl.searchParams.get("refreshAi") === "1";
     const rows = await listRows(RANGES.user);
     const row = rows[0] ?? null;
     const targets = parseUserTargets(row) ?? defaultTargets;
     const profile = parseUserProfile(row);
     const storedAi = parseUserAi(row);
-    const computed = profile ? storedAi ?? calculateNutritionTargets(profile) : null;
+    const computed = profile
+      ? refreshAi
+        ? await calculateNutritionTargetsWithAi(profile)
+        : storedAi ?? calculateNutritionTargets(profile)
+      : null;
     return NextResponse.json({
       ...targets,
       profileRegistered: Boolean(profile),
