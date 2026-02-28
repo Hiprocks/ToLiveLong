@@ -74,3 +74,19 @@ export interface TemplateItem {
   sugar: number;
   sodium: number;
 }
+
+export interface FoodIndexItem {
+  id: string;
+  name: string;
+  source: "mfds" | "korean_standard_food" | "korean_standard_ingredient" | "fallback";
+  // Nutrient reference amount (mostly 100g in current index data).
+  baseAmount: number;
+  // Default input amount for UX (e.g., estimated 1 serving grams).
+  defaultAmount?: number;
+  calories: number;
+  carbs: number;
+  protein: number;
+  fat: number;
+  sugar: number;
+  sodium: number;
+}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
@@ -11,6 +11,52 @@ const HISTORY_CACHE_TTL_MS = 30_000;
 const historyCache = new Map<string, { fetchedAt: number; records: MealRecord[] }>();
 
 type Tone = "normal" | "low" | "high";
+
+type EditDraft = {
+  food_name: string;
+  amount: string;
+  calories: string;
+  carbs: string;
+  protein: string;
+  fat: string;
+  sugar: string;
+  sodium: string;
+};
+
+const toEditDraft = (record: MealRecord): EditDraft => ({
+  food_name: record.food_name,
+  amount: String(record.amount),
+  calories: String(record.calories),
+  carbs: String(record.carbs),
+  protein: String(record.protein),
+  fat: String(record.fat),
+  sugar: String(record.sugar),
+  sodium: String(record.sodium),
+});
+
+const parseNumber = (value: string): number => {
+  if (value.trim() === "") return 0;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const parsePositiveNumber = (value: string): number | null => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return parsed;
+};
+
+const scaleNutrients = (amount: number, base: MealRecord) => {
+  const ratio = base.amount > 0 ? amount / base.amount : 0;
+  return {
+    calories: String(Math.round(base.calories * ratio)),
+    carbs: String(Math.round(base.carbs * ratio)),
+    protein: String(Math.round(base.protein * ratio)),
+    fat: String(Math.round(base.fat * ratio)),
+    sugar: String(Math.round(base.sugar * ratio)),
+    sodium: String(Math.round(base.sodium * ratio)),
+  };
+};
 
 const getTone = (
   key: "carbs" | "protein" | "fat" | "sugar" | "sodium",
@@ -35,6 +81,9 @@ export default function HistoryPage() {
   const [records, setRecords] = useState<MealRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<MealRecord | null>(null);
+  const [editBase, setEditBase] = useState<MealRecord | null>(null);
+  const [editDraft, setEditDraft] = useState<EditDraft | null>(null);
+  const [syncByAmount, setSyncByAmount] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [targets, setTargets] = useState<DailyTargets | null>(null);
 
@@ -103,6 +152,20 @@ export default function HistoryPage() {
     sodium: getTone("sodium", totals.sodium, targets),
   };
 
+  const openEdit = (record: MealRecord) => {
+    setEditing(record);
+    setEditBase(record);
+    setEditDraft(toEditDraft(record));
+    setSyncByAmount(true);
+  };
+
+  const closeEdit = () => {
+    setEditing(null);
+    setEditBase(null);
+    setEditDraft(null);
+    setSyncByAmount(true);
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("이 기록을 삭제하시겠습니까?")) return;
     const response = await fetch(`/api/sheets/records/${id}`, { method: "DELETE" });
@@ -114,19 +177,74 @@ export default function HistoryPage() {
     await load(date, true);
   };
 
+  const handleAmountChange = (raw: string) => {
+    if (!editDraft) return;
+    const next: EditDraft = { ...editDraft, amount: raw };
+
+    if (syncByAmount && editBase) {
+      const amount = parsePositiveNumber(raw);
+      if (amount) {
+        Object.assign(next, scaleNutrients(amount, editBase));
+      }
+    }
+
+    setEditDraft(next);
+  };
+
+  const handleSyncToggle = (checked: boolean) => {
+    setSyncByAmount(checked);
+    if (!checked || !editDraft || !editBase) return;
+
+    const amount = parsePositiveNumber(editDraft.amount);
+    if (!amount) return;
+
+    setEditDraft((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        ...scaleNutrients(amount, editBase),
+      };
+    });
+  };
+
   const handleUpdate = async () => {
-    if (!editing) return;
+    if (!editing || !editDraft) return;
+
+    const amount = parsePositiveNumber(editDraft.amount);
+    if (!editDraft.food_name.trim()) {
+      setErrorMessage("음식명은 필수입니다.");
+      return;
+    }
+    if (!amount) {
+      setErrorMessage("섭취량은 1g 이상이어야 합니다.");
+      return;
+    }
+
+    const payload: MealRecord = {
+      ...editing,
+      food_name: editDraft.food_name.trim(),
+      amount,
+      calories: parseNumber(editDraft.calories),
+      carbs: parseNumber(editDraft.carbs),
+      protein: parseNumber(editDraft.protein),
+      fat: parseNumber(editDraft.fat),
+      sugar: parseNumber(editDraft.sugar),
+      sodium: parseNumber(editDraft.sodium),
+    };
+
     const response = await fetch(`/api/sheets/records/${editing.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editing),
+      body: JSON.stringify(payload),
     });
+
     if (!response.ok) {
       setErrorMessage("수정에 실패했습니다.");
       return;
     }
+
     setErrorMessage(null);
-    setEditing(null);
+    closeEdit();
     await load(date, true);
   };
 
@@ -147,7 +265,7 @@ export default function HistoryPage() {
       {loading ? (
         <p className="text-muted-foreground">불러오는 중...</p>
       ) : records.length === 0 ? (
-        <p className="text-muted-foreground">선택한 날짜에 기록이 없습니다.</p>
+        <p className="text-muted-foreground">선택한 날짜의 기록이 없습니다.</p>
       ) : (
         <div className="space-y-3">
           {records.map((record) => (
@@ -165,7 +283,7 @@ export default function HistoryPage() {
                 </div>
                 <div className="flex shrink-0 gap-2">
                   <button
-                    onClick={() => setEditing(record)}
+                    onClick={() => openEdit(record)}
                     className="rounded-lg border border-border/80 bg-background/60 p-2 text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground"
                     aria-label={`${record.food_name} 수정`}
                   >
@@ -193,58 +311,68 @@ export default function HistoryPage() {
         </div>
       )}
 
-      {editing && (
+      {editing && editDraft && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-md space-y-3 rounded-xl border border-border bg-card p-4">
             <h2 className="text-lg font-semibold">기록 수정</h2>
             <label className="space-y-1 text-sm">
               <span className="text-muted-foreground">음식명</span>
               <input
-                value={editing.food_name}
-                onChange={(e) => setEditing({ ...editing, food_name: e.target.value })}
+                value={editDraft.food_name}
+                onChange={(e) => setEditDraft({ ...editDraft, food_name: e.target.value })}
                 className="w-full rounded-lg border border-border bg-input px-3 py-2"
               />
             </label>
+
+            <label className="flex items-center gap-2 rounded-lg border border-border/70 bg-background/40 px-3 py-2 text-sm">
+              <input
+                type="checkbox"
+                checked={syncByAmount}
+                onChange={(e) => handleSyncToggle(e.target.checked)}
+              />
+              섭취량 대비 영양성분 변동
+            </label>
+
             <div className="grid grid-cols-2 gap-2">
               <LabeledNumberInput
                 label="섭취량(g)"
-                value={editing.amount}
-                onChange={(value) => setEditing({ ...editing, amount: value })}
+                value={editDraft.amount}
+                onChange={handleAmountChange}
               />
               <LabeledNumberInput
                 label="칼로리(kcal)"
-                value={editing.calories}
-                onChange={(value) => setEditing({ ...editing, calories: value })}
+                value={editDraft.calories}
+                onChange={(value) => setEditDraft({ ...editDraft, calories: value })}
               />
               <LabeledNumberInput
                 label="탄수화물(g)"
-                value={editing.carbs}
-                onChange={(value) => setEditing({ ...editing, carbs: value })}
+                value={editDraft.carbs}
+                onChange={(value) => setEditDraft({ ...editDraft, carbs: value })}
               />
               <LabeledNumberInput
                 label="단백질(g)"
-                value={editing.protein}
-                onChange={(value) => setEditing({ ...editing, protein: value })}
+                value={editDraft.protein}
+                onChange={(value) => setEditDraft({ ...editDraft, protein: value })}
               />
               <LabeledNumberInput
                 label="지방(g)"
-                value={editing.fat}
-                onChange={(value) => setEditing({ ...editing, fat: value })}
+                value={editDraft.fat}
+                onChange={(value) => setEditDraft({ ...editDraft, fat: value })}
               />
               <LabeledNumberInput
                 label="당(g)"
-                value={editing.sugar}
-                onChange={(value) => setEditing({ ...editing, sugar: value })}
+                value={editDraft.sugar}
+                onChange={(value) => setEditDraft({ ...editDraft, sugar: value })}
               />
               <LabeledNumberInput
                 className="col-span-2"
                 label="나트륨(mg)"
-                value={editing.sodium}
-                onChange={(value) => setEditing({ ...editing, sodium: value })}
+                value={editDraft.sodium}
+                onChange={(value) => setEditDraft({ ...editDraft, sodium: value })}
               />
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setEditing(null)} className="flex-1 rounded-lg bg-muted py-2">
+              <button onClick={closeEdit} className="flex-1 rounded-lg bg-muted py-2">
                 취소
               </button>
               <button
@@ -268,8 +396,8 @@ function LabeledNumberInput({
   className = "",
 }: {
   label: string;
-  value: number;
-  onChange: (value: number) => void;
+  value: string;
+  onChange: (value: string) => void;
   className?: string;
 }) {
   return (
@@ -278,7 +406,7 @@ function LabeledNumberInput({
       <input
         type="number"
         value={value}
-        onChange={(e) => onChange(Number(e.target.value) || 0)}
+        onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground"
       />
     </label>

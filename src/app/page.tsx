@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { format } from "date-fns";
-import { Camera, PencilLine, Plus, Shapes } from "lucide-react";
+import { Camera, Database, PencilLine, Plus, Shapes } from "lucide-react";
 import CalorieGauge from "@/components/CalorieGauge";
 import ErrorBanner from "@/components/ErrorBanner";
 import FoodSearchModal from "@/components/FoodSearchModal";
@@ -35,7 +35,7 @@ export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isEntrySheetOpen, setIsEntrySheetOpen] = useState(false);
-  const [foodModalMode, setFoodModalMode] = useState<"manual" | "template">("manual");
+  const [foodModalMode, setFoodModalMode] = useState<"manual" | "template" | "database">("manual");
   const [loading, setLoading] = useState(true);
   const [dailyTargets, setDailyTargets] = useState<DailyTargets>(DEFAULT_TARGETS);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -46,15 +46,13 @@ export default function Home() {
     const today = getLocalDateString();
     const response = await fetch(`/api/sheets/records?date=${today}`, { cache: "no-store" });
     if (!response.ok) throw new Error("기록을 불러오지 못했습니다.");
-    const data = (await response.json()) as MealRecord[];
-    return data;
+    return (await response.json()) as MealRecord[];
   }, []);
 
   const fetchTargets = useCallback(async (): Promise<DailyTargets> => {
     const response = await fetch("/api/sheets/user", { cache: "no-store" });
     if (!response.ok) throw new Error("목표 정보를 불러오지 못했습니다.");
-    const data = (await response.json()) as DailyTargets;
-    return data;
+    return (await response.json()) as DailyTargets;
   }, []);
 
   const refreshLogs = useCallback(async () => {
@@ -114,14 +112,10 @@ export default function Home() {
   useEffect(() => {
     if (!isEntrySheetOpen) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsEntrySheetOpen(false);
-      }
+      if (event.key === "Escape") setIsEntrySheetOpen(false);
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isEntrySheetOpen]);
 
   const totals = logs.reduce(
@@ -136,11 +130,9 @@ export default function Home() {
     { calories: 0, carbs: 0, protein: 0, fat: 0, sugar: 0, sodium: 0 }
   );
 
-  const openFoodModal = (mode: "manual" | "template") => {
+  const openFoodModal = (mode: "manual" | "template" | "database") => {
     setFoodModalMode(mode);
-    if (mode !== "manual") {
-      setPhotoPrefill(null);
-    }
+    if (mode !== "manual") setPhotoPrefill(null);
     setIsEntrySheetOpen(false);
     setIsModalOpen(true);
   };
@@ -209,18 +201,25 @@ export default function Home() {
             <p className="px-2 pb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">식단 등록</p>
             <div className="space-y-2">
               <button
-                onClick={() => openFoodModal("manual")}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-muted/60"
-              >
-                <PencilLine className="h-4 w-4" />
-                <span className="text-sm">수기 입력</span>
-              </button>
-              <button
                 onClick={() => openFoodModal("template")}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-muted/60"
               >
                 <Shapes className="h-4 w-4" />
                 <span className="text-sm">템플릿 사용</span>
+              </button>
+              <button
+                onClick={() => openFoodModal("database")}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-muted/60"
+              >
+                <Database className="h-4 w-4" />
+                <span className="text-sm">DB검색</span>
+              </button>
+              <button
+                onClick={() => openFoodModal("manual")}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-muted/60"
+              >
+                <PencilLine className="h-4 w-4" />
+                <span className="text-sm">수기 입력</span>
               </button>
               <button
                 onClick={openPhotoModal}
