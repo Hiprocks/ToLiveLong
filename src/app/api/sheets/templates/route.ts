@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { appendRow, listRows, parseTemplate, RANGES } from "@/lib/sheets";
+import {
+  appendRow,
+  deleteRowByIndex,
+  listRows,
+  parseTemplate,
+  RANGES,
+} from "@/lib/sheets";
 import { TemplateItem } from "@/lib/types";
 import {
   assertFoodName,
@@ -63,5 +69,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     return NextResponse.json({ error: "Failed to create template" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    assertSameOrigin(req);
+    const id = (req.nextUrl.searchParams.get("id") ?? "").trim();
+    if (!id) {
+      return NextResponse.json({ error: "Template id is required" }, { status: 400 });
+    }
+
+    const rows = await listRows(RANGES.templates);
+    const rowOffset = rows.findIndex((row) => (row[0] ?? "").trim() === id);
+    if (rowOffset < 0) {
+      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+    }
+
+    const rowIndex = rowOffset + 2;
+    await deleteRowByIndex("templates", rowIndex);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    if (error instanceof AuthorizationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    return NextResponse.json({ error: "Failed to delete template" }, { status: 500 });
   }
 }

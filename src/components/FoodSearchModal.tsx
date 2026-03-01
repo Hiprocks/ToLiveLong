@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, Search, X } from "lucide-react";
+import { Check, Info, Search, X } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
 import { getLocalDateString } from "@/lib/date";
 import { FoodIndexItem, MealRecord, TemplateItem } from "@/lib/types";
@@ -114,6 +114,8 @@ export default function FoodSearchModal({
   const [form, setForm] = useState<FormState>(initialForm);
   const [draft, setDraft] = useState<NumericDraft>(toDraft(initialForm));
   const [selectedSource, setSelectedSource] = useState<SelectedSource | null>(null);
+  const [previewTemplate, setPreviewTemplate] = useState<TemplateItem | null>(null);
+  const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const setFormAndDraft = (nextForm: FormState) => {
@@ -264,7 +266,6 @@ export default function FoodSearchModal({
       sodium: template.sodium,
     });
 
-    rememberTemplate(template.id);
     setSelectedSource({ kind: "template", item: template });
     setFormAndDraft({
       ...initialForm,
@@ -356,6 +357,7 @@ export default function FoodSearchModal({
   }, [initialForm, initialMode]);
 
   const handleClose = useCallback(() => {
+    setPreviewTemplate(null);
     resetForm();
     onClose();
   }, [onClose, resetForm]);
@@ -412,6 +414,9 @@ export default function FoodSearchModal({
         throw new Error(result?.error || "기록 저장에 실패했습니다.");
       }
 
+      if (selectedSource?.kind === "template") {
+        rememberTemplate(selectedSource.item.id);
+      }
       if (saveTemplateWithRecord) templateCache = null;
       setSaveState("success");
       onSaved?.("식단 기록이 저장되었습니다.");
@@ -421,6 +426,40 @@ export default function FoodSearchModal({
       console.error(error);
       setSaveState("error");
       setErrorMessage(error instanceof Error ? error.message : "기록 저장에 실패했습니다.");
+    }
+  };
+
+  const handleDeleteTemplate = async () => {
+    if (!previewTemplate) return;
+    const target = previewTemplate;
+    setDeletingTemplateId(target.id);
+    setErrorMessage(null);
+    try {
+      const res = await fetch(`/api/sheets/templates?id=${encodeURIComponent(target.id)}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const result = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(result?.error || "템플릿 삭제에 실패했습니다.");
+      }
+
+      templateCache = null;
+      setTemplates((prev) => prev.filter((item) => item.id !== target.id));
+      setRecentTemplateIds((prev) => {
+        const next = prev.filter((id) => id !== target.id);
+        window.localStorage.setItem(RECENT_TEMPLATE_KEY, JSON.stringify(next));
+        return next;
+      });
+      setSelectedSource((prev) =>
+        prev?.kind === "template" && prev.item.id === target.id ? null : prev
+      );
+      setPreviewTemplate(null);
+      onSaved?.("템플릿이 삭제되었습니다.");
+    } catch (error) {
+      console.error(error);
+      setErrorMessage(error instanceof Error ? error.message : "템플릿 삭제에 실패했습니다.");
+    } finally {
+      setDeletingTemplateId(null);
     }
   };
 
@@ -467,7 +506,11 @@ export default function FoodSearchModal({
               {mode === "template" ? "최근 사용 템플릿 우선 표시" : "한국 음식 중심 영양 DB 검색"}
             </p>
 
-            <div className="mt-3 max-h-44 space-y-2 overflow-y-auto">
+          <div
+            className={`mt-3 space-y-2 overflow-y-auto ${
+              mode === "template" ? "max-h-[52vh]" : "max-h-44"
+            }`}
+          >
               {loading && <p className="text-sm text-muted-foreground">불러오는 중...</p>}
               {!loading && mode === "template" && filteredTemplates.length === 0 && (
                 <p className="text-sm text-muted-foreground">템플릿이 없습니다.</p>
@@ -477,19 +520,54 @@ export default function FoodSearchModal({
               )}
 
               {!loading &&
-                mode === "template" &&
-                filteredTemplates.map((template) => (
-                  <button
-                    key={template.id}
-                    onClick={() => applyTemplate(template)}
-                    className="w-full rounded-lg border border-border p-3 text-left hover:bg-muted/40"
-                  >
-                    <p className="font-medium">{template.food_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {template.base_amount}g / {template.calories} kcal
-                    </p>
-                  </button>
-                ))}
+              mode === "template" &&
+              filteredTemplates.map((template) => (
+                (() => {
+                  const isSelected =
+                    selectedSource?.kind === "template" && selectedSource.item.id === template.id;
+                  return (
+                <div
+                  key={template.id}
+                  onClick={() => applyTemplate(template)}
+                  className={`w-full cursor-pointer rounded-lg border p-3 text-left transition-colors ${
+                    isSelected
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:bg-muted/40"
+                  }`}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") applyTemplate(template);
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{template.food_name}</p>
+                      <p className={`mt-1 text-xs ${isSelected ? "text-foreground/80" : "text-muted-foreground"}`}>
+                        {template.base_amount}g · {template.calories} kcal
+                      </p>
+                      <p className={`text-xs ${isSelected ? "text-foreground/80" : "text-muted-foreground"}`}>
+                        탄수 {template.carbs}g · 단백질 {template.protein}g · 지방 {template.fat}g
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label={`${template.food_name} 상세 보기`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewTemplate(template);
+                      }}
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border bg-background/60 hover:text-foreground ${
+                        isSelected ? "border-primary/60 text-primary" : "border-border/80 text-muted-foreground"
+                      }`}
+                    >
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                  );
+                })()
+              ))}
 
               {!loading &&
                 mode === "database" &&
@@ -509,6 +587,7 @@ export default function FoodSearchModal({
           </div>
         )}
 
+        {mode !== "template" && (
         <div className="space-y-4 p-4">
         <div>
           <label className="text-sm text-muted-foreground">섭취 날짜 *</label>
@@ -564,25 +643,78 @@ export default function FoodSearchModal({
         </div>
 
         </div>
+        )}
       </div>
 
       <div className="sticky bottom-0 z-10 mt-auto grid grid-cols-2 gap-2 border-t border-border bg-background p-4 pb-safe">
         <button
-          onClick={() => void handleSaveRecord(false)}
+          onClick={() => void handleSaveRecord(true)}
           disabled={saveState === "saving"}
           className="flex items-center justify-center rounded-xl border border-border bg-muted py-3 text-sm font-semibold text-foreground disabled:opacity-50"
         >
-          {saveState === "saving" ? "저장 중..." : "등록"}
+          {saveState === "saving" ? "저장 중..." : "템플릿 저장 + 등록"}
         </button>
         <button
-          onClick={() => void handleSaveRecord(true)}
+          onClick={() => void handleSaveRecord(false)}
           disabled={saveState === "saving"}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-bold text-primary-foreground disabled:opacity-50"
         >
           <Check className="h-5 w-5" />
-          {saveState === "saving" ? "저장 중..." : "템플릿 저장 + 등록"}
+          {saveState === "saving" ? "저장 중..." : "등록"}
         </button>
       </div>
+
+      {previewTemplate && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md space-y-3 rounded-xl border border-border bg-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="text-lg font-semibold">{previewTemplate.food_name}</h3>
+              <button
+                onClick={() => setPreviewTemplate(null)}
+                className="rounded-full p-1 hover:bg-muted"
+                aria-label="템플릿 상세 닫기"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <PreviewItem label="섭취량(g)" value={String(previewTemplate.base_amount)} />
+              <PreviewItem label="칼로리(kcal)" value={String(previewTemplate.calories)} />
+              <PreviewItem label="탄수화물(g)" value={String(previewTemplate.carbs)} />
+              <PreviewItem label="단백질(g)" value={String(previewTemplate.protein)} />
+              <PreviewItem label="지방(g)" value={String(previewTemplate.fat)} />
+              <PreviewItem label="당(g)" value={String(previewTemplate.sugar)} />
+              <PreviewItem className="col-span-2" label="나트륨(mg)" value={String(previewTemplate.sodium)} />
+            </div>
+
+            <button
+              onClick={() => void handleDeleteTemplate()}
+              disabled={deletingTemplateId === previewTemplate.id}
+              className="w-full rounded-lg border border-red-400/40 bg-red-500/10 py-2 text-sm font-semibold text-red-200 disabled:opacity-50"
+            >
+              {deletingTemplateId === previewTemplate.id ? "삭제 중..." : "템플릿 삭제"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PreviewItem({
+  label,
+  value,
+  className = "",
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  return (
+    <div className={`space-y-1 rounded-lg border border-border bg-input px-3 py-2 ${className}`}>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm font-semibold text-foreground">{value}</p>
     </div>
   );
 }
