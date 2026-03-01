@@ -1,67 +1,68 @@
-# Todo
+﻿# Todo
 
-## P0
-- [x] Google Sheets API Routes 구현 (`records`, `templates`, `user`)
-- [x] 대시보드 Sheets 연동
-- [x] 히스토리 조회/수정/삭제 구현
-- [x] 내 정보(목표값) 조회/수정 구현
-- [x] 식단 입력(수기/템플릿/사진분석) Sheets 저장 연동
+Last Updated: 2026-03-01
 
-## P1
-- [ ] 최적화 작업 - 메뉴 열 때마다 API 호출 및 데이터 불러오는 부분 수정
-- [x] Supabase 완전 제거
-  - [x] `src/lib/supabase.ts` 삭제
-  - [x] `src/components/AddMealModal.tsx` 삭제
-  - [x] `supabase_schema.sql` 정리 또는 제거
-  - [x] `@supabase/supabase-js` 의존성 제거
-  - [x] `.env.local`의 Supabase 변수 제거
-- [ ] UI 텍스트/인코딩 정리
-- [ ] 템플릿 UX 개선 (검색/선택/즐겨찾기 정책 확정)
-- [ ] 등록 과정 UX 개선
-  - [ ] 수기/템플릿/사진분석 진입 동선 단순화
-  - [ ] 저장 전/후 상태(로딩/성공/실패) 일관화
-  - [ ] 입력 폼 단계 및 필수값 가이드 개선
-- [ ] 등록 UI 개선
-  - [ ] 모바일 우선 레이아웃 정리
-  - [ ] 컴포넌트 간 시각 일관성 정리
-  - [ ] 접근성(라벨, 포커스, 버튼 상태) 보강
+Session Handoff: `docs/SESSION-HANDOFF-2026-03-01.md`
 
-## P2
-- [x] 에러 상태 UX 정리 (API 실패 메시지 일관화)
-- [ ] 간단한 수동 테스트 시나리오 문서화
-- [x] README 실행 가이드 최신화
+## P0 (Critical / 운영 안정성)
+- [x] Google Sheets API 라우트 구현 (`records`, `records/[id]`, `templates`, `user`)
+- [x] 대시보드/기록/내정보 연동
+- [x] 식단 등록(수기/템플릿/DB검색/사진분석) 통합 플로우
+- [x] 사진 등록(사진 분석) 기능 정상화
+- [x] 프로덕션 배포 안정화 (Vercel Next.js 설정 + env 파싱 이슈 수정)
+- [x] 프로덕션 데이터 미반영 버그 수정 (SW가 `/api/*` 캐시하던 문제 해결)
+- [x] 대시보드/기록 정렬 기준 최신순(최근 섭취 상단) 적용
+
+## P1 (High / 핵심 UX)
+- [x] 템플릿 사용성 개선
+  - [x] 템플릿 리스트 가시성 확장(모바일에서 더 많이 표시)
+  - [x] 리스트 요약정보 확장(섭취량, kcal, 탄수, 단백질, 지방)
+  - [x] 상세 아이콘 버튼 + 상세 팝업
+  - [x] 선택 항목 시각 강조(테두리/배경/아이콘)
+  - [x] 템플릿 삭제 기능(상세 팝업 + API DELETE)
+- [x] 템플릿 최근 사용 순 정책
+  - [x] 선택 시 즉시 재정렬 제거
+  - [x] 등록 성공 시에만 최상단 이동
+- [x] 등록 화면 날짜 입력 도입
+  - [x] 기본 오늘, 사용자 변경 가능
+  - [x] 기록 수정에서도 날짜 변경 가능
+- [x] 기록 수정 UX 개선
+  - [x] input `0` 잔류 문제 해결
+  - [x] `섭취량 대비 영양성분 변동` 옵션(기본 ON)
+  - [x] 팝업 시 배경 스크롤/터치 스크롤 차단 강화
+- [x] 모드별 등록 버튼 정책 반영
+  - [x] 템플릿 모드: 좌 `템플릿 저장 + 등록`, 우 `등록`(강조)
+  - [x] 수기/DB 모드: 좌 `등록`, 우 `템플릿 저장 + 등록`(강조)
+- [x] `my` 페이지 수정 버튼 위치 보정 (푸터 바로 위)
+
+## P2 (Medium / 확장)
+- [x] 한국 음식 DB 검색 MVP 구축 (`/api/foods/search` + 내부 인덱스)
+- [x] 1인분 기본 중량(defaultAmount) 매핑 적용
+- [x] 음식 DB 커버리지 확대 (실사용 음식군 추가)
+- [ ] 1인분 중량 정확도 개선(공식 데이터 기반 보정)
+  - [ ] Top50 공식 데이터 검증/보정 진행 (`docs/food-db-top50-official-verification.md`)
+
+## P3 (Low / 운영 품질)
+- [x] PWA 기본 셸 구성 (manifest, SW, 아이콘)
+- [x] PWA 아이콘 교체 전용 경로 분리 (`public/assets/pwa/*`)
+- [ ] 설치 유도 배너(`beforeinstallprompt`) UX 추가
+- [ ] PWA 오프라인 정책 고도화 (페이지별 캐시 전략 세분화)
+- [ ] E2E 스모크 테스트 자동화 (등록/수정/삭제 주요 시나리오)
+
+## 이번 턴 기준 잔여 우선순위 (추천)
+1. [P1] 템플릿/DB/수기 등록 플로우 통합 QA
+   - 모드 전환, 저장 버튼 정책, 날짜 반영, 템플릿 삭제 회귀 점검
+2. [P2] 음식 DB 품질 강화
+   - 검색 누락 음식 추가 + 1인분 중량 정확도 개선
+3. [P3] PWA 운영 UX 개선
+   - 설치 유도, 아이콘/캐시 무효화 가이드 자동화
+4. [P3] 테스트 자동화
+   - 핵심 사용자 여정 e2e 스모크 구축
 
 ## 운영 규칙
-- 작업 완료 시 체크박스 업데이트
-- 실패/회귀 발생 시 `docs/MistakeNote.md` 기록
+- [ ] 작업 완료 시 체크박스 갱신
+- [ ] 장애/실수 발생 시 `docs/MistakeNote.md` 기록
 
-## 테스트 메모
-- [x] Google Sheets 실데이터 저장/로드 스모크 테스트
-  - 2026-02-25 기준: `POST /api/sheets/records` -> `GET /api/sheets/records?date=...` -> `PUT /api/sheets/records/[id]` -> `DELETE /api/sheets/records/[id]` 정상 확인
-
----
-
-## Progress Update (2026-02-25)
-
-### Done in this iteration
-- [x] Registration flow simplified to one `+` entry point with mode selector
-- [x] Template UX policy applied: search + select + recent-first ordering (favorites deferred)
-- [x] Registration form validation baseline aligned (`food_name`, `amount >= 1`)
-- [x] Save status UX aligned (`saving` / success feedback / error banner)
-- [x] Manual test scenarios documented
-
-### Remaining
-- [ ] Favorites feature implementation (requires product decision + schema/API update)
-- [ ] Additional visual polish after user feedback
-
-### 2026-02-25 Additional UX Update
-- [x] Remove breakfast/lunch/dinner/snack category from registration and records UI
-- [x] Remove `meal_type` dependency from records API/type validation flow
-- [x] Show today's targets as bar graph below total calories
-
-## Deferred - Deployment (Handle Later)
-- [ ] Deploy full Next.js app (frontend + `/api/*`) for phone usage
-- [ ] Set production env vars (`GEMINI_API_KEY`, Google Sheets credentials)
-- [ ] Validate mobile production flow (`/api/analyze`, `/api/sheets/*`)
-- [ ] Configure domain/HTTPS and basic operational checks
-- Note: Static frontend-only deployment is not sufficient for this project.
+## 배포 메모
+- Production: https://to-live-long.vercel.app
+- 기본 브랜치 운영: `develop`

@@ -510,7 +510,7 @@ export default function FoodSearchModal({
 
           <div
             className={`mt-3 space-y-2 overflow-y-auto ${
-              mode === "template" ? "max-h-[52vh]" : "max-h-44"
+              mode === "template" ? "max-h-[52vh]" : "min-h-[28vh] max-h-[42vh]"
             }`}
           >
               {loading && <p className="text-sm text-muted-foreground">불러오는 중...</p>}
@@ -581,7 +581,8 @@ export default function FoodSearchModal({
                   >
                     <p className="font-medium">{food.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      기본 {food.defaultAmount ?? food.baseAmount}g / 기준 {food.baseAmount}g / {food.calories} kcal / 출처: {food.source}
+                      1인분 {food.defaultAmount ?? food.baseAmount}g
+                      {food.defaultAmountSource === "official_serving" ? " (공식)" : food.defaultAmountSource === "reference_100g" ? " (100g기준)" : " (추정)"} / 기준 {food.baseAmount}g / {food.calories} kcal / 출처: {food.source} / 영양값: {food.nutritionSourceQuality === "official_db" ? "공식" : "추정"}
                     </p>
                   </button>
                 ))}

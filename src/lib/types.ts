@@ -1,4 +1,4 @@
-export interface DailyTargets {
+﻿export interface DailyTargets {
   calories: number;
   carbs: number;
   protein: number;
@@ -79,10 +79,14 @@ export interface FoodIndexItem {
   id: string;
   name: string;
   source: "mfds" | "korean_standard_food" | "korean_standard_ingredient" | "fallback";
+  // How nutrient values (per baseAmount) were sourced.
+  nutritionSourceQuality?: "official_db" | "estimated_db";
   // Nutrient reference amount (mostly 100g in current index data).
   baseAmount: number;
   // Default input amount for UX (e.g., estimated 1 serving grams).
   defaultAmount?: number;
+  // How defaultAmount was determined.
+  defaultAmountSource?: "official_serving" | "estimated_serving" | "reference_100g";
   calories: number;
   carbs: number;
   protein: number;
