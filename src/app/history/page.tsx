@@ -138,13 +138,27 @@ export default function HistoryPage() {
 
   useEffect(() => {
     if (!editing) return;
+    const scrollY = window.scrollY;
     const prevBodyOverflow = document.body.style.overflow;
     const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyPosition = document.body.style.position;
+    const prevBodyTop = document.body.style.top;
+    const prevBodyWidth = document.body.style.width;
+    const prevBodyTouchAction = document.body.style.touchAction;
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+    document.body.style.touchAction = "none";
     return () => {
       document.body.style.overflow = prevBodyOverflow;
       document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.position = prevBodyPosition;
+      document.body.style.top = prevBodyTop;
+      document.body.style.width = prevBodyWidth;
+      document.body.style.touchAction = prevBodyTouchAction;
+      window.scrollTo(0, scrollY);
     };
   }, [editing]);
 
@@ -379,7 +393,11 @@ export default function HistoryPage() {
       )}
 
       {editing && editDraft && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onWheel={(event) => event.preventDefault()}
+          onTouchMove={(event) => event.preventDefault()}
+        >
           <div className="w-full max-w-md space-y-3 rounded-xl border border-border bg-card p-4">
             <h2 className="text-lg font-semibold">기록 수정</h2>
             <label className="space-y-1 text-sm">

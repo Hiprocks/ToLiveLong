@@ -153,7 +153,7 @@ export default function MyPage() {
           <ProfileSummarySection profile={data.profile} computed={data.computed ?? null} />
           <button
             onClick={() => setIsEditOpen(true)}
-            className="fixed bottom-20 left-4 right-4 rounded-xl bg-primary py-3 font-semibold text-primary-foreground shadow-lg md:left-auto md:right-6 md:w-52"
+            className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] left-4 right-4 rounded-xl bg-primary py-3 font-semibold text-primary-foreground shadow-lg md:left-auto md:right-6 md:w-52"
           >
             수정
           </button>
