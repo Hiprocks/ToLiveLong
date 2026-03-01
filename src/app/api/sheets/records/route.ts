@@ -40,13 +40,18 @@ const addTemplateIfNeeded = async (
   return true;
 };
 
+const sortRecentFirst = (records: MealRecord[]): MealRecord[] => {
+  // Sheets append order is old -> new, so reverse for latest-first UI.
+  return [...records].reverse();
+};
+
 export async function GET(req: NextRequest) {
   try {
     const date = req.nextUrl.searchParams.get("date");
     if (!date) {
       const rows = await listRows(RANGES.records);
       const records = rows.map(parseRecord).filter((row) => row.id && row.food_name);
-      return NextResponse.json(records);
+      return NextResponse.json(sortRecentFirst(records));
     }
 
     const targetDate = assertIsoDate(date);
@@ -59,7 +64,7 @@ export async function GET(req: NextRequest) {
 
     const rows = await getRowsByIndexes("records", "K", rowIndexes);
     const records = rows.map(parseRecord).filter((row) => row.id && row.food_name);
-    return NextResponse.json(records);
+    return NextResponse.json(sortRecentFirst(records));
   } catch (error) {
     console.error(error);
     if (error instanceof ValidationError) {
