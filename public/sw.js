@@ -31,6 +31,10 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(fetch(event.request));
     return;
   }
+  if (url.pathname.startsWith("/assets/pwa/")) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
 
   if (event.request.mode === "navigate") {
     event.respondWith(
