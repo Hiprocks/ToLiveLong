@@ -568,19 +568,19 @@ export default function FoodSearchModal({
 
       <div className="sticky bottom-0 z-10 mt-auto grid grid-cols-2 gap-2 border-t border-border bg-background p-4 pb-safe">
         <button
-          onClick={() => void handleSaveRecord(true)}
+          onClick={() => void handleSaveRecord(false)}
           disabled={saveState === "saving"}
           className="flex items-center justify-center rounded-xl border border-border bg-muted py-3 text-sm font-semibold text-foreground disabled:opacity-50"
         >
-          {saveState === "saving" ? "저장 중..." : "템플릿 저장 + 등록"}
+          {saveState === "saving" ? "저장 중..." : "등록"}
         </button>
         <button
-          onClick={() => void handleSaveRecord(false)}
+          onClick={() => void handleSaveRecord(true)}
           disabled={saveState === "saving"}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-bold text-primary-foreground disabled:opacity-50"
         >
           <Check className="h-5 w-5" />
-          {saveState === "saving" ? "저장 중..." : "등록"}
+          {saveState === "saving" ? "저장 중..." : "템플릿 저장 + 등록"}
         </button>
       </div>
     </div>

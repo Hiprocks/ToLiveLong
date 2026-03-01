@@ -86,6 +86,7 @@ export default function HistoryPage() {
   const [editBase, setEditBase] = useState<MealRecord | null>(null);
   const [editDraft, setEditDraft] = useState<EditDraft | null>(null);
   const [syncByAmount, setSyncByAmount] = useState(true);
+  const [templateSaving, setTemplateSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [targets, setTargets] = useState<DailyTargets | null>(null);
 
@@ -267,6 +268,53 @@ export default function HistoryPage() {
     await load(date, true);
   };
 
+  const handleSaveTemplateFromEdit = async () => {
+    if (!editDraft) return;
+
+    const amount = parsePositiveNumber(editDraft.amount);
+    if (!editDraft.food_name.trim()) {
+      setErrorMessage("음식명은 필수입니다.");
+      return;
+    }
+    if (!amount) {
+      setErrorMessage("섭취량은 1g 이상이어야 합니다.");
+      return;
+    }
+
+    setTemplateSaving(true);
+    setErrorMessage(null);
+    try {
+      const payload = {
+        food_name: editDraft.food_name.trim(),
+        base_amount: amount,
+        calories: parseNumber(editDraft.calories),
+        carbs: parseNumber(editDraft.carbs),
+        protein: parseNumber(editDraft.protein),
+        fat: parseNumber(editDraft.fat),
+        sugar: parseNumber(editDraft.sugar),
+        sodium: parseNumber(editDraft.sodium),
+      };
+
+      const response = await fetch("/api/sheets/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const result = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(result?.error || "템플릿 등록에 실패했습니다.");
+      }
+
+      setErrorMessage(null);
+    } catch (error) {
+      console.error(error);
+      setErrorMessage(error instanceof Error ? error.message : "템플릿 등록에 실패했습니다.");
+    } finally {
+      setTemplateSaving(false);
+    }
+  };
+
   return (
     <main className="space-y-4 p-4 pb-24">
       <h1 className="text-2xl font-bold">기록</h1>
@@ -399,6 +447,13 @@ export default function HistoryPage() {
                 onChange={(value) => setEditDraft({ ...editDraft, sodium: value })}
               />
             </div>
+            <button
+              onClick={() => void handleSaveTemplateFromEdit()}
+              disabled={templateSaving}
+              className="w-full rounded-lg border border-border bg-background py-2 text-sm font-semibold text-foreground disabled:opacity-50"
+            >
+              {templateSaving ? "템플릿 저장 중..." : "템플릿 등록"}
+            </button>
             <div className="flex gap-2">
               <button onClick={closeEdit} className="flex-1 rounded-lg bg-muted py-2">
                 취소
