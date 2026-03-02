@@ -23,8 +23,8 @@ const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 const addTemplateIfNeeded = async (
   record: MealRecord,
   saveAsTemplate: boolean
-): Promise<boolean> => {
-  if (!saveAsTemplate) return false;
+): Promise<{ saved: boolean; templateId: string | null }> => {
+  if (!saveAsTemplate) return { saved: false, templateId: null };
   const templateId = createId();
   await appendRow(RANGES.templates, [
     templateId,
@@ -37,7 +37,7 @@ const addTemplateIfNeeded = async (
     record.sugar,
     record.sodium,
   ]);
-  return true;
+  return { saved: true, templateId };
 };
 
 const sortRecentFirst = (records: MealRecord[]): MealRecord[] => {
@@ -109,8 +109,11 @@ export async function POST(req: NextRequest) {
     ]);
 
     let templateSaved = false;
+    let templateId: string | null = null;
     try {
-      templateSaved = await addTemplateIfNeeded(record, Boolean(body.saveAsTemplate));
+      const result = await addTemplateIfNeeded(record, Boolean(body.saveAsTemplate));
+      templateSaved = result.saved;
+      templateId = result.templateId;
     } catch (templateError) {
       if (rowIndex) {
         try {
@@ -122,7 +125,7 @@ export async function POST(req: NextRequest) {
       throw templateError;
     }
 
-    return NextResponse.json({ record, templateSaved }, { status: 201 });
+    return NextResponse.json({ record, templateSaved, templateId }, { status: 201 });
   } catch (error) {
     console.error(error);
     if (error instanceof ValidationError || error instanceof AuthorizationError) {

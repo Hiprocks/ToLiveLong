@@ -31,8 +31,10 @@ test("normalizeAnalyzePayload clamps and rounds nutrient values", () => {
   });
 
   assert.deepEqual(normalized, {
-    menu_name: "Yogurt",
-    food_name: "Yogurt",
+    menu_name: "요거트",
+    food_name: "요거트",
+    amount: 100,
+    amount_basis: "food_serving_estimate",
     calories: 100,
     carbs: 0,
     protein: 18,

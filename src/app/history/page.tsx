@@ -3,12 +3,16 @@
 import { useEffect, useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
+import {
+  cacheKeys,
+  getCachedData,
+  markRecordCacheDirty,
+  setCachedData,
+} from "@/lib/clientSyncCache";
 import { getLocalDateString } from "@/lib/date";
 import { DailyTargets, MealRecord } from "@/lib/types";
 
 const today = getLocalDateString();
-const HISTORY_CACHE_TTL_MS = 30_000;
-const historyCache = new Map<string, { fetchedAt: number; records: MealRecord[] }>();
 
 type Tone = "normal" | "low" | "high";
 
@@ -93,9 +97,10 @@ export default function HistoryPage() {
   const load = async (targetDate: string, force = false) => {
     setLoading(true);
     try {
-      const cached = historyCache.get(targetDate);
-      if (!force && cached && Date.now() - cached.fetchedAt < HISTORY_CACHE_TTL_MS) {
-        setRecords(cached.records);
+      const recordsKey = cacheKeys.records(targetDate);
+      const cached = !force ? getCachedData<MealRecord[]>(recordsKey) : null;
+      if (cached) {
+        setRecords(cached);
         setErrorMessage(null);
         return;
       }
@@ -103,7 +108,7 @@ export default function HistoryPage() {
       const response = await fetch(`/api/sheets/records?date=${targetDate}`, { cache: "no-store" });
       if (!response.ok) throw new Error("기록을 불러오지 못했습니다.");
       const data = (await response.json()) as MealRecord[];
-      historyCache.set(targetDate, { fetchedAt: Date.now(), records: data });
+      setCachedData(recordsKey, data);
       setRecords(data);
       setErrorMessage(null);
     } catch (error) {
@@ -122,10 +127,17 @@ export default function HistoryPage() {
     let isActive = true;
     const loadTargets = async () => {
       try {
+        const cached = getCachedData<DailyTargets>(cacheKeys.user);
+        if (cached) {
+          if (isActive) setTargets(cached);
+          return;
+        }
+
         const response = await fetch("/api/sheets/user", { cache: "no-store" });
         if (!response.ok) return;
         const data = (await response.json()) as DailyTargets;
         if (isActive) setTargets(data);
+        setCachedData(cacheKeys.user, data);
       } catch {
         if (isActive) setTargets(null);
       }
@@ -202,6 +214,7 @@ export default function HistoryPage() {
       setErrorMessage("삭제에 실패했습니다.");
       return;
     }
+    markRecordCacheDirty(date);
     setErrorMessage(null);
     await load(date, true);
   };
@@ -277,6 +290,8 @@ export default function HistoryPage() {
       return;
     }
 
+    markRecordCacheDirty(editing.date);
+    markRecordCacheDirty(editDraft.date);
     setErrorMessage(null);
     closeEdit();
     await load(date, true);

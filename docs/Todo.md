@@ -1,8 +1,8 @@
 ﻿# Todo
 
-Last Updated: 2026-03-01
+Last Updated: 2026-03-02
 
-Session Handoff: `docs/SESSION-HANDOFF-2026-03-01.md`
+Session Handoff: `docs/SESSION-HANDOFF-2026-03-02.md`
 
 ## P0 (Critical / 운영 안정성)
 - [x] Google Sheets API 라우트 구현 (`records`, `records/[id]`, `templates`, `user`)
@@ -34,6 +34,21 @@ Session Handoff: `docs/SESSION-HANDOFF-2026-03-01.md`
   - [x] 템플릿 모드: 좌 `템플릿 저장 + 등록`, 우 `등록`(강조)
   - [x] 수기/DB 모드: 좌 `등록`, 우 `템플릿 저장 + 등록`(강조)
 - [x] `my` 페이지 수정 버튼 위치 보정 (푸터 바로 위)
+- [x] 사진 등록 UX 개선
+  - [x] `+` 메뉴에서 사진 등록 호출 시 즉시 파일선택(불필요 단계 제거)
+  - [x] 파일선택 취소 후 재호출 불가 버그 수정
+- [x] 사진 분석 결과 반영 개선
+  - [x] 영양성분표: 총내용량 기준 섭취량 prefill
+  - [x] 음식사진: 1인분 기준 섭취량 prefill
+  - [x] 섭취량 변경 시 영양성분 비례 동기화
+  - [x] 음식명 한글 우선 정규화
+- [x] 템플릿 상세 팝업 편집 기능
+  - [x] 기록 수정형 UI(날짜 제외) 적용
+  - [x] `섭취량 대비 영양성분 변동` 옵션 적용
+  - [x] 수정값 실제 저장(Templates API PUT) 연결
+- [x] 템플릿 정렬 정책 보강
+  - [x] `템플릿 저장 + 등록` 시 신규 템플릿 최상단 노출
+  - [x] 템플릿 목록 최신순 조회 적용
 
 ## P2 (Medium / 확장)
 - [x] 한국 음식 DB 검색 MVP 구축 (`/api/foods/search` + 내부 인덱스)
@@ -61,6 +76,7 @@ Session Handoff: `docs/SESSION-HANDOFF-2026-03-01.md`
 
 ## 운영 규칙
 - [ ] 작업 완료 시 체크박스 갱신
+- [x] 작업 완료 시 체크박스 갱신
 - [ ] 장애/실수 발생 시 `docs/MistakeNote.md` 기록
 
 ## 배포 메모

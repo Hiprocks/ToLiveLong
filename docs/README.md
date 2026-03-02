@@ -1,9 +1,10 @@
 # Docs Index
 
-Last Updated: 2026-03-01
+Last Updated: 2026-03-02
 
 ## Start Here
-- [`SESSION-HANDOFF-2026-03-01.md`](./SESSION-HANDOFF-2026-03-01.md): current release handoff, QA checklist, and next-session quick start.
+- [`SESSION-HANDOFF-2026-03-02.md`](./SESSION-HANDOFF-2026-03-02.md): latest release handoff, QA checklist, and next-session quick start.
+- [`SESSION-HANDOFF-2026-03-01.md`](./SESSION-HANDOFF-2026-03-01.md): previous handoff.
 - [`Todo.md`](./Todo.md): active backlog and priorities.
 - [`Context.md`](./Context.md): architecture, API, and operational context.
 - [`overview.md`](./overview.md): project overview and change logs.

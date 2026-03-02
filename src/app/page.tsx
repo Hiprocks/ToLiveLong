@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { format } from "date-fns";
@@ -9,6 +9,7 @@ import FoodSearchModal from "@/components/FoodSearchModal";
 import IntakeSummaryTable from "@/components/IntakeSummaryTable";
 import MealTable from "@/components/MealTable";
 import PhotoAnalysisModal, { PhotoAnalysisPrefill } from "@/components/PhotoAnalysisModal";
+import { cacheKeys, getCachedData, setCachedData } from "@/lib/clientSyncCache";
 import { getLocalDateString } from "@/lib/date";
 import { DailyTargets, MealRecord } from "@/lib/types";
 
@@ -20,15 +21,6 @@ const DEFAULT_TARGETS: DailyTargets = {
   sugar: 30,
   sodium: 2000,
 };
-
-const DASHBOARD_CACHE_TTL_MS = 30_000;
-let dashboardCache:
-  | {
-      fetchedAt: number;
-      logs: MealRecord[];
-      targets: DailyTargets;
-    }
-  | null = null;
 
 export default function Home() {
   const [logs, setLogs] = useState<MealRecord[]>([]);
@@ -56,37 +48,37 @@ export default function Home() {
   }, []);
 
   const refreshLogs = useCallback(async () => {
+    const today = getLocalDateString();
     const nextLogs = await fetchLogs();
     setLogs(nextLogs);
-    if (dashboardCache) {
-      dashboardCache = {
-        ...dashboardCache,
-        fetchedAt: Date.now(),
-        logs: nextLogs,
-      };
-    }
+    setCachedData(cacheKeys.records(today), nextLogs);
   }, [fetchLogs]);
 
   useEffect(() => {
     let isActive = true;
     const load = async () => {
       try {
-        const now = Date.now();
-        if (dashboardCache && now - dashboardCache.fetchedAt < DASHBOARD_CACHE_TTL_MS) {
+        const today = getLocalDateString();
+        const logsKey = cacheKeys.records(today);
+        const cachedLogs = getCachedData<MealRecord[]>(logsKey);
+        const cachedTargets = getCachedData<DailyTargets>(cacheKeys.user);
+
+        if (cachedLogs && cachedTargets) {
           if (isActive) {
-            setLogs(dashboardCache.logs);
-            setDailyTargets(dashboardCache.targets);
+            setLogs(cachedLogs);
+            setDailyTargets(cachedTargets);
             setErrorMessage(null);
           }
           return;
         }
 
-        const [nextLogs, nextTargets] = await Promise.all([fetchLogs(), fetchTargets()]);
-        dashboardCache = {
-          fetchedAt: Date.now(),
-          logs: nextLogs,
-          targets: nextTargets,
-        };
+        const [nextLogs, nextTargets] = await Promise.all([
+          cachedLogs ? Promise.resolve(cachedLogs) : fetchLogs(),
+          cachedTargets ? Promise.resolve(cachedTargets) : fetchTargets(),
+        ]);
+
+        if (!cachedLogs) setCachedData(logsKey, nextLogs);
+        if (!cachedTargets) setCachedData(cacheKeys.user, nextTargets);
 
         if (isActive) {
           setLogs(nextLogs);
@@ -212,7 +204,7 @@ export default function Home() {
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-muted/60"
               >
                 <Database className="h-4 w-4" />
-                <span className="text-sm">DB검색</span>
+                <span className="text-sm">DB 검색</span>
               </button>
               <button
                 onClick={() => openFoodModal("manual")}
@@ -226,7 +218,7 @@ export default function Home() {
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-muted/60"
               >
                 <Camera className="h-4 w-4" />
-                <span className="text-sm">사진 분석</span>
+                <span className="text-sm">사진 등록</span>
               </button>
             </div>
           </div>

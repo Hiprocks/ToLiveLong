@@ -4,10 +4,8 @@ import { useEffect, useState } from "react";
 import ErrorBanner from "@/components/ErrorBanner";
 import ProfileEditModal from "@/components/my/ProfileEditModal";
 import ProfileSummarySection from "@/components/my/ProfileSummarySection";
+import { cacheKeys, getCachedData, setCachedData } from "@/lib/clientSyncCache";
 import { UserProfileInput, UserTargetsResponse } from "@/lib/types";
-
-const USER_CACHE_TTL_MS = 30_000;
-let userPageCache: { fetchedAt: number; data: UserTargetsResponse } | null = null;
 
 export default function MyPage() {
   const [data, setData] = useState<UserTargetsResponse | null>(null);
@@ -23,12 +21,12 @@ export default function MyPage() {
 
     const loadData = async () => {
       try {
-        const now = Date.now();
-        if (userPageCache && now - userPageCache.fetchedAt < USER_CACHE_TTL_MS) {
+        const cached = getCachedData<UserTargetsResponse>(cacheKeys.user);
+        if (cached) {
           if (!isActive) return;
-          setData(userPageCache.data);
+          setData(cached);
           setErrorMessage(null);
-          if (!userPageCache.data.profileRegistered) setIsEditOpen(true);
+          if (!cached.profileRegistered) setIsEditOpen(true);
           return;
         }
 
@@ -38,7 +36,7 @@ export default function MyPage() {
         const nextData = (await response.json()) as UserTargetsResponse;
         if (!isActive) return;
 
-        userPageCache = { fetchedAt: Date.now(), data: nextData };
+        setCachedData(cacheKeys.user, nextData);
         setData(nextData);
         setErrorMessage(null);
         if (!nextData.profileRegistered) setIsEditOpen(true);
@@ -81,7 +79,7 @@ export default function MyPage() {
       }
 
       const nextData = (await response.json()) as UserTargetsResponse;
-      userPageCache = { fetchedAt: Date.now(), data: nextData };
+      setCachedData(cacheKeys.user, nextData);
       setData(nextData);
       setSaveState("success");
       setIsEditOpen(false);
@@ -104,7 +102,7 @@ export default function MyPage() {
       if (!response.ok) throw new Error("AI 테스트 요청에 실패했습니다.");
 
       const result = (await response.json()) as UserTargetsResponse;
-      userPageCache = { fetchedAt: Date.now(), data: result };
+      setCachedData(cacheKeys.user, result);
       setData(result);
       const note = result.computed?.aiNotes?.trim();
       if (!note) {

@@ -3,6 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, Info, Search, X } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
+import {
+  cacheKeys,
+  getCachedData,
+  markCacheDirty,
+  markRecordCacheDirty,
+  setCachedData,
+} from "@/lib/clientSyncCache";
 import { getLocalDateString } from "@/lib/date";
 import { FoodIndexItem, MealRecord, TemplateItem } from "@/lib/types";
 
@@ -29,12 +36,34 @@ interface FormState {
 
 type NumericKey = "amount" | "calories" | "carbs" | "protein" | "fat" | "sugar" | "sodium";
 type NumericDraft = Record<NumericKey, string>;
+type TemplateEditDraft = {
+  food_name: string;
+  amount: string;
+  calories: string;
+  carbs: string;
+  protein: string;
+  fat: string;
+  sugar: string;
+  sodium: string;
+};
 
 type SaveState = "idle" | "saving" | "success" | "error";
 
 type SelectedSource =
   | { kind: "template"; item: TemplateItem }
-  | { kind: "database"; item: FoodIndexItem };
+  | { kind: "database"; item: FoodIndexItem }
+  | {
+      kind: "prefill";
+      item: {
+        baseAmount: number;
+        calories: number;
+        carbs: number;
+        protein: number;
+        fat: number;
+        sugar: number;
+        sodium: number;
+      };
+    };
 
 const getInitialForm = (): FormState => ({
   date: getLocalDateString(),
@@ -49,7 +78,6 @@ const getInitialForm = (): FormState => ({
 });
 
 const RECENT_TEMPLATE_KEY = "toLiveLong.recentTemplates";
-let templateCache: TemplateItem[] | null = null;
 const dbResultCache = new Map<string, FoodIndexItem[]>();
 
 const normalizeAmount = (value: number | undefined): number => {
@@ -115,6 +143,9 @@ export default function FoodSearchModal({
   const [draft, setDraft] = useState<NumericDraft>(toDraft(initialForm));
   const [selectedSource, setSelectedSource] = useState<SelectedSource | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<TemplateItem | null>(null);
+  const [previewDraft, setPreviewDraft] = useState<TemplateEditDraft | null>(null);
+  const [previewSyncByAmount, setPreviewSyncByAmount] = useState(true);
+  const [previewSaving, setPreviewSaving] = useState(false);
   const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -151,22 +182,37 @@ export default function FoodSearchModal({
 
   useEffect(() => {
     if (!isOpen || !initialPrefill) return;
+    const prefillAmount =
+      typeof initialPrefill.amount === "number" && Number.isFinite(initialPrefill.amount)
+        ? initialPrefill.amount
+        : initialForm.amount;
+
     const nextForm: FormState = {
       ...initialForm,
       ...initialPrefill,
-      amount:
-        typeof initialPrefill.amount === "number" && Number.isFinite(initialPrefill.amount)
-          ? initialPrefill.amount
-          : initialForm.amount,
+      amount: prefillAmount,
     };
     setMode("manual");
-    setSelectedSource(null);
+    setSelectedSource({
+      kind: "prefill",
+      item: {
+        baseAmount: normalizeAmount(prefillAmount),
+        calories: Number(nextForm.calories) || 0,
+        carbs: Number(nextForm.carbs) || 0,
+        protein: Number(nextForm.protein) || 0,
+        fat: Number(nextForm.fat) || 0,
+        sugar: Number(nextForm.sugar) || 0,
+        sodium: Number(nextForm.sodium) || 0,
+      },
+    });
     setFormAndDraft(nextForm);
   }, [initialForm, initialPrefill, isOpen]);
 
   useEffect(() => {
-    if (!isOpen || templateCache) {
-      if (templateCache) setTemplates(templateCache);
+    if (!isOpen) return;
+    const cached = getCachedData<TemplateItem[]>(cacheKeys.templates);
+    if (cached) {
+      setTemplates(cached);
       return;
     }
     let isActive = true;
@@ -178,7 +224,7 @@ export default function FoodSearchModal({
         if (!res.ok) throw new Error("템플릿을 불러오지 못했습니다.");
         const data = (await res.json()) as TemplateItem[];
         if (!isActive) return;
-        templateCache = data;
+        setCachedData(cacheKeys.templates, data);
         setTemplates(data);
         setErrorMessage(null);
       } catch (error) {
@@ -241,11 +287,12 @@ export default function FoodSearchModal({
     const keyword = query.trim().toLowerCase();
     const base = templates.filter((item) => item.food_name.toLowerCase().includes(keyword));
     const recentRank = new Map(recentTemplateIds.map((id, index) => [id, index]));
+    const baseOrder = new Map(base.map((item, index) => [item.id, index]));
     return [...base].sort((a, b) => {
       const rankA = recentRank.has(a.id) ? (recentRank.get(a.id) as number) : Number.MAX_SAFE_INTEGER;
       const rankB = recentRank.has(b.id) ? (recentRank.get(b.id) as number) : Number.MAX_SAFE_INTEGER;
       if (rankA !== rankB) return rankA - rankB;
-      return a.food_name.localeCompare(b.food_name);
+      return (baseOrder.get(a.id) ?? 0) - (baseOrder.get(b.id) ?? 0);
     });
   }, [query, recentTemplateIds, templates]);
 
@@ -295,6 +342,28 @@ export default function FoodSearchModal({
     });
   };
 
+  const openTemplatePreview = (template: TemplateItem) => {
+    setPreviewTemplate(template);
+    setPreviewDraft({
+      food_name: template.food_name,
+      amount: String(template.base_amount),
+      calories: String(template.calories),
+      carbs: String(template.carbs),
+      protein: String(template.protein),
+      fat: String(template.fat),
+      sugar: String(template.sugar),
+      sodium: String(template.sodium),
+    });
+    setPreviewSyncByAmount(true);
+  };
+
+  const closeTemplatePreview = () => {
+    setPreviewTemplate(null);
+    setPreviewDraft(null);
+    setPreviewSyncByAmount(true);
+    setPreviewSaving(false);
+  };
+
   const recalcFromSelectedSource = (amount: number, source: SelectedSource) => {
     if (source.kind === "template") {
       return scaleWithAmount(amount, normalizeAmount(source.item.base_amount), {
@@ -306,8 +375,8 @@ export default function FoodSearchModal({
         sodium: source.item.sodium,
       });
     }
-
-    return scaleWithAmount(amount, normalizeAmount(source.item.baseAmount), {
+    const baseAmount = normalizeAmount(source.item.baseAmount);
+    return scaleWithAmount(amount, baseAmount, {
       calories: source.item.calories,
       carbs: source.item.carbs,
       protein: source.item.protein,
@@ -354,10 +423,10 @@ export default function FoodSearchModal({
     setDraft(toDraft(initialForm));
     setErrorMessage(null);
     setSaveState("idle");
-  }, [initialForm, initialMode]);
+    closeTemplatePreview();
+  }, [closeTemplatePreview, initialForm, initialMode]);
 
   const handleClose = useCallback(() => {
-    setPreviewTemplate(null);
     resetForm();
     onClose();
   }, [onClose, resetForm]);
@@ -414,10 +483,16 @@ export default function FoodSearchModal({
         throw new Error(result?.error || "기록 저장에 실패했습니다.");
       }
 
+      const result = (await res.json().catch(() => null)) as { templateId?: string } | null;
+
       if (selectedSource?.kind === "template") {
         rememberTemplate(selectedSource.item.id);
       }
-      if (saveTemplateWithRecord) templateCache = null;
+      if (saveTemplateWithRecord && result?.templateId) {
+        rememberTemplate(result.templateId);
+      }
+      markRecordCacheDirty(form.date);
+      if (saveTemplateWithRecord) markCacheDirty(cacheKeys.templates);
       setSaveState("success");
       onSaved?.("식단 기록이 저장되었습니다.");
       await onSuccess();
@@ -443,8 +518,9 @@ export default function FoodSearchModal({
         throw new Error(result?.error || "템플릿 삭제에 실패했습니다.");
       }
 
-      templateCache = null;
-      setTemplates((prev) => prev.filter((item) => item.id !== target.id));
+      const nextTemplates = templates.filter((item) => item.id !== target.id);
+      setTemplates(nextTemplates);
+      setCachedData(cacheKeys.templates, nextTemplates);
       setRecentTemplateIds((prev) => {
         const next = prev.filter((id) => id !== target.id);
         window.localStorage.setItem(RECENT_TEMPLATE_KEY, JSON.stringify(next));
@@ -453,13 +529,132 @@ export default function FoodSearchModal({
       setSelectedSource((prev) =>
         prev?.kind === "template" && prev.item.id === target.id ? null : prev
       );
-      setPreviewTemplate(null);
+      closeTemplatePreview();
       onSaved?.("템플릿이 삭제되었습니다.");
     } catch (error) {
       console.error(error);
       setErrorMessage(error instanceof Error ? error.message : "템플릿 삭제에 실패했습니다.");
     } finally {
       setDeletingTemplateId(null);
+    }
+  };
+
+  const handlePreviewAmountChange = (raw: string) => {
+    if (!previewTemplate || !previewDraft) return;
+    const next = { ...previewDraft, amount: raw };
+    if (previewSyncByAmount) {
+      const parsed = parsePositiveAmount(raw);
+      if (parsed) {
+        const scaled = scaleWithAmount(parsed, normalizeAmount(previewTemplate.base_amount), {
+          calories: previewTemplate.calories,
+          carbs: previewTemplate.carbs,
+          protein: previewTemplate.protein,
+          fat: previewTemplate.fat,
+          sugar: previewTemplate.sugar,
+          sodium: previewTemplate.sodium,
+        });
+        next.calories = String(scaled.calories);
+        next.carbs = String(scaled.carbs);
+        next.protein = String(scaled.protein);
+        next.fat = String(scaled.fat);
+        next.sugar = String(scaled.sugar);
+        next.sodium = String(scaled.sodium);
+      }
+    }
+    setPreviewDraft(next);
+  };
+
+  const handlePreviewSyncToggle = (checked: boolean) => {
+    setPreviewSyncByAmount(checked);
+    if (!checked || !previewTemplate || !previewDraft) return;
+    const amount = parsePositiveAmount(previewDraft.amount);
+    if (!amount) return;
+    const scaled = scaleWithAmount(amount, normalizeAmount(previewTemplate.base_amount), {
+      calories: previewTemplate.calories,
+      carbs: previewTemplate.carbs,
+      protein: previewTemplate.protein,
+      fat: previewTemplate.fat,
+      sugar: previewTemplate.sugar,
+      sodium: previewTemplate.sodium,
+    });
+    setPreviewDraft((prev) =>
+      prev
+        ? {
+            ...prev,
+            calories: String(scaled.calories),
+            carbs: String(scaled.carbs),
+            protein: String(scaled.protein),
+            fat: String(scaled.fat),
+            sugar: String(scaled.sugar),
+            sodium: String(scaled.sodium),
+          }
+        : prev
+    );
+  };
+
+  const handleApplyPreview = async () => {
+    if (!previewTemplate || !previewDraft) return;
+    const amount = parsePositiveAmount(previewDraft.amount);
+    if (!previewDraft.food_name.trim()) {
+      setErrorMessage("음식 이름은 필수입니다.");
+      return;
+    }
+    if (!amount) {
+      setErrorMessage("중량은 1g 이상이어야 합니다.");
+      return;
+    }
+
+    const updatedTemplate: TemplateItem = {
+      id: previewTemplate.id,
+      food_name: previewDraft.food_name.trim(),
+      base_amount: amount,
+      calories: parseNumber(previewDraft.calories),
+      carbs: parseNumber(previewDraft.carbs),
+      protein: parseNumber(previewDraft.protein),
+      fat: parseNumber(previewDraft.fat),
+      sugar: parseNumber(previewDraft.sugar),
+      sodium: parseNumber(previewDraft.sodium),
+    };
+
+    setPreviewSaving(true);
+    try {
+      const res = await fetch("/api/sheets/templates", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedTemplate),
+      });
+      if (!res.ok) {
+        const result = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(result?.error || "템플릿 수정에 실패했습니다.");
+      }
+
+      const saved = (await res.json()) as TemplateItem;
+      const nextTemplates = templates.map((item) => (item.id === saved.id ? saved : item));
+      setTemplates(nextTemplates);
+      setCachedData(cacheKeys.templates, nextTemplates);
+
+      const nextForm: FormState = {
+        ...form,
+        food_name: saved.food_name,
+        amount: saved.base_amount,
+        calories: saved.calories,
+        carbs: saved.carbs,
+        protein: saved.protein,
+        fat: saved.fat,
+        sugar: saved.sugar,
+        sodium: saved.sodium,
+      };
+
+      setSelectedSource({ kind: "template", item: saved });
+      setFormAndDraft(nextForm);
+      setErrorMessage(null);
+      onSaved?.("템플릿이 수정되었습니다.");
+      closeTemplatePreview();
+    } catch (error) {
+      console.error(error);
+      setErrorMessage(error instanceof Error ? error.message : "템플릿 수정에 실패했습니다.");
+    } finally {
+      setPreviewSaving(false);
     }
   };
 
@@ -557,7 +752,7 @@ export default function FoodSearchModal({
                       aria-label={`${template.food_name} 상세 보기`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setPreviewTemplate(template);
+                        openTemplatePreview(template);
                       }}
                       className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border bg-background/60 hover:text-foreground ${
                         isSelected ? "border-primary/60 text-primary" : "border-border/80 text-muted-foreground"
@@ -667,13 +862,13 @@ export default function FoodSearchModal({
         </button>
       </div>
 
-      {previewTemplate && (
+      {previewTemplate && previewDraft && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-md space-y-3 rounded-xl border border-border bg-card p-4">
             <div className="flex items-start justify-between gap-3">
-              <h3 className="text-lg font-semibold">{previewTemplate.food_name}</h3>
+              <h3 className="text-lg font-semibold">템플릿 수정</h3>
               <button
-                onClick={() => setPreviewTemplate(null)}
+                onClick={closeTemplatePreview}
                 className="rounded-full p-1 hover:bg-muted"
                 aria-label="템플릿 상세 닫기"
               >
@@ -681,23 +876,99 @@ export default function FoodSearchModal({
               </button>
             </div>
 
+            <label className="space-y-1 text-sm">
+              <span className="text-muted-foreground">음식명</span>
+              <input
+                value={previewDraft.food_name}
+                onChange={(e) => setPreviewDraft((prev) => (prev ? { ...prev, food_name: e.target.value } : prev))}
+                className="w-full rounded-lg border border-border bg-input px-3 py-2"
+              />
+            </label>
+
+            <label className="flex items-center gap-2 rounded-lg border border-border/70 bg-background/40 px-3 py-2 text-sm">
+              <input
+                type="checkbox"
+                checked={previewSyncByAmount}
+                onChange={(e) => handlePreviewSyncToggle(e.target.checked)}
+              />
+              섭취량 대비 영양성분 변동
+            </label>
+
             <div className="grid grid-cols-2 gap-2">
-              <PreviewItem label="섭취량(g)" value={String(previewTemplate.base_amount)} />
-              <PreviewItem label="칼로리(kcal)" value={String(previewTemplate.calories)} />
-              <PreviewItem label="탄수화물(g)" value={String(previewTemplate.carbs)} />
-              <PreviewItem label="단백질(g)" value={String(previewTemplate.protein)} />
-              <PreviewItem label="지방(g)" value={String(previewTemplate.fat)} />
-              <PreviewItem label="당(g)" value={String(previewTemplate.sugar)} />
-              <PreviewItem className="col-span-2" label="나트륨(mg)" value={String(previewTemplate.sodium)} />
+              <TemplateNumberInput
+                label="섭취량(g)"
+                value={previewDraft.amount}
+                onChange={handlePreviewAmountChange}
+              />
+              <TemplateNumberInput
+                label="칼로리(kcal)"
+                value={previewDraft.calories}
+                onChange={(value) =>
+                  setPreviewDraft((prev) => (prev ? { ...prev, calories: value } : prev))
+                }
+              />
+              <TemplateNumberInput
+                label="탄수화물(g)"
+                value={previewDraft.carbs}
+                onChange={(value) =>
+                  setPreviewDraft((prev) => (prev ? { ...prev, carbs: value } : prev))
+                }
+              />
+              <TemplateNumberInput
+                label="단백질(g)"
+                value={previewDraft.protein}
+                onChange={(value) =>
+                  setPreviewDraft((prev) => (prev ? { ...prev, protein: value } : prev))
+                }
+              />
+              <TemplateNumberInput
+                label="지방(g)"
+                value={previewDraft.fat}
+                onChange={(value) =>
+                  setPreviewDraft((prev) => (prev ? { ...prev, fat: value } : prev))
+                }
+              />
+              <TemplateNumberInput
+                label="당(g)"
+                value={previewDraft.sugar}
+                onChange={(value) =>
+                  setPreviewDraft((prev) => (prev ? { ...prev, sugar: value } : prev))
+                }
+              />
+              <TemplateNumberInput
+                className="col-span-2"
+                label="나트륨(mg)"
+                value={previewDraft.sodium}
+                onChange={(value) =>
+                  setPreviewDraft((prev) => (prev ? { ...prev, sodium: value } : prev))
+                }
+              />
             </div>
 
             <button
-              onClick={() => void handleDeleteTemplate()}
-              disabled={deletingTemplateId === previewTemplate.id}
-              className="w-full rounded-lg border border-red-400/40 bg-red-500/10 py-2 text-sm font-semibold text-red-200 disabled:opacity-50"
+              onClick={() => void handleApplyPreview()}
+              disabled={previewSaving}
+              className="w-full rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
             >
-              {deletingTemplateId === previewTemplate.id ? "삭제 중..." : "템플릿 삭제"}
+              {previewSaving ? "적용 중..." : "수정값 적용"}
             </button>
+
+            <button
+              onClick={closeTemplatePreview}
+              className="w-full rounded-lg border border-border bg-background py-2 text-sm font-semibold text-foreground"
+            >
+              취소
+            </button>
+
+            <div className="border-t border-border pt-3">
+              <button
+                onClick={() => void handleDeleteTemplate()}
+                disabled={deletingTemplateId === previewTemplate.id}
+                className="w-full rounded-lg border border-red-400/40 bg-red-500/10 py-2 text-sm font-semibold text-red-200 disabled:opacity-50"
+              >
+                {deletingTemplateId === previewTemplate.id ? "삭제 중..." : "템플릿 삭제"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -705,19 +976,26 @@ export default function FoodSearchModal({
   );
 }
 
-function PreviewItem({
+function TemplateNumberInput({
   label,
   value,
+  onChange,
   className = "",
 }: {
   label: string;
   value: string;
+  onChange: (value: string) => void;
   className?: string;
 }) {
   return (
-    <div className={`space-y-1 rounded-lg border border-border bg-input px-3 py-2 ${className}`}>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm font-semibold text-foreground">{value}</p>
-    </div>
+    <label className={`space-y-1 text-xs text-muted-foreground ${className}`}>
+      <span>{label}</span>
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground"
+      />
+    </label>
   );
 }

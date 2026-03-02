@@ -41,12 +41,23 @@ export async function POST(req: NextRequest) {
 
     const prompt = `
       Analyze this image of food or a nutrition label.
-      Identify the food item and estimate its nutritional content.
-      If it's a nutrition label, extract the values.
-      
+      Identify whether this is (A) a nutrition label or (B) a food photo.
+      For (A) nutrition label:
+      - Set amount_basis to "label_total_content"
+      - Extract total content amount in grams (or ml treated as equivalent for input) as "amount"
+      - Return nutrients for that total content amount (not per serving)
+      - menu_name must be Korean
+      For (B) food photo:
+      - Set amount_basis to "food_serving_estimate"
+      - Estimate one serving amount in grams as "amount"
+      - Return nutrients for that one serving amount
+      - menu_name must be Korean
+
       Return ONLY a raw JSON object (no markdown formatting) with the following structure:
       {
-        "menu_name": "Food Name",
+        "menu_name": "Korean Food Name",
+        "amount": 0, // number (grams/ml)
+        "amount_basis": "label_total_content" | "food_serving_estimate",
         "calories": 0, // number (kcal)
         "carbs": 0, // number (g)
         "protein": 0, // number (g)
@@ -55,7 +66,9 @@ export async function POST(req: NextRequest) {
         "sodium": 0 // number (mg)
       }
       
-      If you cannot determine a value, use 0.
+      If you cannot determine amount, use 100.
+      If you cannot determine nutrient values, use 0.
+      Translate menu_name to Korean if source text is English.
       Ensure the response is valid JSON.
     `;
 

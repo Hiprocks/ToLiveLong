@@ -1,9 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Camera, Loader2, X } from "lucide-react";
-import ErrorBanner from "@/components/ErrorBanner";
+import { Loader2 } from "lucide-react";
 
 export interface PhotoAnalysisPrefill {
   food_name: string;
@@ -25,15 +24,22 @@ interface PhotoAnalysisModalProps {
 const DEFAULT_FOOD_NAME = "추정 식품";
 
 export default function PhotoAnalysisModal({ isOpen, onClose, onAnalyzed }: PhotoAnalysisModalProps) {
-  const [step, setStep] = useState<"upload" | "analyzing">("upload");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const didOpenPickerRef = useRef(false);
+  const waitingPickerResultRef = useRef(false);
+  const cancelCloseTimerRef = useRef<number | null>(null);
 
   const resetState = useCallback(() => {
-    setStep("upload");
+    setIsAnalyzing(false);
     setImagePreview(null);
-    setErrorMessage(null);
+    didOpenPickerRef.current = false;
+    waitingPickerResultRef.current = false;
+    if (cancelCloseTimerRef.current !== null) {
+      window.clearTimeout(cancelCloseTimerRef.current);
+      cancelCloseTimerRef.current = null;
+    }
   }, []);
 
   const handleClose = useCallback(() => {
@@ -43,8 +49,8 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onAnalyzed }: Phot
 
   const analyzeImage = useCallback(
     async (file: File) => {
-      setStep("analyzing");
-      setErrorMessage(null);
+      waitingPickerResultRef.current = false;
+      setIsAnalyzing(true);
 
       const data = new FormData();
       data.append("image", file);
@@ -64,9 +70,12 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onAnalyzed }: Phot
           (typeof body?.menu_name === "string" && body.menu_name.trim()) ||
           DEFAULT_FOOD_NAME;
 
+        const parsedAmount = Number(body?.amount ?? 100);
+        const safeAmount = Number.isFinite(parsedAmount) && parsedAmount > 0 ? parsedAmount : 100;
+
         onAnalyzed({
           food_name: foodName,
-          amount: 100,
+          amount: safeAmount,
           calories: Number(body?.calories ?? 0),
           carbs: Number(body?.carbs ?? 0),
           protein: Number(body?.protein ?? 0),
@@ -78,17 +87,23 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onAnalyzed }: Phot
         handleClose();
       } catch (error) {
         console.error(error);
-        setErrorMessage(error instanceof Error ? error.message : "사진 분석에 실패했습니다.");
-        setStep("upload");
-        setImagePreview(null);
+        handleClose();
       }
     },
     [handleClose, onAnalyzed]
   );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    waitingPickerResultRef.current = false;
+    if (cancelCloseTimerRef.current !== null) {
+      window.clearTimeout(cancelCloseTimerRef.current);
+      cancelCloseTimerRef.current = null;
+    }
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      handleClose();
+      return;
+    }
 
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -100,57 +115,62 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onAnalyzed }: Phot
 
   useEffect(() => {
     if (!isOpen) return;
+    if (!didOpenPickerRef.current) {
+      didOpenPickerRef.current = true;
+      waitingPickerResultRef.current = true;
+      window.setTimeout(() => {
+        if (!fileInputRef.current) return;
+        fileInputRef.current.value = "";
+        fileInputRef.current.click();
+      }, 0);
+    }
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") handleClose();
     };
+    const handleWindowFocus = () => {
+      if (!waitingPickerResultRef.current) return;
+      if (cancelCloseTimerRef.current !== null) {
+        window.clearTimeout(cancelCloseTimerRef.current);
+      }
+      cancelCloseTimerRef.current = window.setTimeout(() => {
+        if (!waitingPickerResultRef.current) return;
+        const hasPickedFile = Boolean(fileInputRef.current?.files?.length);
+        if (!hasPickedFile && !isAnalyzing && !imagePreview) {
+          handleClose();
+        }
+      }, 300);
+    };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleClose, isOpen]);
+    window.addEventListener("focus", handleWindowFocus);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("focus", handleWindowFocus);
+      if (cancelCloseTimerRef.current !== null) {
+        window.clearTimeout(cancelCloseTimerRef.current);
+        cancelCloseTimerRef.current = null;
+      }
+    };
+  }, [handleClose, imagePreview, isAnalyzing, isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-      <div className="flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
-        <div className="flex shrink-0 items-center justify-between border-b border-border p-4">
-          <h2 className="text-lg font-semibold">사진 분석</h2>
-          <button onClick={handleClose} className="rounded-full p-1 hover:bg-muted" aria-label="사진 분석 닫기">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="space-y-6 overflow-y-auto p-4">
-          <ErrorBanner message={errorMessage} />
-
-          {step === "upload" && (
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="flex cursor-pointer flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-muted-foreground/25 p-12 transition-colors hover:bg-muted/50"
-            >
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Camera className="h-8 w-8" />
+    <>
+      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+      {isAnalyzing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="flex w-full max-w-md flex-col items-center justify-center space-y-4 rounded-2xl border border-border bg-card p-8 shadow-2xl">
+            <div className="relative h-32 w-32 overflow-hidden rounded-xl shadow-lg">
+              {imagePreview && <Image src={imagePreview} alt="미리보기" fill className="object-cover" />}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                <Loader2 className="h-8 w-8 animate-spin text-white" />
               </div>
-              <div className="text-center">
-                <p className="font-medium">사진 업로드</p>
-                <p className="text-sm text-muted-foreground">분석 후 수기 입력 폼에 자동으로 채워집니다.</p>
-              </div>
-              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
             </div>
-          )}
-
-          {step === "analyzing" && (
-            <div className="flex flex-col items-center justify-center space-y-4 py-12">
-              <div className="relative h-32 w-32 overflow-hidden rounded-xl shadow-lg">
-                {imagePreview && <Image src={imagePreview} alt="미리보기" fill className="object-cover" />}
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                  <Loader2 className="h-8 w-8 animate-spin text-white" />
-                </div>
-              </div>
-              <p className="animate-pulse text-muted-foreground">AI 분석 중...</p>
-            </div>
-          )}
+            <p className="animate-pulse text-sm text-muted-foreground">AI 분석 중...</p>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 }
