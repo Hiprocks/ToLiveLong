@@ -1,8 +1,8 @@
 ﻿# Todo
 
-Last Updated: 2026-03-02
+Last Updated: 2026-03-03
 
-Session Handoff: `docs/SESSION-HANDOFF-2026-03-02.md`
+Session Handoff: `docs/SESSION-HANDOFF-2026-03-03.md`
 
 ## P0 (Critical / 운영 안정성)
 - [x] Google Sheets API 라우트 구현 (`records`, `records/[id]`, `templates`, `user`)
@@ -49,6 +49,14 @@ Session Handoff: `docs/SESSION-HANDOFF-2026-03-02.md`
 - [x] 템플릿 정렬 정책 보강
   - [x] `템플릿 저장 + 등록` 시 신규 템플릿 최상단 노출
   - [x] 템플릿 목록 최신순 조회 적용
+- [x] 대시보드 UI/디자인 규칙 정리
+  - [x] shadcn Bento 기반 레이아웃 정비
+  - [x] 칼로리 도넛 SVG overflow 이슈 수정
+  - [x] 요약 카드 제거
+  - [x] 칼로리/영양 진행률 공통 색상 규칙 적용(부족/적정/초과)
+- [x] 내정보/기록 가독성 개선
+  - [x] AI 메모 박스 텍스트 가독성 개선(배경 강조 유지)
+  - [x] 기록 영양칩 목표연동 강조 제거(중립화)
 
 ## P2 (Medium / 확장)
 - [x] 한국 음식 DB 검색 MVP 구축 (`/api/foods/search` + 내부 인덱스)

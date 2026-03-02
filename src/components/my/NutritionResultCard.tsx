@@ -18,7 +18,7 @@ export default function NutritionResultCard({ computed }: NutritionResultCardPro
         />
       </div>
       {computed?.aiNotes && (
-        <div className="mt-4 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100">
+        <div className="mt-4 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-xs text-foreground">
           <span className="font-semibold">{computed.aiSource === "ai" ? "AI" : "기본 계산"}:</span>{" "}
           {computed.aiNotes}
         </div>

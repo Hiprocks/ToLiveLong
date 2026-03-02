@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import ErrorBanner from "@/components/ErrorBanner";
 import ProfileEditModal from "@/components/my/ProfileEditModal";
 import ProfileSummarySection from "@/components/my/ProfileSummarySection";
@@ -122,11 +123,27 @@ export default function MyPage() {
   };
 
   if (loading) {
-    return <div className="p-4 text-muted-foreground">불러오는 중...</div>;
+    return (
+      <motion.div
+        className="p-4 text-muted-foreground"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+      >
+        불러오는 중...
+      </motion.div>
+    );
   }
 
   return (
-    <main className="space-y-4 p-4 pb-24">
+    <motion.main
+      className="space-y-4 p-4 pb-24"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+    >
       <h1 className="text-2xl font-bold">내정보</h1>
       <ErrorBanner message={errorMessage} />
 
@@ -141,22 +158,24 @@ export default function MyPage() {
           <p className="text-sm text-muted-foreground">
             내정보를 등록하면 개인 맞춤 목표 칼로리와 영양소를 자동 계산합니다.
           </p>
-          <button
+          <motion.button
             onClick={() => setIsEditOpen(true)}
             className="mt-4 w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground"
+            whileTap={{ scale: 0.99 }}
           >
             등록하기
-          </button>
+          </motion.button>
         </div>
       ) : (
         <>
           <ProfileSummarySection profile={data.profile} computed={data.computed ?? null} />
-          <button
+          <motion.button
             onClick={() => setIsEditOpen(true)}
             className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] left-4 right-4 rounded-xl bg-primary py-3 font-semibold text-primary-foreground shadow-lg md:left-auto md:right-6 md:w-52"
+            whileTap={{ scale: 0.99 }}
           >
             수정
-          </button>
+          </motion.button>
         </>
       )}
 
@@ -172,12 +191,13 @@ export default function MyPage() {
             <p className="text-sm font-semibold">AI 응답 테스트</p>
             <p className="text-xs text-muted-foreground">Gemini 응답 메모와 디버그 정보를 확인합니다.</p>
           </div>
-          <button
+          <motion.button
             onClick={handleAiTest}
             className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+            whileTap={{ scale: 0.99 }}
           >
             테스트 실행
-          </button>
+          </motion.button>
         </div>
 
         {aiTestMessage && (
@@ -201,6 +221,6 @@ export default function MyPage() {
           onSave={handleSave}
         />
       )}
-    </main>
+    </motion.main>
   );
 }

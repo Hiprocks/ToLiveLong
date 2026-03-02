@@ -1,8 +1,9 @@
 # Docs Index
 
-Last Updated: 2026-03-02
+Last Updated: 2026-03-03
 
 ## Start Here
+- [`SESSION-HANDOFF-2026-03-03.md`](./SESSION-HANDOFF-2026-03-03.md): latest release handoff, dashboard rule updates, and next-session quick start.
 - [`SESSION-HANDOFF-2026-03-02.md`](./SESSION-HANDOFF-2026-03-02.md): latest release handoff, QA checklist, and next-session quick start.
 - [`SESSION-HANDOFF-2026-03-01.md`](./SESSION-HANDOFF-2026-03-01.md): previous handoff.
 - [`Todo.md`](./Todo.md): active backlog and priorities.

@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { Pencil, Trash2 } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
 import {
@@ -11,11 +12,9 @@ import {
 } from "@/lib/clientSyncCache";
 import { getLocalDateString } from "@/lib/date";
 import { showToast } from "@/lib/toast";
-import { DailyTargets, MealRecord } from "@/lib/types";
+import { MealRecord } from "@/lib/types";
 
 const today = getLocalDateString();
-
-type Tone = "normal" | "low" | "high";
 
 type EditDraft = {
   date: string;
@@ -65,24 +64,6 @@ const scaleNutrients = (amount: number, base: MealRecord) => {
   };
 };
 
-const getTone = (
-  key: "carbs" | "protein" | "fat" | "sugar" | "sodium",
-  value: number,
-  targets?: DailyTargets | null
-): Tone => {
-  if (!targets) return "normal";
-  const target = targets[key];
-  if (!target || target <= 0) return "normal";
-  const ratio = value / target;
-
-  if (key === "sugar" || key === "sodium") {
-    return ratio > 1 ? "high" : "normal";
-  }
-  if (ratio < 0.85) return "low";
-  if (ratio > 1.05) return "high";
-  return "normal";
-};
-
 export default function HistoryPage() {
   const [date, setDate] = useState(today);
   const [records, setRecords] = useState<MealRecord[]>([]);
@@ -93,7 +74,6 @@ export default function HistoryPage() {
   const [syncByAmount, setSyncByAmount] = useState(true);
   const [templateSaving, setTemplateSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [targets, setTargets] = useState<DailyTargets | null>(null);
 
   const load = async (targetDate: string, force = false) => {
     setLoading(true);
@@ -125,31 +105,6 @@ export default function HistoryPage() {
   }, [date]);
 
   useEffect(() => {
-    let isActive = true;
-    const loadTargets = async () => {
-      try {
-        const cached = getCachedData<DailyTargets>(cacheKeys.user);
-        if (cached) {
-          if (isActive) setTargets(cached);
-          return;
-        }
-
-        const response = await fetch("/api/sheets/user", { cache: "no-store" });
-        if (!response.ok) return;
-        const data = (await response.json()) as DailyTargets;
-        if (isActive) setTargets(data);
-        setCachedData(cacheKeys.user, data);
-      } catch {
-        if (isActive) setTargets(null);
-      }
-    };
-    void loadTargets();
-    return () => {
-      isActive = false;
-    };
-  }, []);
-
-  useEffect(() => {
     if (!editing) return;
     const scrollY = window.scrollY;
     const prevBodyOverflow = document.body.style.overflow;
@@ -174,25 +129,6 @@ export default function HistoryPage() {
       window.scrollTo(0, scrollY);
     };
   }, [editing]);
-
-  const totals = records.reduce(
-    (acc, record) => ({
-      carbs: acc.carbs + record.carbs,
-      protein: acc.protein + record.protein,
-      fat: acc.fat + record.fat,
-      sugar: acc.sugar + record.sugar,
-      sodium: acc.sodium + record.sodium,
-    }),
-    { carbs: 0, protein: 0, fat: 0, sugar: 0, sodium: 0 }
-  );
-
-  const tones = {
-    carbs: getTone("carbs", totals.carbs, targets),
-    protein: getTone("protein", totals.protein, targets),
-    fat: getTone("fat", totals.fat, targets),
-    sugar: getTone("sugar", totals.sugar, targets),
-    sodium: getTone("sodium", totals.sodium, targets),
-  };
 
   const openEdit = (record: MealRecord) => {
     setEditing(record);
@@ -349,7 +285,13 @@ export default function HistoryPage() {
   };
 
   return (
-    <main className="space-y-4 p-4 pb-24">
+    <motion.main
+      className="space-y-4 p-4 pb-24"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+    >
       <h1 className="text-2xl font-bold">기록</h1>
       <ErrorBanner message={errorMessage} />
       <div className="flex items-center gap-3">
@@ -368,10 +310,14 @@ export default function HistoryPage() {
         <p className="text-muted-foreground">선택한 날짜의 기록이 없습니다.</p>
       ) : (
         <div className="space-y-3">
-          {records.map((record) => (
-            <article
+          {records.map((record, index) => (
+            <motion.article
               key={record.id}
               className="rounded-2xl border border-border/80 bg-card/95 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileTap={{ scale: 0.995 }}
+              transition={{ duration: 0.2, ease: "easeOut", delay: 0.02 * index }}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
@@ -400,13 +346,13 @@ export default function HistoryPage() {
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
-                <MetricChip label="탄수" value={`${record.carbs}g`} tone={tones.carbs} />
-                <MetricChip label="단백질" value={`${record.protein}g`} tone={tones.protein} />
-                <MetricChip label="지방" value={`${record.fat}g`} tone={tones.fat} />
-                <MetricChip label="당" value={`${record.sugar}g`} tone={tones.sugar} />
-                <MetricChip label="나트륨" value={`${record.sodium}mg`} tone={tones.sodium} />
+                <MetricChip label="탄수" value={`${record.carbs}g`} />
+                <MetricChip label="단백질" value={`${record.protein}g`} />
+                <MetricChip label="지방" value={`${record.fat}g`} />
+                <MetricChip label="당" value={`${record.sugar}g`} />
+                <MetricChip label="나트륨" value={`${record.sodium}mg`} />
               </div>
-            </article>
+            </motion.article>
           ))}
         </div>
       )}
@@ -505,7 +451,7 @@ export default function HistoryPage() {
           </div>
         </div>
       )}
-    </main>
+    </motion.main>
   );
 }
 
@@ -533,33 +479,11 @@ function LabeledNumberInput({
   );
 }
 
-function MetricChip({
-  label,
-  value,
-  tone = "normal",
-}: {
-  label: string;
-  value: string;
-  tone?: Tone;
-}) {
+function MetricChip({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      className={`rounded-lg border px-2 py-1.5 ${
-        tone === "low"
-          ? "border-sky-400/40 bg-sky-500/10"
-          : tone === "high"
-            ? "border-rose-400/40 bg-rose-500/10"
-            : "border-border/70 bg-background/60"
-      }`}
-    >
+    <div className="rounded-lg border border-border/70 bg-background/60 px-2 py-1.5">
       <div className="text-[10px] text-muted-foreground">{label}</div>
-      <div
-        className={`text-xs font-semibold ${
-          tone === "low" ? "text-sky-300" : tone === "high" ? "text-rose-300" : "text-foreground"
-        }`}
-      >
-        {value}
-      </div>
+      <div className="text-xs font-semibold text-foreground">{value}</div>
     </div>
   );
 }

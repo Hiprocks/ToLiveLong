@@ -1,17 +1,12 @@
 ﻿import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import BottomNav from "@/components/BottomNav";
 import PwaServiceWorker from "@/components/PwaServiceWorker";
 import ToastViewport from "@/components/ToastViewport";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
@@ -53,7 +48,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className={`${geistSans.variable} ${geistMono.variable} bg-background text-foreground antialiased`}>
+      <body className={`${inter.variable} bg-background text-foreground antialiased`}>
         <PwaServiceWorker />
         <ToastViewport />
         <div className="relative mx-auto min-h-screen max-w-md pb-20">
