@@ -10,6 +10,7 @@ import {
   setCachedData,
 } from "@/lib/clientSyncCache";
 import { getLocalDateString } from "@/lib/date";
+import { showToast } from "@/lib/toast";
 import { DailyTargets, MealRecord } from "@/lib/types";
 
 const today = getLocalDateString();
@@ -217,6 +218,7 @@ export default function HistoryPage() {
     markRecordCacheDirty(date);
     setErrorMessage(null);
     await load(date, true);
+    showToast({ message: "기록 삭제가 완료되었습니다.", type: "success" });
   };
 
   const handleAmountChange = (raw: string) => {
@@ -295,6 +297,7 @@ export default function HistoryPage() {
     setErrorMessage(null);
     closeEdit();
     await load(date, true);
+    showToast({ message: "기록 수정이 완료되었습니다.", type: "success" });
   };
 
   const handleSaveTemplateFromEdit = async () => {
@@ -336,6 +339,7 @@ export default function HistoryPage() {
       }
 
       setErrorMessage(null);
+      showToast({ message: "템플릿 등록이 완료되었습니다.", type: "success" });
     } catch (error) {
       console.error(error);
       setErrorMessage(error instanceof Error ? error.message : "템플릿 등록에 실패했습니다.");

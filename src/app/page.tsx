@@ -31,7 +31,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [dailyTargets, setDailyTargets] = useState<DailyTargets>(DEFAULT_TARGETS);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [flashMessage, setFlashMessage] = useState<string | null>(null);
   const [photoPrefill, setPhotoPrefill] = useState<PhotoAnalysisPrefill | null>(null);
 
   const fetchLogs = useCallback(async (): Promise<MealRecord[]> => {
@@ -134,11 +133,6 @@ export default function Home() {
     setIsPhotoModalOpen(true);
   };
 
-  const handleSaved = (message: string) => {
-    setFlashMessage(message);
-    window.setTimeout(() => setFlashMessage(null), 2000);
-  };
-
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-10 border-b border-border bg-background/80 p-4 backdrop-blur-md">
@@ -149,11 +143,6 @@ export default function Home() {
 
       <div className="space-y-8 p-4">
         <ErrorBanner message={errorMessage} />
-        {flashMessage && (
-          <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-            {flashMessage}
-          </div>
-        )}
 
         <section className="flex flex-col items-center rounded-2xl border border-border/50 bg-card p-6 shadow-lg">
           <h2 className="mb-4 text-center text-sm font-medium text-muted-foreground">오늘 섭취량</h2>
@@ -232,7 +221,6 @@ export default function Home() {
           setPhotoPrefill(null);
         }}
         onSuccess={refreshLogs}
-        onSaved={handleSaved}
         initialMode={foodModalMode}
         initialPrefill={foodModalMode === "manual" ? photoPrefill : null}
       />

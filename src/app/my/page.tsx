@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import ErrorBanner from "@/components/ErrorBanner";
 import ProfileEditModal from "@/components/my/ProfileEditModal";
 import ProfileSummarySection from "@/components/my/ProfileSummarySection";
 import { cacheKeys, getCachedData, setCachedData } from "@/lib/clientSyncCache";
+import { showToast } from "@/lib/toast";
 import { UserProfileInput, UserTargetsResponse } from "@/lib/types";
 
 export default function MyPage() {
@@ -31,7 +32,7 @@ export default function MyPage() {
         }
 
         const response = await fetch("/api/sheets/user", { cache: "no-store" });
-        if (!response.ok) throw new Error("내 정보를 불러오지 못했습니다.");
+        if (!response.ok) throw new Error("내정보를 불러오지 못했습니다.");
 
         const nextData = (await response.json()) as UserTargetsResponse;
         if (!isActive) return;
@@ -43,7 +44,7 @@ export default function MyPage() {
       } catch (error) {
         if (!isActive) return;
         console.error(error);
-        setErrorMessage("내 정보를 불러오지 못했습니다.");
+        setErrorMessage("내정보를 불러오지 못했습니다.");
       } finally {
         if (isActive) setLoading(false);
       }
@@ -84,7 +85,8 @@ export default function MyPage() {
       setSaveState("success");
       setIsEditOpen(false);
       setErrorMessage(null);
-      setSuccessMessage("내 정보가 저장되었습니다.");
+      setSuccessMessage("내정보가 저장되었습니다.");
+      showToast({ message: "내 정보 수정이 완료되었습니다.", type: "success" });
       window.setTimeout(() => setSuccessMessage(null), 2000);
     } catch (error) {
       console.error(error);
@@ -125,7 +127,7 @@ export default function MyPage() {
 
   return (
     <main className="space-y-4 p-4 pb-24">
-      <h1 className="text-2xl font-bold">내 정보</h1>
+      <h1 className="text-2xl font-bold">내정보</h1>
       <ErrorBanner message={errorMessage} />
 
       {successMessage && (
@@ -137,7 +139,7 @@ export default function MyPage() {
       {!data?.profileRegistered || !data.profile ? (
         <div className="rounded-2xl border border-border bg-card p-5">
           <p className="text-sm text-muted-foreground">
-            내 정보를 등록하면 개인 맞춤 목표 칼로리와 매크로를 자동 계산합니다.
+            내정보를 등록하면 개인 맞춤 목표 칼로리와 영양소를 자동 계산합니다.
           </p>
           <button
             onClick={() => setIsEditOpen(true)}
@@ -160,7 +162,7 @@ export default function MyPage() {
 
       {!data?.profileRegistered && (
         <div className="rounded-lg border border-amber-300/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
-          등록 전에는 서비스 이용이 제한됩니다.
+          등록 전에는 일부 기능 사용이 제한됩니다.
         </div>
       )}
 
@@ -199,7 +201,6 @@ export default function MyPage() {
           onSave={handleSave}
         />
       )}
-
     </main>
   );
 }

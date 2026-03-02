@@ -11,6 +11,7 @@ import {
   setCachedData,
 } from "@/lib/clientSyncCache";
 import { getLocalDateString } from "@/lib/date";
+import { showToast } from "@/lib/toast";
 import { FoodIndexItem, MealRecord, TemplateItem } from "@/lib/types";
 
 interface FoodSearchModalProps {
@@ -493,6 +494,10 @@ export default function FoodSearchModal({
       }
       markRecordCacheDirty(form.date);
       if (saveTemplateWithRecord) markCacheDirty(cacheKeys.templates);
+      const message = saveTemplateWithRecord
+        ? "템플릿 저장 + 등록이 완료되었습니다."
+        : "식단 등록이 완료되었습니다.";
+      showToast({ message, type: "success" });
       setSaveState("success");
       onSaved?.("식단 기록이 저장되었습니다.");
       await onSuccess();
@@ -530,6 +535,7 @@ export default function FoodSearchModal({
         prev?.kind === "template" && prev.item.id === target.id ? null : prev
       );
       closeTemplatePreview();
+      showToast({ message: "템플릿 삭제가 완료되었습니다.", type: "success" });
       onSaved?.("템플릿이 삭제되었습니다.");
     } catch (error) {
       console.error(error);
@@ -648,6 +654,7 @@ export default function FoodSearchModal({
       setSelectedSource({ kind: "template", item: saved });
       setFormAndDraft(nextForm);
       setErrorMessage(null);
+      showToast({ message: "템플릿 수정이 완료되었습니다.", type: "success" });
       onSaved?.("템플릿이 수정되었습니다.");
       closeTemplatePreview();
     } catch (error) {

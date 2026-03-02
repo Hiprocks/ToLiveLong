@@ -2,6 +2,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import BottomNav from "@/components/BottomNav";
 import PwaServiceWorker from "@/components/PwaServiceWorker";
+import ToastViewport from "@/components/ToastViewport";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -54,6 +55,7 @@ export default function RootLayout({
     <html lang="ko">
       <body className={`${geistSans.variable} ${geistMono.variable} bg-background text-foreground antialiased`}>
         <PwaServiceWorker />
+        <ToastViewport />
         <div className="relative mx-auto min-h-screen max-w-md pb-20">
           {children}
           <BottomNav />
