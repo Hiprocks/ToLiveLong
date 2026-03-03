@@ -53,7 +53,15 @@ const normalizeAiTargets = (value: unknown): NutritionTargets | null => {
   const sugar = toSafeNumber(payload.sugar ?? 30, MAX.sugar);
   const sodium = toSafeNumber(payload.sodium ?? 2000, MAX.sodium);
 
-  let notes = typeof payload.notes === "string" ? payload.notes.trim() : "";
+  const analysis =
+    typeof payload.analysis === "string" ? payload.analysis.trim() : "";
+  const exercisePlan =
+    typeof payload.exercisePlan === "string" ? payload.exercisePlan.trim() : "";
+  const dietPlan =
+    typeof payload.dietPlan === "string" ? payload.dietPlan.trim() : "";
+  const feedbackParts = [analysis, exercisePlan, dietPlan].filter(Boolean);
+  let notes =
+    typeof payload.notes === "string" ? payload.notes.trim() : feedbackParts.join(" ");
   if (notes.length > 200) notes = notes.slice(0, 200).trim();
 
   if (!targetCalories || !carbs || !protein || !fat) return null;
@@ -68,6 +76,10 @@ const normalizeAiTargets = (value: unknown): NutritionTargets | null => {
     fat,
     sugar,
     sodium,
+    aiFeedback:
+      analysis || exercisePlan || dietPlan
+        ? { analysis, exercisePlan, dietPlan }
+        : undefined,
     aiNotes: notes || undefined,
     aiSource: "ai",
   };
@@ -78,13 +90,15 @@ export const normalizeAiTargetsPayload = normalizeAiTargets;
 const buildPrompt = (profile: UserProfileInput, baseline: NutritionTargets) => {
   return `
 You are a nutrition planning assistant. Use the user's profile to propose daily nutrition targets.
-Focus on realistic protein for general formula users; avoid excessive protein.
-Write the notes in Korean. Notes must be non-empty and 1-2 sentences.
-Notes must be a bullet-style summary (short phrases) within 200 characters (including spaces).
-Notes must include:
-- BMR/TDEE result and realistic daily calorie target
-- Macro goals in grams (carbs/protein/fat) based on body weight
-- One key actionable advice
+Focus on realistic protein and practical adherence.
+Write feedback in Korean.
+Important: Keep numeric metrics separate in numeric fields only.
+Do NOT repeat BMR/TDEE/targetCalories/carbs/protein/fat numbers in feedback text.
+Return concise feedback text around 200 chars total.
+Feedback must include:
+1) Body/goal analysis
+2) Exercise prescription (intensity/duration/frequency)
+3) Diet recommendation (high protein, low fat)
 
 Return ONLY raw JSON with the following keys:
 {
@@ -96,7 +110,9 @@ Return ONLY raw JSON with the following keys:
   "fat": number,
   "sugar": number,
   "sodium": number,
-  "notes": string
+  "analysis": string,
+  "exercisePlan": string,
+  "dietPlan": string
 }
 
 User profile:
@@ -107,7 +123,22 @@ ${JSON.stringify(baseline)}
   `.trim();
 };
 
-const buildFallbackNotes = (profile: UserProfileInput, baseline: NutritionTargets) => {
+const getBodyTypeHint = (profile: UserProfileInput): string => {
+  if (profile.bodyFatPct !== undefined) {
+    if (profile.bodyFatPct >= 28) return "체지방이 높은 편";
+    if (profile.bodyFatPct <= 14) return "체지방이 낮은 편";
+    return "체지방이 중간 범위";
+  }
+
+  if (profile.waistHipRatio !== undefined) {
+    if (profile.waistHipRatio >= 0.9) return "복부 지방 관리가 필요한 체형";
+    return "복부 비만 위험은 낮은 체형";
+  }
+
+  return "체형 정보는 기본 입력 기준";
+};
+
+const buildFallbackNotes = (profile: UserProfileInput) => {
   const goalLabel: Record<UserProfileInput["primaryGoal"], string> = {
     cutting: "감량",
     maintenance: "유지",
@@ -120,10 +151,45 @@ const buildFallbackNotes = (profile: UserProfileInput, baseline: NutritionTarget
     high_protein: "고단백",
     keto: "저탄고지",
   };
+  const intensityLabel: Record<NonNullable<UserProfileInput["exerciseIntensity"]>, string> = {
+    low: "저강도",
+    medium: "중강도",
+    high: "고강도",
+  };
 
-  const note = `- BMR ${baseline.bmr}, TDEE ${baseline.tdee}\n- 목표 ${baseline.targetCalories}kcal, 탄${baseline.carbs}/단${baseline.protein}/지${baseline.fat}g\n- ${goalLabel[profile.primaryGoal]}(${macroLabel[profile.macroPreference]}) 기준으로 1주 기록`;
+  const sessions = profile.exerciseFrequencyWeekly ?? 3;
+  const duration = profile.exerciseDurationMin ?? 45;
+  const intensity = intensityLabel[profile.exerciseIntensity ?? "medium"];
+  const bodyType = getBodyTypeHint(profile);
+
+  const note = `${bodyType}이며 ${goalLabel[profile.primaryGoal]} 목표입니다. 주 ${sessions}회 ${intensity} ${duration}분 운동을 권장합니다. 단백질 중심으로 지방은 최소화하고 ${macroLabel[profile.macroPreference]} 패턴으로 식단을 유지하세요.`;
   if (note.length <= 200) return note;
-  return `BMR ${baseline.bmr}, TDEE ${baseline.tdee}, 목표 ${baseline.targetCalories}kcal, 탄${baseline.carbs}/단${baseline.protein}/지${baseline.fat}g. 1주 기록으로 조정`;
+  return `주 ${sessions}회 ${intensity} ${duration}분 운동, 단백질 중심 저지방 식단을 권장합니다.`;
+};
+
+const buildFallbackFeedback = (profile: UserProfileInput): NonNullable<NutritionTargets["aiFeedback"]> => {
+  const intensityLabel: Record<NonNullable<UserProfileInput["exerciseIntensity"]>, string> = {
+    low: "저강도",
+    medium: "중강도",
+    high: "고강도",
+  };
+  const goalLabel: Record<UserProfileInput["primaryGoal"], string> = {
+    cutting: "감량",
+    maintenance: "유지",
+    bulking: "증량",
+    recomposition: "리컴포지션",
+  };
+
+  const bodyType = getBodyTypeHint(profile);
+  const sessions = profile.exerciseFrequencyWeekly ?? 3;
+  const duration = profile.exerciseDurationMin ?? 45;
+  const intensity = intensityLabel[profile.exerciseIntensity ?? "medium"];
+
+  return {
+    analysis: `${bodyType}, ${goalLabel[profile.primaryGoal]} 목표 기준`,
+    exercisePlan: `주 ${sessions}회 ${intensity} ${duration}분 운동 권장`,
+    dietPlan: "단백질 중심, 지방 최소화 식단 권장",
+  };
 };
 
 export const calculateNutritionTargetsWithAi = async (
@@ -131,9 +197,11 @@ export const calculateNutritionTargetsWithAi = async (
 ): Promise<NutritionTargets> => {
   const baseline = calculateNutritionTargets(profile);
   if (!process.env.GEMINI_API_KEY) {
+    const fallbackFeedback = buildFallbackFeedback(profile);
     return {
       ...baseline,
-      aiNotes: buildFallbackNotes(profile, baseline),
+      aiFeedback: fallbackFeedback,
+      aiNotes: buildFallbackNotes(profile),
       aiSource: "fallback",
       aiDebug: "GEMINI_API_KEY missing",
     };
@@ -160,7 +228,9 @@ export const calculateNutritionTargetsWithAi = async (
         }
 
         if (!normalized.aiNotes) {
-          normalized.aiNotes = buildFallbackNotes(profile, baseline);
+          const fallbackFeedback = buildFallbackFeedback(profile);
+          normalized.aiFeedback = normalized.aiFeedback ?? fallbackFeedback;
+          normalized.aiNotes = buildFallbackNotes(profile);
           normalized.aiDebug = "AI response missing notes; fallback notes injected";
         }
 
@@ -172,7 +242,8 @@ export const calculateNutritionTargetsWithAi = async (
 
     return {
       ...baseline,
-      aiNotes: buildFallbackNotes(profile, baseline),
+      aiFeedback: buildFallbackFeedback(profile),
+      aiNotes: buildFallbackNotes(profile),
       aiSource: "fallback",
       aiDebug: `AI error across models (${modelCandidates.join(", ")}): ${lastError}`,
     };
@@ -180,7 +251,8 @@ export const calculateNutritionTargetsWithAi = async (
     const message = error instanceof Error ? error.message : "Unknown error";
     return {
       ...baseline,
-      aiNotes: buildFallbackNotes(profile, baseline),
+      aiFeedback: buildFallbackFeedback(profile),
+      aiNotes: buildFallbackNotes(profile),
       aiSource: "fallback",
       aiDebug: `AI error: ${message}`,
     };

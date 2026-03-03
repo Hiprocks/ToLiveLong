@@ -38,6 +38,7 @@ export default function ProfileEditModal({
 }: ProfileEditModalProps) {
   const [form, setForm] = useState<UserProfileInput>(initialProfile ?? defaultProfile);
   const [draft, setDraft] = useState<NumericDraft>(() => toDraft(initialProfile ?? defaultProfile));
+  const [initialSnapshot] = useState<UserProfileInput>(initialProfile ?? defaultProfile);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -47,6 +48,15 @@ export default function ProfileEditModal({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
 
   const activityOptions = useMemo(
     () =>
@@ -74,7 +84,12 @@ export default function ProfileEditModal({
     return null;
   }, [form.macroPreference, form.primaryGoal]);
 
-  const isSaveBlocked = saving || requiredInvalid.age || requiredInvalid.heightCm || requiredInvalid.weightKg;
+  const currentProfile = toProfile(form, draft);
+  const hasChanges =
+    JSON.stringify(normalizeProfile(currentProfile)) !==
+    JSON.stringify(normalizeProfile(initialSnapshot));
+  const isSaveBlocked =
+    saving || requiredInvalid.age || requiredInvalid.heightCm || requiredInvalid.weightKg || !hasChanges;
 
   const handleSave = () => {
     if (isSaveBlocked) return;
@@ -84,22 +99,19 @@ export default function ProfileEditModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center" onClick={onClose}>
-      <div
-        className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border border-border bg-card p-4 md:max-w-2xl md:rounded-2xl"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">내 정보 등록/수정</h2>
-          <button onClick={onClose} className="rounded-full p-2 hover:bg-muted" aria-label="내 정보 편집 닫기">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-[70] flex flex-col animate-in slide-in-from-bottom duration-300 bg-background">
+      <div className="flex items-center justify-between border-b border-border p-4">
+        <h2 className="text-lg font-semibold">내 정보 등록/수정</h2>
+        <button onClick={onClose} className="rounded-full p-2 hover:bg-muted" aria-label="내 정보 편집 닫기">
+          <X className="h-5 w-5" />
+        </button>
+      </div>
 
-        <div className="mt-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 pb-24">
+        <div className="mx-auto w-full max-w-2xl space-y-4">
           <ErrorBanner message={errorMessage} />
 
-          <section className="grid grid-cols-2 gap-3 rounded-xl border border-border p-3">
+          <section className="grid grid-cols-2 gap-3 rounded-2xl border border-border/70 bg-background/40 p-4">
             <h3 className="col-span-2 text-sm font-semibold text-muted-foreground">기본 정보(필수)</h3>
             <Field label="성별">
               <select
@@ -137,7 +149,7 @@ export default function ProfileEditModal({
             />
           </section>
 
-          <section className="grid grid-cols-2 gap-3 rounded-xl border border-border p-3">
+          <section className="grid grid-cols-2 gap-3 rounded-2xl border border-border/70 bg-background/40 p-4">
             <h3 className="col-span-2 text-sm font-semibold text-muted-foreground">활동 정보</h3>
             <Field label="직업 활동량">
               <select
@@ -184,7 +196,7 @@ export default function ProfileEditModal({
             />
           </section>
 
-          <section className="grid grid-cols-2 gap-3 rounded-xl border border-border p-3">
+          <section className="grid grid-cols-2 gap-3 rounded-2xl border border-border/70 bg-background/40 p-4">
             <h3 className="col-span-2 text-sm font-semibold text-muted-foreground">체성분(선택)</h3>
             <NumberField
               label="체지방률"
@@ -200,7 +212,7 @@ export default function ProfileEditModal({
             />
           </section>
 
-          <section className="grid grid-cols-2 gap-3 rounded-xl border border-border p-3">
+          <section className="grid grid-cols-2 gap-3 rounded-2xl border border-border/70 bg-background/40 p-4">
             <h3 className="col-span-2 text-sm font-semibold text-muted-foreground">목표 설정</h3>
             <Field label="목표">
               <select
@@ -228,8 +240,10 @@ export default function ProfileEditModal({
             </Field>
           </section>
         </div>
+      </div>
 
-        <div className="sticky bottom-0 mt-4 border-t border-border bg-card pt-3">
+      <div className="sticky bottom-0 z-10 mt-auto border-t border-border bg-background p-4 pb-safe">
+        <div className="mx-auto w-full max-w-2xl">
           {goalMacroWarning && (
             <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
               {goalMacroWarning}
@@ -240,7 +254,7 @@ export default function ProfileEditModal({
             disabled={isSaveBlocked}
             className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground disabled:opacity-60"
           >
-            {saving ? "저장 중..." : "프로필 저장"}
+            {saving ? "저장 중..." : hasChanges ? "프로필 저장" : "변경사항 없음"}
           </button>
         </div>
       </div>
@@ -324,4 +338,12 @@ const toProfile = (base: UserProfileInput, draft: NumericDraft): UserProfileInpu
   exerciseDurationMin: parseOptional(draft.exerciseDurationMin),
   bodyFatPct: parseOptional(draft.bodyFatPct),
   skeletalMuscleKg: parseOptional(draft.skeletalMuscleKg),
+});
+
+const normalizeProfile = (profile: UserProfileInput): UserProfileInput => ({
+  ...profile,
+  exerciseFrequencyWeekly: profile.exerciseFrequencyWeekly ?? undefined,
+  exerciseDurationMin: profile.exerciseDurationMin ?? undefined,
+  bodyFatPct: profile.bodyFatPct ?? undefined,
+  skeletalMuscleKg: profile.skeletalMuscleKg ?? undefined,
 });

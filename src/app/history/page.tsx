@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { addDays, format, parseISO } from "date-fns";
-import { Pencil, Trash2 } from "lucide-react";
+import { Camera, Database, Pencil, PencilLine, Plus, Shapes, Trash2 } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
+import FoodSearchModal from "@/components/FoodSearchModal";
+import PhotoAnalysisModal, { PhotoAnalysisPrefill } from "@/components/PhotoAnalysisModal";
 import {
   cacheKeys,
   getCachedData,
@@ -75,6 +77,11 @@ export default function HistoryPage() {
   const [syncByAmount, setSyncByAmount] = useState(true);
   const [templateSaving, setTemplateSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [isEntrySheetOpen, setIsEntrySheetOpen] = useState(false);
+  const [foodModalMode, setFoodModalMode] = useState<"manual" | "template" | "database">("manual");
+  const [photoPrefill, setPhotoPrefill] = useState<PhotoAnalysisPrefill | null>(null);
   const datePickerRef = useRef<HTMLInputElement>(null);
   const isAtToday = date >= today;
 
@@ -297,13 +304,26 @@ export default function HistoryPage() {
     const datePicker = datePickerRef.current;
     if (!datePicker) return;
 
-    if ("showPicker" in datePicker) {
-      (datePicker as HTMLInputElement & { showPicker: () => void }).showPicker();
+    const picker = datePicker as HTMLInputElement & { showPicker?: () => void };
+    if (typeof picker.showPicker === "function") {
+      picker.showPicker();
       return;
     }
 
     datePicker.focus();
     datePicker.click();
+  };
+
+  const openFoodModal = (mode: "manual" | "template" | "database") => {
+    setFoodModalMode(mode);
+    if (mode !== "manual") setPhotoPrefill(null);
+    setIsEntrySheetOpen(false);
+    setIsCreateOpen(true);
+  };
+
+  const openPhotoModal = () => {
+    setIsEntrySheetOpen(false);
+    setIsPhotoModalOpen(true);
   };
 
   return (
@@ -503,6 +523,81 @@ export default function HistoryPage() {
           </div>
         </div>
       )}
+
+      <div className="fixed bottom-20 right-4 z-40">
+        <button
+          onClick={() => setIsEntrySheetOpen((prev) => !prev)}
+          className="flex items-center justify-center rounded-full bg-primary p-4 text-primary-foreground shadow-lg transition-transform active:scale-95 hover:bg-primary/90"
+          aria-label="식단 등록 열기"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      </div>
+
+      {isEntrySheetOpen && (
+        <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setIsEntrySheetOpen(false)}>
+          <div
+            className="absolute bottom-24 right-4 w-64 rounded-2xl border border-border/80 bg-card p-4 shadow-sm backdrop-blur-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="pb-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">식단 등록</p>
+            <div className="space-y-2">
+              <button
+                onClick={() => openFoodModal("template")}
+                className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
+              >
+                <Shapes className="h-4 w-4" />
+                <span className="text-sm">템플릿 사용</span>
+              </button>
+              <button
+                onClick={() => openFoodModal("database")}
+                className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
+              >
+                <Database className="h-4 w-4" />
+                <span className="text-sm">DB 검색</span>
+              </button>
+              <button
+                onClick={() => openFoodModal("manual")}
+                className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
+              >
+                <PencilLine className="h-4 w-4" />
+                <span className="text-sm">수기 입력</span>
+              </button>
+              <button
+                onClick={openPhotoModal}
+                className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
+              >
+                <Camera className="h-4 w-4" />
+                <span className="text-sm">사진 등록</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <FoodSearchModal
+        isOpen={isCreateOpen}
+        onClose={() => {
+          setIsCreateOpen(false);
+          setPhotoPrefill(null);
+        }}
+        initialMode={foodModalMode}
+        initialPrefill={foodModalMode === "manual" ? photoPrefill : null}
+        onSuccess={async () => {
+          await load(date, true);
+        }}
+      />
+
+      <PhotoAnalysisModal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        onAnalyzed={(prefill) => {
+          setPhotoPrefill(prefill);
+          setFoodModalMode("manual");
+          setIsPhotoModalOpen(false);
+          setIsCreateOpen(true);
+        }}
+      />
     </motion.main>
   );
 }

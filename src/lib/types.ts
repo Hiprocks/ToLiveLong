@@ -38,6 +38,11 @@ export interface NutritionTargets extends DailyTargets {
   bmr: number;
   tdee: number;
   targetCalories: number;
+  aiFeedback?: {
+    analysis: string;
+    exercisePlan: string;
+    dietPlan: string;
+  };
   aiNotes?: string;
   aiSource?: "ai" | "fallback";
   aiDebug?: string;
