@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { addDays, format, parseISO } from "date-fns";
-import { Camera, Database, Pencil, PencilLine, Plus, Shapes, Trash2 } from "lucide-react";
+import { Camera, Pencil, PencilLine, Plus, Shapes, Trash2 } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
 import FoodSearchModal from "@/components/FoodSearchModal";
 import PhotoAnalysisModal, { PhotoAnalysisPrefill } from "@/components/PhotoAnalysisModal";
@@ -80,7 +80,7 @@ export default function HistoryPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isEntrySheetOpen, setIsEntrySheetOpen] = useState(false);
-  const [foodModalMode, setFoodModalMode] = useState<"manual" | "template" | "database">("manual");
+  const [foodModalMode, setFoodModalMode] = useState<"manual" | "template">("manual");
   const [photoPrefill, setPhotoPrefill] = useState<PhotoAnalysisPrefill | null>(null);
   const datePickerRef = useRef<HTMLInputElement>(null);
   const isAtToday = date >= today;
@@ -314,7 +314,7 @@ export default function HistoryPage() {
     datePicker.click();
   };
 
-  const openFoodModal = (mode: "manual" | "template" | "database") => {
+  const openFoodModal = (mode: "manual" | "template") => {
     setFoodModalMode(mode);
     if (mode !== "manual") setPhotoPrefill(null);
     setIsEntrySheetOpen(false);
@@ -550,11 +550,11 @@ export default function HistoryPage() {
                 <span className="text-sm">템플릿 사용</span>
               </button>
               <button
-                onClick={() => openFoodModal("database")}
+                onClick={openPhotoModal}
                 className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
               >
-                <Database className="h-4 w-4" />
-                <span className="text-sm">DB 검색</span>
+                <Camera className="h-4 w-4" />
+                <span className="text-sm">사진 등록</span>
               </button>
               <button
                 onClick={() => openFoodModal("manual")}
@@ -562,13 +562,6 @@ export default function HistoryPage() {
               >
                 <PencilLine className="h-4 w-4" />
                 <span className="text-sm">수기 입력</span>
-              </button>
-              <button
-                onClick={openPhotoModal}
-                className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
-              >
-                <Camera className="h-4 w-4" />
-                <span className="text-sm">사진 등록</span>
               </button>
             </div>
           </div>

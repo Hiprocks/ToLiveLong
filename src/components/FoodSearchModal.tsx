@@ -18,7 +18,7 @@ interface FoodSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => Promise<void> | void;
-  initialMode?: "manual" | "template" | "database";
+  initialMode?: "manual" | "template";
   onSaved?: (message: string) => void;
   initialPrefill?: Partial<FormState> | null;
 }
@@ -65,6 +65,9 @@ type SelectedSource =
         sodium: number;
       };
     };
+type PreviewSource =
+  | { kind: "template"; item: TemplateItem }
+  | { kind: "database"; item: FoodIndexItem };
 
 const getInitialForm = (): FormState => ({
   date: getLocalDateString(),
@@ -133,7 +136,7 @@ export default function FoodSearchModal({
   initialPrefill = null,
 }: FoodSearchModalProps) {
   const initialForm = useMemo(() => getInitialForm(), []);
-  const [mode, setMode] = useState<"manual" | "template" | "database">(initialMode);
+  const [mode, setMode] = useState<"manual" | "template">(initialMode);
   const [loading, setLoading] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [query, setQuery] = useState("");
@@ -143,7 +146,7 @@ export default function FoodSearchModal({
   const [form, setForm] = useState<FormState>(initialForm);
   const [draft, setDraft] = useState<NumericDraft>(toDraft(initialForm));
   const [selectedSource, setSelectedSource] = useState<SelectedSource | null>(null);
-  const [previewTemplate, setPreviewTemplate] = useState<TemplateItem | null>(null);
+  const [previewSource, setPreviewSource] = useState<PreviewSource | null>(null);
   const [previewDraft, setPreviewDraft] = useState<TemplateEditDraft | null>(null);
   const [previewSyncByAmount, setPreviewSyncByAmount] = useState(true);
   const [previewSaving, setPreviewSaving] = useState(false);
@@ -244,7 +247,7 @@ export default function FoodSearchModal({
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen || mode !== "database") return;
+    if (!isOpen || mode === "manual") return;
     const keyword = query.trim();
     if (!keyword) {
       setDbResults([]);
@@ -344,7 +347,7 @@ export default function FoodSearchModal({
   };
 
   const openTemplatePreview = (template: TemplateItem) => {
-    setPreviewTemplate(template);
+    setPreviewSource({ kind: "template", item: template });
     setPreviewDraft({
       food_name: template.food_name,
       amount: String(template.base_amount),
@@ -358,12 +361,36 @@ export default function FoodSearchModal({
     setPreviewSyncByAmount(true);
   };
 
-  const closeTemplatePreview = () => {
-    setPreviewTemplate(null);
+  const openDatabasePreview = (food: FoodIndexItem) => {
+    const amount = normalizeAmount(food.defaultAmount ?? food.baseAmount);
+    const scaled = scaleWithAmount(amount, normalizeAmount(food.baseAmount), {
+      calories: food.calories,
+      carbs: food.carbs,
+      protein: food.protein,
+      fat: food.fat,
+      sugar: food.sugar,
+      sodium: food.sodium,
+    });
+    setPreviewSource({ kind: "database", item: food });
+    setPreviewDraft({
+      food_name: food.name,
+      amount: String(amount),
+      calories: String(scaled.calories),
+      carbs: String(scaled.carbs),
+      protein: String(scaled.protein),
+      fat: String(scaled.fat),
+      sugar: String(scaled.sugar),
+      sodium: String(scaled.sodium),
+    });
+    setPreviewSyncByAmount(true);
+  };
+
+  const closeTemplatePreview = useCallback(() => {
+    setPreviewSource(null);
     setPreviewDraft(null);
     setPreviewSyncByAmount(true);
     setPreviewSaving(false);
-  };
+  }, []);
 
   const recalcFromSelectedSource = (amount: number, source: SelectedSource) => {
     if (source.kind === "template") {
@@ -510,8 +537,8 @@ export default function FoodSearchModal({
   };
 
   const handleDeleteTemplate = async () => {
-    if (!previewTemplate) return;
-    const target = previewTemplate;
+    if (!previewSource || previewSource.kind !== "template") return;
+    const target = previewSource.item;
     setDeletingTemplateId(target.id);
     setErrorMessage(null);
     try {
@@ -546,19 +573,29 @@ export default function FoodSearchModal({
   };
 
   const handlePreviewAmountChange = (raw: string) => {
-    if (!previewTemplate || !previewDraft) return;
+    if (!previewSource || !previewDraft) return;
     const next = { ...previewDraft, amount: raw };
     if (previewSyncByAmount) {
       const parsed = parsePositiveAmount(raw);
       if (parsed) {
-        const scaled = scaleWithAmount(parsed, normalizeAmount(previewTemplate.base_amount), {
-          calories: previewTemplate.calories,
-          carbs: previewTemplate.carbs,
-          protein: previewTemplate.protein,
-          fat: previewTemplate.fat,
-          sugar: previewTemplate.sugar,
-          sodium: previewTemplate.sodium,
-        });
+        const scaled =
+          previewSource.kind === "template"
+            ? scaleWithAmount(parsed, normalizeAmount(previewSource.item.base_amount), {
+                calories: previewSource.item.calories,
+                carbs: previewSource.item.carbs,
+                protein: previewSource.item.protein,
+                fat: previewSource.item.fat,
+                sugar: previewSource.item.sugar,
+                sodium: previewSource.item.sodium,
+              })
+            : scaleWithAmount(parsed, normalizeAmount(previewSource.item.baseAmount), {
+                calories: previewSource.item.calories,
+                carbs: previewSource.item.carbs,
+                protein: previewSource.item.protein,
+                fat: previewSource.item.fat,
+                sugar: previewSource.item.sugar,
+                sodium: previewSource.item.sodium,
+              });
         next.calories = String(scaled.calories);
         next.carbs = String(scaled.carbs);
         next.protein = String(scaled.protein);
@@ -572,17 +609,27 @@ export default function FoodSearchModal({
 
   const handlePreviewSyncToggle = (checked: boolean) => {
     setPreviewSyncByAmount(checked);
-    if (!checked || !previewTemplate || !previewDraft) return;
+    if (!checked || !previewSource || !previewDraft) return;
     const amount = parsePositiveAmount(previewDraft.amount);
     if (!amount) return;
-    const scaled = scaleWithAmount(amount, normalizeAmount(previewTemplate.base_amount), {
-      calories: previewTemplate.calories,
-      carbs: previewTemplate.carbs,
-      protein: previewTemplate.protein,
-      fat: previewTemplate.fat,
-      sugar: previewTemplate.sugar,
-      sodium: previewTemplate.sodium,
-    });
+    const scaled =
+      previewSource.kind === "template"
+        ? scaleWithAmount(amount, normalizeAmount(previewSource.item.base_amount), {
+            calories: previewSource.item.calories,
+            carbs: previewSource.item.carbs,
+            protein: previewSource.item.protein,
+            fat: previewSource.item.fat,
+            sugar: previewSource.item.sugar,
+            sodium: previewSource.item.sodium,
+          })
+        : scaleWithAmount(amount, normalizeAmount(previewSource.item.baseAmount), {
+            calories: previewSource.item.calories,
+            carbs: previewSource.item.carbs,
+            protein: previewSource.item.protein,
+            fat: previewSource.item.fat,
+            sugar: previewSource.item.sugar,
+            sodium: previewSource.item.sodium,
+          });
     setPreviewDraft((prev) =>
       prev
         ? {
@@ -599,7 +646,7 @@ export default function FoodSearchModal({
   };
 
   const handleApplyPreview = async () => {
-    if (!previewTemplate || !previewDraft) return;
+    if (!previewSource || !previewDraft) return;
     const amount = parsePositiveAmount(previewDraft.amount);
     if (!previewDraft.food_name.trim()) {
       setErrorMessage("음식 이름은 필수입니다.");
@@ -610,8 +657,39 @@ export default function FoodSearchModal({
       return;
     }
 
+    if (previewSource.kind === "database") {
+      const nextForm: FormState = {
+        ...form,
+        food_name: previewDraft.food_name.trim(),
+        amount,
+        calories: parseNumber(previewDraft.calories),
+        carbs: parseNumber(previewDraft.carbs),
+        protein: parseNumber(previewDraft.protein),
+        fat: parseNumber(previewDraft.fat),
+        sugar: parseNumber(previewDraft.sugar),
+        sodium: parseNumber(previewDraft.sodium),
+      };
+      setSelectedSource({
+        kind: "prefill",
+        item: {
+          baseAmount: amount,
+          calories: nextForm.calories,
+          carbs: nextForm.carbs,
+          protein: nextForm.protein,
+          fat: nextForm.fat,
+          sugar: nextForm.sugar,
+          sodium: nextForm.sodium,
+        },
+      });
+      setFormAndDraft(nextForm);
+      setErrorMessage(null);
+      showToast({ message: "음식 DB 값을 적용했습니다.", type: "success" });
+      closeTemplatePreview();
+      return;
+    }
+
     const updatedTemplate: TemplateItem = {
-      id: previewTemplate.id,
+      id: previewSource.item.id,
       food_name: previewDraft.food_name.trim(),
       base_amount: amount,
       calories: parseNumber(previewDraft.calories),
@@ -680,15 +758,12 @@ export default function FoodSearchModal({
 
       <div className="border-b border-border p-4">
         <ErrorBanner message={errorMessage} />
-        <div className="grid grid-cols-3 gap-2 rounded-xl bg-muted p-1">
+        <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted p-1">
           <button onClick={() => setMode("manual")} className={`rounded-lg py-2 text-sm ${mode === "manual" ? "bg-background" : ""}`}>
             수기
           </button>
           <button onClick={() => setMode("template")} className={`rounded-lg py-2 text-sm ${mode === "template" ? "bg-background" : ""}`}>
             템플릿
-          </button>
-          <button onClick={() => setMode("database")} className={`rounded-lg py-2 text-sm ${mode === "database" ? "bg-background" : ""}`}>
-            DB검색
           </button>
         </div>
       </div>
@@ -702,12 +777,12 @@ export default function FoodSearchModal({
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder={mode === "template" ? "템플릿 검색" : "음식 DB 검색"}
+                placeholder="템플릿 + 음식 DB 통합 검색"
                 className="w-full rounded-full bg-muted/50 py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              {mode === "template" ? "최근 사용 템플릿 우선 표시" : "한국 음식 중심 영양 DB 검색"}
+              템플릿 우선 + 음식 DB 결과를 함께 표시
             </p>
 
           <div
@@ -719,8 +794,8 @@ export default function FoodSearchModal({
               {!loading && mode === "template" && filteredTemplates.length === 0 && (
                 <p className="text-sm text-muted-foreground">템플릿이 없습니다.</p>
               )}
-              {!loading && mode === "database" && dbResults.length === 0 && query.trim() && (
-                <p className="text-sm text-muted-foreground">검색 결과가 없습니다.</p>
+              {!loading && mode === "template" && query.trim() && dbResults.length === 0 && (
+                <p className="text-sm text-muted-foreground">음식 DB 검색 결과가 없습니다.</p>
               )}
 
               {!loading &&
@@ -754,9 +829,9 @@ export default function FoodSearchModal({
                         탄수 {template.carbs}g · 단백질 {template.protein}g · 지방 {template.fat}g
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      aria-label={`${template.food_name} 상세 보기`}
+                      <button
+                        type="button"
+                        aria-label={`${template.food_name} 상세 보기`}
                       onClick={(e) => {
                         e.stopPropagation();
                         openTemplatePreview(template);
@@ -773,21 +848,67 @@ export default function FoodSearchModal({
                 })()
               ))}
 
-              {!loading &&
-                mode === "database" &&
-                dbResults.map((food) => (
-                  <button
-                    key={food.id}
-                    onClick={() => applyDatabaseFood(food)}
-                    className="w-full rounded-lg border border-border p-3 text-left hover:bg-muted/40"
-                  >
-                    <p className="font-medium">{food.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      1인분 {food.defaultAmount ?? food.baseAmount}g
-                      {food.defaultAmountSource === "official_serving" ? " (공식)" : food.defaultAmountSource === "reference_100g" ? " (100g기준)" : " (추정)"} / 기준 {food.baseAmount}g / {food.calories} kcal / 출처: {food.source} / 영양값: {food.nutritionSourceQuality === "official_db" ? "공식" : "추정"}
-                    </p>
-                  </button>
-                ))}
+              {!loading && mode === "template" && dbResults.length > 0 && (
+                <div className="pt-2">
+                  <p className="mb-2 text-xs font-semibold text-muted-foreground">음식 DB 결과</p>
+                  <div className="space-y-2">
+                    {dbResults.map((food) => (
+                      (() => {
+                        const isSelected =
+                          selectedSource?.kind === "database" && selectedSource.item.id === food.id;
+                        return (
+                      <div
+                        key={`db-template-${food.id}`}
+                        onClick={() => applyDatabaseFood(food)}
+                        className={`w-full cursor-pointer rounded-lg border p-3 text-left transition-colors ${
+                          isSelected ? "border-primary bg-primary/10" : "border-border hover:bg-muted/40"
+                        }`}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") applyDatabaseFood(food);
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="truncate font-medium">{food.name}</p>
+                              <span className="shrink-0 rounded-full border border-emerald-400/40 bg-emerald-400/20 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                                음식DB
+                              </span>
+                            </div>
+                            <p className={`mt-1 text-xs ${isSelected ? "text-foreground/80" : "text-muted-foreground"}`}>
+                              {food.defaultAmount ?? food.baseAmount}g · {food.calories} kcal
+                            </p>
+                            <p className={`text-xs ${isSelected ? "text-foreground/80" : "text-muted-foreground"}`}>
+                              탄수 {food.carbs}g · 단백질 {food.protein}g · 지방 {food.fat}g
+                            </p>
+                            <p className={`text-[11px] ${isSelected ? "text-foreground/80" : "text-muted-foreground"}`}>
+                              출처: {food.source} / 영양값: {food.nutritionSourceQuality === "official_db" ? "공식" : "추정"}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            aria-label={`${food.name} 상세 보기`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openDatabasePreview(food);
+                            }}
+                            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border bg-background/60 hover:text-foreground ${
+                              isSelected ? "border-primary/60 text-primary" : "border-border/80 text-muted-foreground"
+                            }`}
+                          >
+                            <Info className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                        );
+                      })()
+                    ))}
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         )}
@@ -869,11 +990,13 @@ export default function FoodSearchModal({
         </button>
       </div>
 
-      {previewTemplate && previewDraft && (
+      {previewSource && previewDraft && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-md space-y-3 rounded-xl border border-border bg-card p-4">
             <div className="flex items-start justify-between gap-3">
-              <h3 className="text-lg font-semibold">템플릿 수정</h3>
+              <h3 className="text-lg font-semibold">
+                {previewSource.kind === "template" ? "템플릿 수정" : "음식DB 상세"}
+              </h3>
               <button
                 onClick={closeTemplatePreview}
                 className="rounded-full p-1 hover:bg-muted"
@@ -887,25 +1010,33 @@ export default function FoodSearchModal({
               <span className="text-muted-foreground">음식명</span>
               <input
                 value={previewDraft.food_name}
-                onChange={(e) => setPreviewDraft((prev) => (prev ? { ...prev, food_name: e.target.value } : prev))}
-                className="w-full rounded-lg border border-border bg-input px-3 py-2"
+                onChange={(e) =>
+                  setPreviewDraft((prev) =>
+                    prev && previewSource.kind === "template" ? { ...prev, food_name: e.target.value } : prev
+                  )
+                }
+                readOnly={previewSource.kind === "database"}
+                className="w-full rounded-lg border border-border bg-input px-3 py-2 disabled:opacity-60"
               />
             </label>
 
-            <label className="flex items-center gap-2 rounded-lg border border-border/70 bg-background/40 px-3 py-2 text-sm">
-              <input
-                type="checkbox"
-                checked={previewSyncByAmount}
-                onChange={(e) => handlePreviewSyncToggle(e.target.checked)}
-              />
-              섭취량 대비 영양성분 변동
-            </label>
+            {previewSource.kind === "template" && (
+              <label className="flex items-center gap-2 rounded-lg border border-border/70 bg-background/40 px-3 py-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={previewSyncByAmount}
+                  onChange={(e) => handlePreviewSyncToggle(e.target.checked)}
+                />
+                섭취량 대비 영양성분 변동
+              </label>
+            )}
 
             <div className="grid grid-cols-2 gap-2">
               <TemplateNumberInput
                 label="섭취량(g)"
                 value={previewDraft.amount}
                 onChange={handlePreviewAmountChange}
+                disabled={previewSource.kind === "database"}
               />
               <TemplateNumberInput
                 label="칼로리(kcal)"
@@ -913,6 +1044,7 @@ export default function FoodSearchModal({
                 onChange={(value) =>
                   setPreviewDraft((prev) => (prev ? { ...prev, calories: value } : prev))
                 }
+                disabled={previewSource.kind === "database"}
               />
               <TemplateNumberInput
                 label="탄수화물(g)"
@@ -920,6 +1052,7 @@ export default function FoodSearchModal({
                 onChange={(value) =>
                   setPreviewDraft((prev) => (prev ? { ...prev, carbs: value } : prev))
                 }
+                disabled={previewSource.kind === "database"}
               />
               <TemplateNumberInput
                 label="단백질(g)"
@@ -927,6 +1060,7 @@ export default function FoodSearchModal({
                 onChange={(value) =>
                   setPreviewDraft((prev) => (prev ? { ...prev, protein: value } : prev))
                 }
+                disabled={previewSource.kind === "database"}
               />
               <TemplateNumberInput
                 label="지방(g)"
@@ -934,6 +1068,7 @@ export default function FoodSearchModal({
                 onChange={(value) =>
                   setPreviewDraft((prev) => (prev ? { ...prev, fat: value } : prev))
                 }
+                disabled={previewSource.kind === "database"}
               />
               <TemplateNumberInput
                 label="당(g)"
@@ -941,6 +1076,7 @@ export default function FoodSearchModal({
                 onChange={(value) =>
                   setPreviewDraft((prev) => (prev ? { ...prev, sugar: value } : prev))
                 }
+                disabled={previewSource.kind === "database"}
               />
               <TemplateNumberInput
                 className="col-span-2"
@@ -949,32 +1085,39 @@ export default function FoodSearchModal({
                 onChange={(value) =>
                   setPreviewDraft((prev) => (prev ? { ...prev, sodium: value } : prev))
                 }
+                disabled={previewSource.kind === "database"}
               />
             </div>
 
-            <button
-              onClick={() => void handleApplyPreview()}
-              disabled={previewSaving}
-              className="w-full rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-            >
-              {previewSaving ? "적용 중..." : "수정값 적용"}
-            </button>
+            {previewSource.kind === "template" && (
+              <>
+                <button
+                  onClick={() => void handleApplyPreview()}
+                  disabled={previewSaving}
+                  className="w-full rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                >
+                  {previewSaving ? "적용 중..." : "수정값 적용"}
+                </button>
 
-            <button
-              onClick={closeTemplatePreview}
-              className="w-full rounded-lg border border-border bg-background py-2 text-sm font-semibold text-foreground"
-            >
-              취소
-            </button>
+                <button
+                  onClick={closeTemplatePreview}
+                  className="w-full rounded-lg border border-border bg-background py-2 text-sm font-semibold text-foreground"
+                >
+                  취소
+                </button>
+              </>
+            )}
 
             <div className="border-t border-border pt-3">
-              <button
-                onClick={() => void handleDeleteTemplate()}
-                disabled={deletingTemplateId === previewTemplate.id}
-                className="w-full rounded-lg border border-red-400/40 bg-red-500/10 py-2 text-sm font-semibold text-red-200 disabled:opacity-50"
-              >
-                {deletingTemplateId === previewTemplate.id ? "삭제 중..." : "템플릿 삭제"}
-              </button>
+              {previewSource.kind === "template" && (
+                <button
+                  onClick={() => void handleDeleteTemplate()}
+                  disabled={deletingTemplateId === previewSource.item.id}
+                  className="w-full rounded-lg border border-red-400/40 bg-red-500/10 py-2 text-sm font-semibold text-red-200 disabled:opacity-50"
+                >
+                  {deletingTemplateId === previewSource.item.id ? "삭제 중..." : "템플릿 삭제"}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -988,11 +1131,13 @@ function TemplateNumberInput({
   value,
   onChange,
   className = "",
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <label className={`space-y-1 text-xs text-muted-foreground ${className}`}>
@@ -1000,8 +1145,9 @@ function TemplateNumberInput({
       <input
         type="number"
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground"
+        className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );
