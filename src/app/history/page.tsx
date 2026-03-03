@@ -1,7 +1,8 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { addDays, format, parseISO } from "date-fns";
 import { Pencil, Trash2 } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
 import {
@@ -74,6 +75,8 @@ export default function HistoryPage() {
   const [syncByAmount, setSyncByAmount] = useState(true);
   const [templateSaving, setTemplateSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const datePickerRef = useRef<HTMLInputElement>(null);
+  const isAtToday = date >= today;
 
   const load = async (targetDate: string, force = false) => {
     setLoading(true);
@@ -284,6 +287,25 @@ export default function HistoryPage() {
     }
   };
 
+  const moveDateByDays = (days: number) => {
+    const nextDate = format(addDays(parseISO(date), days), "yyyy-MM-dd");
+    if (nextDate > today) return;
+    setDate(nextDate);
+  };
+
+  const openDatePicker = () => {
+    const datePicker = datePickerRef.current;
+    if (!datePicker) return;
+
+    if ("showPicker" in datePicker) {
+      (datePicker as HTMLInputElement & { showPicker: () => void }).showPicker();
+      return;
+    }
+
+    datePicker.focus();
+    datePicker.click();
+  };
+
   return (
     <motion.main
       className="space-y-4 p-4 pb-24"
@@ -294,13 +316,43 @@ export default function HistoryPage() {
     >
       <h1 className="text-2xl font-bold">기록</h1>
       <ErrorBanner message={errorMessage} />
-      <div className="flex items-center gap-3">
-        <label className="text-sm text-muted-foreground">날짜</label>
+      <div className="space-y-2 rounded-2xl border border-border/80 bg-card/70 p-3">
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => moveDateByDays(-1)}
+            className="h-9 w-9 rounded-full border border-border/80 bg-background/80 text-base font-semibold text-foreground transition-colors hover:border-primary/60 hover:text-primary"
+            aria-label="이전 날짜"
+          >
+            {"<"}
+          </button>
+          <button
+            type="button"
+            onClick={openDatePicker}
+            className="rounded-lg border border-border bg-background px-3 py-1.5 text-center transition-colors hover:border-primary/60"
+            aria-label="날짜 선택 열기"
+          >
+            <p className="text-xs text-muted-foreground">조회 날짜</p>
+            <p className="text-sm font-semibold">{date}</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => moveDateByDays(1)}
+            disabled={isAtToday}
+            className="h-9 w-9 rounded-full border border-border/80 bg-background/80 text-base font-semibold text-foreground transition-colors hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="다음 날짜"
+          >
+            {">"}
+          </button>
+        </div>
         <input
+          ref={datePickerRef}
           type="date"
           value={date}
+          max={today}
           onChange={(e) => setDate(e.target.value)}
-          className="rounded-lg border border-border bg-input px-3 py-2"
+          className="sr-only"
+          aria-label="날짜 바로 이동"
         />
       </div>
 

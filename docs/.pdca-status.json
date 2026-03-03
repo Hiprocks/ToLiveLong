@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-28T08:43:22.090Z",
+  "lastUpdated": "2026-03-03T10:30:00.000Z",
   "activeFeatures": [],
   "primaryFeature": null,
   "features": {
@@ -175,6 +175,33 @@
       "completedAt": "2026-02-28T08:42:15.590Z",
       "archived": true,
       "archivedAt": "2026-02-28T08:42:47.152Z"
+    },
+    "history-date-navigation": {
+      "phase": "completed",
+      "matchRate": 100,
+      "iterationCount": 0,
+      "documents": {
+        "plan": "docs/01-plan/features/history-date-navigation.plan.md",
+        "design": "docs/02-design/features/history-date-navigation.design.md",
+        "do": "docs/02-design/features/history-date-navigation.do.md",
+        "analyze": "docs/03-analysis/history-date-navigation.analysis.md",
+        "report": "docs/04-report/features/history-date-navigation.report.md"
+      },
+      "legacy": {
+        "progress": 90,
+        "status": "active",
+        "next": "archive",
+        "checklist": {
+          "plan": true,
+          "design": true,
+          "do": true,
+          "analyze": true,
+          "iterate": false,
+          "report": true,
+          "archive": false
+        }
+      },
+      "completedAt": "2026-03-03T10:30:00.000Z"
     }
   },
   "pipeline": {
@@ -185,7 +212,7 @@
   "session": {
     "startedAt": "2026-02-28T08:36:29.766Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-28T08:43:22.090Z",
+    "lastActivity": "2026-03-03T10:30:00.000Z",
     "platform": "codex"
   },
   "history": [
@@ -202,11 +229,18 @@
       "phase": "report",
       "nextPhase": "completed",
       "timestamp": "2026-02-28T08:43:22.090Z"
+    },
+    {
+      "feature": "history-date-navigation",
+      "action": "phase_complete",
+      "phase": "report",
+      "nextPhase": "completed",
+      "timestamp": "2026-03-03T10:30:00.000Z"
     }
   ],
   "legacyStatus": {
-    "current_feature": "my-ai-goal-summary",
+    "current_feature": null,
     "level": "dynamic",
-    "updated_at": "2026-02-27"
+    "updated_at": "2026-03-03"
   }
 }
