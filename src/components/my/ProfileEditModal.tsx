@@ -210,6 +210,13 @@ export default function ProfileEditModal({
               value={draft.skeletalMuscleKg}
               onChange={(value) => setDraft((prev) => ({ ...prev, skeletalMuscleKg: value }))}
             />
+            <NumberField
+              label="허리-엉덩이 비율"
+              unit="비율"
+              value={draft.waistHipRatio}
+              step={0.01}
+              onChange={(value) => setDraft((prev) => ({ ...prev, waistHipRatio: value }))}
+            />
           </section>
 
           <section className="grid grid-cols-2 gap-3 rounded-2xl border border-border/70 bg-background/40 p-4">
@@ -220,10 +227,10 @@ export default function ProfileEditModal({
                 onChange={(e) => setForm((prev) => ({ ...prev, primaryGoal: e.target.value as UserProfileInput["primaryGoal"] }))}
                 className="w-full rounded-lg border border-border bg-input px-3 py-2"
               >
-                <option value="cutting">감량</option>
+                <option value="cutting">살 빼기</option>
                 <option value="maintenance">유지</option>
-                <option value="bulking">증량</option>
-                <option value="recomposition">린매스업</option>
+                <option value="bulking">근육 키우기</option>
+                <option value="recomposition">살 빼고 근육 키우기</option>
               </select>
             </Field>
             <Field label="선호 식단">
@@ -309,6 +316,7 @@ type NumericDraft = {
   exerciseDurationMin: string;
   bodyFatPct: string;
   skeletalMuscleKg: string;
+  waistHipRatio: string;
 };
 
 const toDraft = (profile: UserProfileInput): NumericDraft => ({
@@ -319,6 +327,7 @@ const toDraft = (profile: UserProfileInput): NumericDraft => ({
   exerciseDurationMin: toOptionalString(profile.exerciseDurationMin),
   bodyFatPct: toOptionalString(profile.bodyFatPct),
   skeletalMuscleKg: toOptionalString(profile.skeletalMuscleKg),
+  waistHipRatio: toOptionalString(profile.waistHipRatio),
 });
 
 const toOptionalString = (value: number | undefined) => (value === undefined ? "" : String(value));
@@ -338,6 +347,7 @@ const toProfile = (base: UserProfileInput, draft: NumericDraft): UserProfileInpu
   exerciseDurationMin: parseOptional(draft.exerciseDurationMin),
   bodyFatPct: parseOptional(draft.bodyFatPct),
   skeletalMuscleKg: parseOptional(draft.skeletalMuscleKg),
+  waistHipRatio: parseOptional(draft.waistHipRatio),
 });
 
 const normalizeProfile = (profile: UserProfileInput): UserProfileInput => ({
@@ -346,4 +356,5 @@ const normalizeProfile = (profile: UserProfileInput): UserProfileInput => ({
   exerciseDurationMin: profile.exerciseDurationMin ?? undefined,
   bodyFatPct: profile.bodyFatPct ?? undefined,
   skeletalMuscleKg: profile.skeletalMuscleKg ?? undefined,
+  waistHipRatio: profile.waistHipRatio ?? undefined,
 });

@@ -11,17 +11,6 @@ const DEFAULT_MODEL_CANDIDATES = [
   "gemini-1.5-pro",
 ] as const;
 
-const MAX = {
-  bmr: 10000,
-  tdee: 15000,
-  calories: 20000,
-  carbs: 5000,
-  protein: 5000,
-  fat: 5000,
-  sugar: 5000,
-  sodium: 100000,
-} as const;
-
 const getModelCandidates = (): string[] => {
   const fromEnv = (process.env.GEMINI_MODEL ?? "")
     .split(",")
@@ -32,26 +21,9 @@ const getModelCandidates = (): string[] => {
 
 export const getAiModelCandidates = getModelCandidates;
 
-const toSafeNumber = (value: unknown, max: number): number => {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return 0;
-  if (parsed < 0) return 0;
-  if (parsed > max) return max;
-  return Math.round(parsed);
-};
-
-const normalizeAiTargets = (value: unknown): NutritionTargets | null => {
+const normalizeAiTargets = (value: unknown): Pick<NutritionTargets, "aiFeedback" | "aiNotes" | "aiSource"> | null => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const payload = value as Record<string, unknown>;
-
-  const targetCalories = toSafeNumber(payload.targetCalories ?? payload.calories, MAX.calories);
-  const bmr = toSafeNumber(payload.bmr, MAX.bmr);
-  const tdee = toSafeNumber(payload.tdee, MAX.tdee);
-  const carbs = toSafeNumber(payload.carbs, MAX.carbs);
-  const protein = toSafeNumber(payload.protein, MAX.protein);
-  const fat = toSafeNumber(payload.fat, MAX.fat);
-  const sugar = toSafeNumber(payload.sugar ?? 30, MAX.sugar);
-  const sodium = toSafeNumber(payload.sodium ?? 2000, MAX.sodium);
 
   const analysis =
     typeof payload.analysis === "string" ? payload.analysis.trim() : "";
@@ -63,23 +35,10 @@ const normalizeAiTargets = (value: unknown): NutritionTargets | null => {
   let notes =
     typeof payload.notes === "string" ? payload.notes.trim() : feedbackParts.join(" ");
   if (notes.length > 200) notes = notes.slice(0, 200).trim();
-
-  if (!targetCalories || !carbs || !protein || !fat) return null;
+  if (!analysis || !exercisePlan || !dietPlan) return null;
 
   return {
-    bmr: bmr || 0,
-    tdee: tdee || 0,
-    targetCalories,
-    calories: targetCalories,
-    carbs,
-    protein,
-    fat,
-    sugar,
-    sodium,
-    aiFeedback:
-      analysis || exercisePlan || dietPlan
-        ? { analysis, exercisePlan, dietPlan }
-        : undefined,
+    aiFeedback: { analysis, exercisePlan, dietPlan },
     aiNotes: notes || undefined,
     aiSource: "ai",
   };
@@ -89,10 +48,10 @@ export const normalizeAiTargetsPayload = normalizeAiTargets;
 
 const buildPrompt = (profile: UserProfileInput, baseline: NutritionTargets) => {
   return `
-You are a nutrition planning assistant. Use the user's profile to propose daily nutrition targets.
-Focus on realistic protein and practical adherence.
+You are a nutrition coaching assistant.
 Write feedback in Korean.
-Important: Keep numeric metrics separate in numeric fields only.
+Do NOT calculate or modify nutrition numbers.
+The system already finalized numeric targets internally.
 Do NOT repeat BMR/TDEE/targetCalories/carbs/protein/fat numbers in feedback text.
 Return concise feedback text around 200 chars total.
 Feedback must include:
@@ -102,23 +61,16 @@ Feedback must include:
 
 Return ONLY raw JSON with the following keys:
 {
-  "bmr": number,
-  "tdee": number,
-  "targetCalories": number,
-  "carbs": number,
-  "protein": number,
-  "fat": number,
-  "sugar": number,
-  "sodium": number,
   "analysis": string,
   "exercisePlan": string,
-  "dietPlan": string
+  "dietPlan": string,
+  "notes": string
 }
 
 User profile:
 ${JSON.stringify(profile)}
 
-Baseline calculation (for reference only; you may adjust):
+Baseline calculation (reference only; never alter numeric targets):
 ${JSON.stringify(baseline)}
   `.trim();
 };
@@ -140,16 +92,10 @@ const getBodyTypeHint = (profile: UserProfileInput): string => {
 
 const buildFallbackNotes = (profile: UserProfileInput) => {
   const goalLabel: Record<UserProfileInput["primaryGoal"], string> = {
-    cutting: "감량",
+    cutting: "살 빼기",
     maintenance: "유지",
-    bulking: "증량",
-    recomposition: "리컴포지션",
-  };
-  const macroLabel: Record<UserProfileInput["macroPreference"], string> = {
-    balanced: "균형형",
-    low_carb: "저탄수",
-    high_protein: "고단백",
-    keto: "저탄고지",
+    bulking: "근육 키우기",
+    recomposition: "살 빼고 근육 키우기",
   };
   const intensityLabel: Record<NonNullable<UserProfileInput["exerciseIntensity"]>, string> = {
     low: "저강도",
@@ -162,9 +108,9 @@ const buildFallbackNotes = (profile: UserProfileInput) => {
   const intensity = intensityLabel[profile.exerciseIntensity ?? "medium"];
   const bodyType = getBodyTypeHint(profile);
 
-  const note = `${bodyType}이며 ${goalLabel[profile.primaryGoal]} 목표입니다. 주 ${sessions}회 ${intensity} ${duration}분 운동을 권장합니다. 단백질 중심으로 지방은 최소화하고 ${macroLabel[profile.macroPreference]} 패턴으로 식단을 유지하세요.`;
+  const note = `${bodyType}, ${goalLabel[profile.primaryGoal]} 목표입니다. 주 ${sessions}회 ${intensity} ${duration}분 운동을 유지하고 단백질 달성률과 허리둘레 변화를 함께 추적하세요.`;
   if (note.length <= 200) return note;
-  return `주 ${sessions}회 ${intensity} ${duration}분 운동, 단백질 중심 저지방 식단을 권장합니다.`;
+  return `주 ${sessions}회 ${intensity} ${duration}분 운동, 단백질 중심 식단과 허리둘레 추적을 권장합니다.`;
 };
 
 const buildFallbackFeedback = (profile: UserProfileInput): NonNullable<NutritionTargets["aiFeedback"]> => {
@@ -174,10 +120,10 @@ const buildFallbackFeedback = (profile: UserProfileInput): NonNullable<Nutrition
     high: "고강도",
   };
   const goalLabel: Record<UserProfileInput["primaryGoal"], string> = {
-    cutting: "감량",
+    cutting: "살 빼기",
     maintenance: "유지",
-    bulking: "증량",
-    recomposition: "리컴포지션",
+    bulking: "근육 키우기",
+    recomposition: "살 빼고 근육 키우기",
   };
 
   const bodyType = getBodyTypeHint(profile);
@@ -188,7 +134,7 @@ const buildFallbackFeedback = (profile: UserProfileInput): NonNullable<Nutrition
   return {
     analysis: `${bodyType}, ${goalLabel[profile.primaryGoal]} 목표 기준`,
     exercisePlan: `주 ${sessions}회 ${intensity} ${duration}분 운동 권장`,
-    dietPlan: "단백질 중심, 지방 최소화 식단 권장",
+    dietPlan: "단백질 중심 식단과 주간 체중/허리둘레 추적 권장",
   };
 };
 
@@ -223,18 +169,16 @@ export const calculateNutritionTargetsWithAi = async (
         const normalized = normalizeAiTargets(parsed);
 
         if (!normalized) {
-          lastError = `${modelName}: AI response missing required numeric fields`;
+          lastError = `${modelName}: AI response missing required feedback fields`;
           continue;
         }
 
-        if (!normalized.aiNotes) {
-          const fallbackFeedback = buildFallbackFeedback(profile);
-          normalized.aiFeedback = normalized.aiFeedback ?? fallbackFeedback;
-          normalized.aiNotes = buildFallbackNotes(profile);
-          normalized.aiDebug = "AI response missing notes; fallback notes injected";
-        }
-
-        return normalized;
+        return {
+          ...baseline,
+          aiFeedback: normalized.aiFeedback,
+          aiNotes: normalized.aiNotes ?? buildFallbackNotes(profile),
+          aiSource: "ai",
+        };
       } catch (error) {
         lastError = error instanceof Error ? error.message : String(error);
       }

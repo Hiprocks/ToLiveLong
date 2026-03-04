@@ -23,29 +23,21 @@ test("getAiModelCandidates includes modern defaults and deduplicates env models"
 
 test("normalizeAiTargetsPayload returns ai payload for valid response", () => {
   const payload = normalizeAiTargetsPayload({
-    bmr: 1601,
-    tdee: 2302,
-    targetCalories: 2103,
-    carbs: 250,
-    protein: 140,
-    fat: 60,
-    sugar: 35,
-    sodium: 1800,
-    notes: "- test note",
+    analysis: "체지방이 높은 편이며 감량 목표입니다.",
+    exercisePlan: "주 3회 중강도 45분 운동을 권장합니다.",
+    dietPlan: "단백질 중심 식단과 허리둘레 추적을 유지하세요.",
+    notes: "핵심: 단백질과 허리둘레를 함께 관리하세요.",
   });
 
   assert.ok(payload);
-  assert.equal(payload?.targetCalories, 2103);
   assert.equal(payload?.aiSource, "ai");
-  assert.equal(payload?.aiNotes, "- test note");
+  assert.equal(payload?.aiNotes, "핵심: 단백질과 허리둘레를 함께 관리하세요.");
+  assert.equal(payload?.aiFeedback?.analysis, "체지방이 높은 편이며 감량 목표입니다.");
 });
 
-test("normalizeAiTargetsPayload returns null when required macros are missing", () => {
+test("normalizeAiTargetsPayload returns null when required feedback fields are missing", () => {
   const payload = normalizeAiTargetsPayload({
-    targetCalories: 2100,
-    carbs: 0,
-    protein: 130,
-    fat: 60,
+    analysis: "요약만 있음",
     notes: "invalid",
   });
   assert.equal(payload, null);

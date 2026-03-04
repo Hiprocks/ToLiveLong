@@ -30,6 +30,7 @@ const NUTRIENT_ITEMS: Array<{ key: keyof DailyTargets; label: string; unit: stri
   { key: "sugar", label: "당", unit: "g" },
   { key: "sodium", label: "나트륨", unit: "mg" },
 ];
+const MAX_DASHBOARD_LOG_ITEMS = 20;
 
 type ProgressTone = "low" | "ok" | "high";
 
@@ -177,6 +178,7 @@ export default function Home() {
     { name: "섭취", value: Math.max(0, calorieProgress), color: tonePalette[calorieTone].chart },
     { name: "남음", value: Math.max(0, 1 - calorieProgress), color: "rgba(148, 163, 184, 0.22)" },
   ];
+  const visibleLogs = logs.slice(0, MAX_DASHBOARD_LOG_ITEMS);
 
   return (
     <motion.main
@@ -311,7 +313,7 @@ export default function Home() {
                 <p className="py-4 text-sm text-muted-foreground">오늘 등록된 식단이 없습니다.</p>
               ) : (
                 <div className="space-y-4">
-                  {logs.slice(0, 6).map((item, index) => (
+                  {visibleLogs.map((item, index) => (
                     <motion.div
                       key={item.id}
                       className="rounded-2xl border border-border/60 bg-background/70 p-4"
@@ -330,6 +332,11 @@ export default function Home() {
                       </div>
                     </motion.div>
                   ))}
+                  {logs.length > MAX_DASHBOARD_LOG_ITEMS && (
+                    <p className="text-xs text-muted-foreground">
+                      항목이 많아 최근 {MAX_DASHBOARD_LOG_ITEMS}개만 표시합니다.
+                    </p>
+                  )}
                 </div>
               )}
             </CardContent>
