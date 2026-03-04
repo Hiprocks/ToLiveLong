@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
-import { Camera, PencilLine, Plus, Shapes } from "lucide-react";
+import { Camera, Database, PencilLine, Plus, Shapes } from "lucide-react";
 import { motion } from "framer-motion";
 import { Pie, PieChart, Cell } from "recharts";
 import { BentoCard, BentoGrid } from "@/components/ui/bento-grid";
@@ -50,7 +50,7 @@ export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isEntrySheetOpen, setIsEntrySheetOpen] = useState(false);
-  const [foodModalMode, setFoodModalMode] = useState<"manual" | "template">("manual");
+  const [foodModalMode, setFoodModalMode] = useState<"manual" | "template" | "database">("manual");
   const [loading, setLoading] = useState(true);
   const [dailyTargets, setDailyTargets] = useState<DailyTargets>(DEFAULT_TARGETS);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -155,7 +155,7 @@ export default function Home() {
     [logs]
   );
 
-  const openFoodModal = (mode: "manual" | "template") => {
+  const openFoodModal = (mode: "manual" | "template" | "database") => {
     setFoodModalMode(mode);
     if (mode !== "manual") setPhotoPrefill(null);
     setIsEntrySheetOpen(false);
@@ -365,11 +365,11 @@ export default function Home() {
                 <span className="text-sm">템플릿 사용</span>
               </button>
               <button
-                onClick={openPhotoModal}
+                onClick={() => openFoodModal("database")}
                 className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
               >
-                <Camera className="h-4 w-4" />
-                <span className="text-sm">사진 등록</span>
+                <Database className="h-4 w-4" />
+                <span className="text-sm">DB 검색</span>
               </button>
               <button
                 onClick={() => openFoodModal("manual")}
@@ -377,6 +377,13 @@ export default function Home() {
               >
                 <PencilLine className="h-4 w-4" />
                 <span className="text-sm">수기 입력</span>
+              </button>
+              <button
+                onClick={openPhotoModal}
+                className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
+              >
+                <Camera className="h-4 w-4" />
+                <span className="text-sm">사진 등록</span>
               </button>
             </div>
           </div>
