@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
-import { Camera, Database, PencilLine, Plus, Shapes } from "lucide-react";
+import { Bot, Camera, Database, PencilLine, Plus, Shapes } from "lucide-react";
 import { motion } from "framer-motion";
 import { Pie, PieChart, Cell } from "recharts";
 import { BentoCard, BentoGrid } from "@/components/ui/bento-grid";
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ErrorBanner from "@/components/ErrorBanner";
 import FoodSearchModal from "@/components/FoodSearchModal";
 import PhotoAnalysisModal, { PhotoAnalysisPrefill } from "@/components/PhotoAnalysisModal";
+import TextAnalysisModal, { TextAnalysisPrefill } from "@/components/TextAnalysisModal";
 import { cacheKeys, getCachedData, setCachedData } from "@/lib/clientSyncCache";
 import { getLocalDateString } from "@/lib/date";
 import { DailyTargets, MealRecord } from "@/lib/types";
@@ -50,12 +51,13 @@ export default function Home() {
   const [logs, setLogs] = useState<MealRecord[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [isAiTextModalOpen, setIsAiTextModalOpen] = useState(false);
   const [isEntrySheetOpen, setIsEntrySheetOpen] = useState(false);
   const [foodModalMode, setFoodModalMode] = useState<"manual" | "template" | "database">("manual");
   const [loading, setLoading] = useState(true);
   const [dailyTargets, setDailyTargets] = useState<DailyTargets>(DEFAULT_TARGETS);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [photoPrefill, setPhotoPrefill] = useState<PhotoAnalysisPrefill | null>(null);
+  const [mealPrefill, setMealPrefill] = useState<(PhotoAnalysisPrefill & { ai_summary?: string }) | TextAnalysisPrefill | null>(null);
   const [todayText, setTodayText] = useState("");
   const [isChartReady, setIsChartReady] = useState(false);
 
@@ -158,7 +160,7 @@ export default function Home() {
 
   const openFoodModal = (mode: "manual" | "template" | "database") => {
     setFoodModalMode(mode);
-    if (mode !== "manual") setPhotoPrefill(null);
+    if (mode !== "manual") setMealPrefill(null);
     setIsEntrySheetOpen(false);
     setIsModalOpen(true);
   };
@@ -166,6 +168,11 @@ export default function Home() {
   const openPhotoModal = () => {
     setIsEntrySheetOpen(false);
     setIsPhotoModalOpen(true);
+  };
+
+  const openAiTextModal = () => {
+    setIsEntrySheetOpen(false);
+    setIsAiTextModalOpen(true);
   };
 
   const currentCalories = Number.isFinite(totals.calories) ? totals.calories : 0;
@@ -372,6 +379,13 @@ export default function Home() {
                 <span className="text-sm">템플릿 사용</span>
               </button>
               <button
+                onClick={openAiTextModal}
+                className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
+              >
+                <Bot className="h-4 w-4" />
+                <span className="text-sm">AI 등록</span>
+              </button>
+              <button
                 onClick={() => openFoodModal("database")}
                 className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
               >
@@ -401,20 +415,31 @@ export default function Home() {
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
-          setPhotoPrefill(null);
+          setMealPrefill(null);
         }}
         onSuccess={refreshLogs}
         initialMode={foodModalMode}
-        initialPrefill={foodModalMode === "manual" ? photoPrefill : null}
+        initialPrefill={foodModalMode === "manual" ? mealPrefill : null}
       />
 
       <PhotoAnalysisModal
         isOpen={isPhotoModalOpen}
         onClose={() => setIsPhotoModalOpen(false)}
         onAnalyzed={(prefill) => {
-          setPhotoPrefill(prefill);
+          setMealPrefill(prefill);
           setFoodModalMode("manual");
           setIsPhotoModalOpen(false);
+          setIsModalOpen(true);
+        }}
+      />
+
+      <TextAnalysisModal
+        isOpen={isAiTextModalOpen}
+        onClose={() => setIsAiTextModalOpen(false)}
+        onAnalyzed={(prefill) => {
+          setMealPrefill(prefill);
+          setFoodModalMode("manual");
+          setIsAiTextModalOpen(false);
           setIsModalOpen(true);
         }}
       />

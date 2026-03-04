@@ -26,6 +26,7 @@ interface FoodSearchModalProps {
 interface FormState {
   date: string;
   food_name: string;
+  ai_summary: string;
   amount: number;
   calories: number;
   carbs: number;
@@ -69,6 +70,7 @@ type SelectedSource =
 const getInitialForm = (): FormState => ({
   date: getLocalDateString(),
   food_name: "",
+  ai_summary: "",
   amount: 100,
   calories: 0,
   carbs: 0,
@@ -192,6 +194,8 @@ export default function FoodSearchModal({
       ...initialForm,
       ...initialPrefill,
       amount: prefillAmount,
+      ai_summary:
+        typeof initialPrefill.ai_summary === "string" ? initialPrefill.ai_summary.trim() : "",
     };
     setMode("manual");
     setSelectedSource({
@@ -358,12 +362,12 @@ export default function FoodSearchModal({
     setPreviewSyncByAmount(true);
   };
 
-  const closeTemplatePreview = () => {
+  const closeTemplatePreview = useCallback(() => {
     setPreviewTemplate(null);
     setPreviewDraft(null);
     setPreviewSyncByAmount(true);
     setPreviewSaving(false);
-  };
+  }, []);
 
   const recalcFromSelectedSource = (amount: number, source: SelectedSource) => {
     if (source.kind === "template") {
@@ -812,6 +816,15 @@ export default function FoodSearchModal({
             className="mt-1 w-full rounded-lg border border-border bg-input px-3 py-2"
           />
         </div>
+
+        {form.ai_summary.trim() && (
+          <div>
+            <label className="text-sm text-muted-foreground">AI 답변 요약</label>
+            <div className="mt-1 rounded-lg border border-cyan-300/40 bg-cyan-500/10 px-3 py-2 text-sm text-foreground">
+              {form.ai_summary}
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="text-sm text-muted-foreground">중량(g) *</label>
