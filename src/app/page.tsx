@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
@@ -54,7 +54,7 @@ export default function Home() {
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isAiTextModalOpen, setIsAiTextModalOpen] = useState(false);
   const [isEntrySheetOpen, setIsEntrySheetOpen] = useState(false);
-  const [foodModalMode, setFoodModalMode] = useState<"manual" | "template" | "database">("manual");
+  const [foodModalMode, setFoodModalMode] = useState<"manual" | "template">("manual");
   const [loading, setLoading] = useState(true);
   const [dailyTargets, setDailyTargets] = useState<DailyTargets>(DEFAULT_TARGETS);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -164,7 +164,7 @@ export default function Home() {
     [logs]
   );
 
-  const openFoodModal = (mode: "manual" | "template" | "database") => {
+  const openFoodModal = (mode: "manual" | "template") => {
     setFoodModalMode(mode);
     if (mode !== "manual") setMealPrefill(null);
     setIsEntrySheetOpen(false);
@@ -388,13 +388,6 @@ export default function Home() {
               >
                 <Bot className="h-4 w-4" />
                 <span className="text-sm">AI 등록</span>
-              </button>
-              <button
-                onClick={() => openFoodModal("database")}
-                className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
-              >
-                <Database className="h-4 w-4" />
-                <span className="text-sm">DB 검색</span>
               </button>
               <button
                 onClick={() => openFoodModal("manual")}
