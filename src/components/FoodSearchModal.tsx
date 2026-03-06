@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, Info, Search, X } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
+import LoadingOverlay from "@/components/LoadingOverlay";
 import {
   cacheKeys,
   getCachedData,
@@ -672,6 +673,15 @@ export default function FoodSearchModal({
   if (!isOpen) return null;
 
   const isTemplateMode = mode === "template";
+  const isBusy = loading || saveState === "saving" || previewSaving || Boolean(deletingTemplateId);
+  const busyLabel =
+    saveState === "saving"
+      ? "식단을 저장하는 중입니다..."
+      : previewSaving
+        ? "템플릿 수정을 반영하는 중입니다..."
+        : deletingTemplateId
+          ? "템플릿을 삭제하는 중입니다..."
+          : "데이터를 불러오는 중입니다...";
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col animate-in slide-in-from-bottom duration-300 bg-background">
@@ -992,6 +1002,8 @@ export default function FoodSearchModal({
           </div>
         </div>
       )}
+
+      <LoadingOverlay active={isBusy} label={busyLabel} />
     </div>
   );
 }

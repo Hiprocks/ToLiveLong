@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, X } from "lucide-react";
+import { X } from "lucide-react";
+import LoadingOverlay from "@/components/LoadingOverlay";
 
 export interface TextAnalysisPrefill {
   food_name: string;
@@ -21,7 +22,7 @@ interface TextAnalysisModalProps {
   onAnalyzed: (prefill: TextAnalysisPrefill) => void;
 }
 
-const DEFAULT_EXAMPLE = "예: 빅맥 세트 먹었어, 감자튀김은 50% 남겼어";
+const DEFAULT_EXAMPLE = "예: 빅맥 세트 먹었고, 감자튀김은 50%만 먹었어";
 const DEFAULT_FOOD_NAME = "AI 추정 식품";
 
 export default function TextAnalysisModal({ isOpen, onClose, onAnalyzed }: TextAnalysisModalProps) {
@@ -48,7 +49,7 @@ export default function TextAnalysisModal({ isOpen, onClose, onAnalyzed }: TextA
   const handleAnalyze = async () => {
     if (isAnalyzing) return;
     if (!input.trim()) {
-      setErrorMessage("섭취한 음식 내용을 입력해 주세요.");
+      setErrorMessage("섭취한 식사 내용을 입력해 주세요.");
       return;
     }
 
@@ -116,7 +117,7 @@ export default function TextAnalysisModal({ isOpen, onClose, onAnalyzed }: TextA
         </div>
 
         <p className="mt-3 text-sm text-muted-foreground">
-          먹은 음식과 섭취량/남긴 양을 자연어로 입력해 주세요.
+          먹은 음식과 남긴 양을 자연어로 입력해 주세요.
         </p>
         <p className="mt-1 text-xs text-muted-foreground">{DEFAULT_EXAMPLE}</p>
 
@@ -124,20 +125,13 @@ export default function TextAnalysisModal({ isOpen, onClose, onAnalyzed }: TextA
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={isAnalyzing}
-          placeholder="예: 빅맥 세트 먹었어, 감자튀김은 50% 남겼어"
+          placeholder="예: 빅맥 세트 먹었고, 감자튀김은 50%만 먹었어"
           className="mt-3 h-36 w-full resize-none rounded-xl border border-border bg-input px-3 py-2 text-sm disabled:opacity-60"
         />
 
         {errorMessage && (
           <div className="mt-3 rounded-lg border border-red-300/40 bg-red-500/10 px-3 py-2 text-xs text-red-200">
             {errorMessage}
-          </div>
-        )}
-
-        {isAnalyzing && (
-          <div className="mt-3 flex items-center gap-2 rounded-lg border border-cyan-300/40 bg-cyan-500/10 px-3 py-2 text-xs text-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            AI 처리 중입니다. 완료될 때까지 입력이 잠깁니다.
           </div>
         )}
 
@@ -158,6 +152,7 @@ export default function TextAnalysisModal({ isOpen, onClose, onAnalyzed }: TextA
           </button>
         </div>
       </div>
+      <LoadingOverlay active={isAnalyzing} label="AI 텍스트를 분석하는 중입니다..." />
     </div>
   );
 }

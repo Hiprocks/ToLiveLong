@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Loader2 } from "lucide-react";
+import LoadingOverlay from "@/components/LoadingOverlay";
+import { showToast } from "@/lib/toast";
 
 export interface PhotoAnalysisPrefill {
   food_name: string;
@@ -87,6 +88,10 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onAnalyzed }: Phot
         handleClose();
       } catch (error) {
         console.error(error);
+        showToast({
+          message: error instanceof Error ? error.message : "사진 분석에 실패했습니다.",
+          type: "error",
+        });
         handleClose();
       }
     },
@@ -159,17 +164,16 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onAnalyzed }: Phot
     <>
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
       {isAnalyzing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="flex w-full max-w-md flex-col items-center justify-center space-y-4 rounded-2xl border border-border bg-card p-8 shadow-2xl">
-            <div className="relative h-32 w-32 overflow-hidden rounded-xl shadow-lg">
-              {imagePreview && <Image src={imagePreview} alt="미리보기" fill className="object-cover" />}
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <>
+          {imagePreview && (
+            <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/20 p-4">
+              <div className="relative h-32 w-32 overflow-hidden rounded-xl border border-border/60 shadow-lg">
+                <Image src={imagePreview} alt="미리보기" fill className="object-cover" />
               </div>
             </div>
-            <p className="animate-pulse text-sm text-muted-foreground">AI 분석 중...</p>
-          </div>
-        </div>
+          )}
+          <LoadingOverlay active label="AI 사진 분석 중입니다..." />
+        </>
       )}
     </>
   );

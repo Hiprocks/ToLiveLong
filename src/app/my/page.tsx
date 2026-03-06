@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import ErrorBanner from "@/components/ErrorBanner";
+import LoadingOverlay from "@/components/LoadingOverlay";
 import ProfileEditModal from "@/components/my/ProfileEditModal";
 import ProfileSummarySection from "@/components/my/ProfileSummarySection";
 import { cacheKeys, getCachedData, setCachedData } from "@/lib/clientSyncCache";
@@ -17,6 +18,7 @@ export default function MyPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [aiTestMessage, setAiTestMessage] = useState<string | null>(null);
+  const [isAiTesting, setIsAiTesting] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -99,6 +101,8 @@ export default function MyPage() {
   };
 
   const handleAiTest = async () => {
+    if (isAiTesting) return;
+    setIsAiTesting(true);
     setAiTestMessage(null);
     try {
       const response = await fetch("/api/sheets/user?refreshAi=1", { cache: "no-store" });
@@ -119,22 +123,10 @@ export default function MyPage() {
     } catch (error) {
       console.error(error);
       setAiTestMessage("AI 응답 테스트에 실패했습니다.");
+    } finally {
+      setIsAiTesting(false);
     }
   };
-
-  if (loading) {
-    return (
-      <motion.div
-        className="p-4 text-muted-foreground"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-      >
-        불러오는 중...
-      </motion.div>
-    );
-  }
 
   return (
     <motion.main
@@ -153,7 +145,7 @@ export default function MyPage() {
         </div>
       )}
 
-      {!data?.profileRegistered || !data.profile ? (
+      {!loading && (!data?.profileRegistered || !data.profile) ? (
         <div className="rounded-2xl border border-border bg-card p-5">
           <p className="text-sm text-muted-foreground">
             내정보를 등록하면 개인 맞춤 목표 칼로리와 영양소를 자동 계산합니다.
@@ -166,7 +158,7 @@ export default function MyPage() {
             등록하기
           </motion.button>
         </div>
-      ) : (
+      ) : !loading ? (
         <>
           <ProfileSummarySection profile={data.profile} computed={data.computed ?? null} />
           <motion.button
@@ -177,15 +169,16 @@ export default function MyPage() {
             수정
           </motion.button>
         </>
-      )}
+      ) : null}
 
-      {!data?.profileRegistered && (
+      {!loading && !data?.profileRegistered && (
         <div className="rounded-lg border border-amber-300/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
           등록 전에는 일부 기능 사용이 제한됩니다.
         </div>
       )}
 
-      <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
+      {!loading && (
+        <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold">AI 응답 테스트</p>
@@ -193,10 +186,11 @@ export default function MyPage() {
           </div>
           <motion.button
             onClick={handleAiTest}
+            disabled={isAiTesting}
             className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
             whileTap={{ scale: 0.99 }}
           >
-            테스트 실행
+            {isAiTesting ? "테스트 중..." : "테스트 실행"}
           </motion.button>
         </div>
 
@@ -205,9 +199,10 @@ export default function MyPage() {
             {aiTestMessage}
           </div>
         )}
-      </div>
+        </div>
+      )}
 
-      {isEditOpen && (
+      {!loading && isEditOpen && (
         <ProfileEditModal
           key={data?.profileRegistered ? "edit-existing" : "edit-new"}
           isOpen={isEditOpen}
@@ -221,6 +216,17 @@ export default function MyPage() {
           onSave={handleSave}
         />
       )}
+
+      <LoadingOverlay
+        active={loading || saveState === "saving" || isAiTesting}
+        label={
+          loading
+            ? "내정보를 불러오는 중입니다..."
+            : saveState === "saving"
+              ? "저장 처리 중입니다..."
+              : "AI 응답을 확인하는 중입니다..."
+        }
+      />
     </motion.main>
   );
 }

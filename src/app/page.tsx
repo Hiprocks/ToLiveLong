@@ -9,6 +9,7 @@ import { BentoCard, BentoGrid } from "@/components/ui/bento-grid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ErrorBanner from "@/components/ErrorBanner";
 import FoodSearchModal from "@/components/FoodSearchModal";
+import LoadingOverlay from "@/components/LoadingOverlay";
 import PhotoAnalysisModal, { PhotoAnalysisPrefill } from "@/components/PhotoAnalysisModal";
 import TextAnalysisModal, { TextAnalysisPrefill } from "@/components/TextAnalysisModal";
 import { cacheKeys, getCachedData, setCachedData } from "@/lib/clientSyncCache";
@@ -75,10 +76,15 @@ export default function Home() {
   }, []);
 
   const refreshLogs = useCallback(async () => {
-    const today = getLocalDateString();
-    const nextLogs = await fetchLogs();
-    setLogs(nextLogs);
-    setCachedData(cacheKeys.records(today), nextLogs);
+    setLoading(true);
+    try {
+      const today = getLocalDateString();
+      const nextLogs = await fetchLogs();
+      setLogs(nextLogs);
+      setCachedData(cacheKeys.records(today), nextLogs);
+    } finally {
+      setLoading(false);
+    }
   }, [fetchLogs]);
 
   useEffect(() => {
@@ -314,9 +320,7 @@ export default function Home() {
               <CardTitle className="text-base">오늘 식단 기록</CardTitle>
             </CardHeader>
             <CardContent className="px-4">
-              {loading ? (
-                <p className="py-4 text-sm text-muted-foreground">불러오는 중...</p>
-              ) : logs.length === 0 ? (
+              {!loading && logs.length === 0 ? (
                 <p className="py-4 text-sm text-muted-foreground">오늘 등록된 식단이 없습니다.</p>
               ) : (
                 <div className="space-y-4">
@@ -443,6 +447,8 @@ export default function Home() {
           setIsModalOpen(true);
         }}
       />
+
+      <LoadingOverlay active={loading} label="데이터를 불러오는 중입니다..." />
     </motion.main>
   );
 }

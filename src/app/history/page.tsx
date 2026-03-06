@@ -6,6 +6,7 @@ import { addDays, format, parseISO } from "date-fns";
 import { Camera, Database, Pencil, PencilLine, Plus, Shapes, Trash2 } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
 import FoodSearchModal from "@/components/FoodSearchModal";
+import LoadingOverlay from "@/components/LoadingOverlay";
 import PhotoAnalysisModal, { PhotoAnalysisPrefill } from "@/components/PhotoAnalysisModal";
 import {
   cacheKeys,
@@ -377,7 +378,7 @@ export default function HistoryPage() {
       </div>
 
       {loading ? (
-        <p className="text-muted-foreground">불러오는 중...</p>
+        <div className="h-14" />
       ) : records.length === 0 ? (
         <p className="text-muted-foreground">선택한 날짜의 기록이 없습니다.</p>
       ) : (
@@ -598,6 +599,8 @@ export default function HistoryPage() {
           setIsCreateOpen(true);
         }}
       />
+
+      <LoadingOverlay active={loading || templateSaving} label={loading ? "기록을 불러오는 중입니다..." : "처리 중입니다..."} />
     </motion.main>
   );
 }
