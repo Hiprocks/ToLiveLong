@@ -171,3 +171,12 @@
   - 출력 단위: 칼로리 10 kcal, 매크로 5g 반올림
 - `calculateTargets.test.ts` 신규 작성 (4 시나리오, 4/4 PASS)
 - Google Sheets `user` 시트: `waistCm` 컬럼 추가, `macroPreference` 제거
+
+## 19) Context Update (2026-03-06, Protein Calculation Hotfix)
+
+- `recomposition` 목표 + 체지방률 입력 시 LBM 기반 단백질 계산 적용 (기존 cutting 전용 → cutting/recomposition 공통)
+- LBM 계수 분리: cutting = 2.2 g/kg LBM, recomposition = **2.5 g/kg LBM**
+  - recomposition은 근 합성 자극이 동반되므로 cutting보다 높은 단백질 필요
+  - 예) 60kg 남성 체지방 27.2% → 95g → **110g**
+- 단위 테스트 2개 추가 (총 6개): recomposition LBM×2.5, cutting LBM×2.2 경로 각각 검증
+- `calculateTargets.test.ts`에서 잔존 `neatLevel` 참조 제거

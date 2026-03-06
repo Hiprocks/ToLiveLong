@@ -9,7 +9,6 @@ const baseProfile: UserProfileInput = {
   heightCm: 175,
   weightKg: 80,
   occupationalActivityLevel: "moderate",
-  neatLevel: "light",
   exerciseFrequencyWeekly: 3,
   exerciseDurationMin: 45,
   exerciseIntensity: "medium",
@@ -71,11 +70,36 @@ test("cutting protein respects bodyweight and calorie caps", () => {
     heightCm: 160,
     age: 60,
     occupationalActivityLevel: "sedentary",
-    neatLevel: "sedentary",
     primaryGoal: "cutting",
     bodyFatPct: 45,
   });
 
   assert.ok(lowCalorie.protein <= 265);
   assert.ok(lowCalorie.protein * 4 <= lowCalorie.targetCalories * 0.35 + 20);
+});
+
+test("recomposition with bodyFatPct uses LBM x 2.5 protein", () => {
+  // 60kg male, 27.2% body fat → LBM 43.68kg → 43.68 x 2.5 = 109.2 → 110g
+  const result = calculateNutritionTargets({
+    gender: "male", age: 42, heightCm: 168, weightKg: 60,
+    primaryGoal: "recomposition",
+    occupationalActivityLevel: "moderate",
+    exerciseFrequencyWeekly: 3, exerciseDurationMin: 25, exerciseIntensity: "medium",
+    bodyFatPct: 27.2,
+  });
+
+  assert.equal(result.protein, 110);
+  // protein should be higher than body-weight-based fallback (60 x 1.6 = 96 → 95g)
+  assert.ok(result.protein > 95);
+});
+
+test("cutting with bodyFatPct uses LBM x 2.2 protein", () => {
+  // 80kg male, 25% body fat → LBM 60kg → 60 x 2.2 = 132 → 130g
+  const result = calculateNutritionTargets({
+    ...baseProfile,
+    primaryGoal: "cutting",
+    bodyFatPct: 25,
+  });
+
+  assert.equal(result.protein, 130);
 });
