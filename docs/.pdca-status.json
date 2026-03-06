@@ -1,11 +1,10 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-03-06T00:20:00.000Z",
+  "lastUpdated": "2026-03-06T00:40:00.000Z",
   "activeFeatures": [
-    "goal-system-setup-improvement",
-    "meal-entry-ai-registration"
+    "goal-system-setup-improvement"
   ],
-  "primaryFeature": "meal-entry-ai-registration",
+  "primaryFeature": "goal-system-setup-improvement",
   "features": {
     "meal-entry-ux": {
       "phase": "archive",
@@ -229,20 +228,14 @@
       }
     },
     "meal-entry-ai-registration": {
-      "phase": "report",
-      "matchRate": 100,
+      "phase": "archive",
+      "matchRate": null,
       "iterationCount": 0,
-      "documents": {
-        "plan": "docs/01-plan/features/meal-entry-ai-registration.plan.md",
-        "design": "docs/02-design/features/meal-entry-ai-registration.design.md",
-        "do": "docs/02-design/features/meal-entry-ai-registration.do.md",
-        "analyze": "docs/03-analysis/meal-entry-ai-registration.analysis.md",
-        "report": "docs/04-report/features/meal-entry-ai-registration.report.md"
-      },
+      "documents": {},
       "legacy": {
-        "progress": 85,
-        "status": "active",
-        "next": "archive",
+        "progress": 100,
+        "status": "archived",
+        "next": null,
         "checklist": {
           "plan": true,
           "design": true,
@@ -250,9 +243,12 @@
           "analyze": true,
           "iterate": false,
           "report": true,
-          "archive": false
+          "archive": true
         }
-      }
+      },
+      "archived": true,
+      "archivedAt": "2026-03-06T00:40:00.000Z",
+      "completedAt": "2026-03-06T00:40:00.000Z"
     }
   },
   "pipeline": {
@@ -322,10 +318,17 @@
       "phase": "analyze",
       "nextPhase": "report",
       "timestamp": "2026-03-06T00:20:00.000Z"
+    },
+    {
+      "feature": "meal-entry-ai-registration",
+      "action": "phase_complete",
+      "phase": "report",
+      "nextPhase": "completed",
+      "timestamp": "2026-03-06T00:40:00.000Z"
     }
   ],
   "legacyStatus": {
-    "current_feature": "meal-entry-ai-registration",
+    "current_feature": "goal-system-setup-improvement",
     "level": "dynamic",
     "updated_at": "2026-03-06"
   }

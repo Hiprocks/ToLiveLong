@@ -75,3 +75,13 @@
 
 - 린매스업 목표 추가 및 매크로 타입(균형/고단백/저탄고지) 반영.
 - 체지방률 입력 시 Katch-McArdle 기반 BMR 계산 적용.
+
+---
+
+## 9) Update Log (2026-03-06)
+
+- 식단 등록 동선에 `AI 등록` 추가 및 자연어 입력 기반 prefill 흐름 적용.
+- `POST /api/analyze/text` 경로를 통해 텍스트 분석 응답(`food_name`, `amount`, 영양성분, `intake_summary`)을 수신.
+- `FoodSearchModal`에서 `AI 답변 요약` 표시를 지원(저장 스키마 변경 없음).
+- 공통 `LoadingOverlay` 도입으로 대시보드/히스토리/내정보/모달 로딩 UX 일관화.
+- `meal-entry-ai-registration` PDCA가 report까지 완료되어 archive 단계로 전환됨.
