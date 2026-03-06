@@ -13,7 +13,6 @@ export type PrimaryGoal =
   | "maintenance"
   | "bulking"
   | "recomposition";
-export type MacroPreference = "balanced" | "low_carb" | "high_protein" | "keto";
 export type ActivityLevel = "sedentary" | "light" | "moderate" | "very" | "extra";
 export type ExerciseIntensity = "low" | "medium" | "high";
 
@@ -30,8 +29,8 @@ export interface UserProfileInput {
   bodyFatPct?: number;
   skeletalMuscleKg?: number;
   waistHipRatio?: number;
+  waistCm?: number;
   primaryGoal: PrimaryGoal;
-  macroPreference: MacroPreference;
 }
 
 export interface NutritionTargets extends DailyTargets {

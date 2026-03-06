@@ -53,11 +53,12 @@ Write feedback in Korean.
 Do NOT calculate or modify nutrition numbers.
 The system already finalized numeric targets internally.
 Do NOT repeat BMR/TDEE/targetCalories/carbs/protein/fat numbers in feedback text.
+Treat exerciseFrequencyWeekly, exerciseDurationMin, exerciseIntensity, waistCm, waistHipRatio, and bodyFatPct as context only.
 Return concise feedback text around 200 chars total.
 Feedback must include:
 1) Body/goal analysis
-2) Exercise prescription (intensity/duration/frequency)
-3) Diet recommendation (high protein, low fat)
+2) One or two action-focused exercise suggestions
+3) One or two action-focused diet suggestions
 
 Return ONLY raw JSON with the following keys:
 {
@@ -80,6 +81,12 @@ const getBodyTypeHint = (profile: UserProfileInput): string => {
     if (profile.bodyFatPct >= 28) return "체지방이 높은 편";
     if (profile.bodyFatPct <= 14) return "체지방이 낮은 편";
     return "체지방이 중간 범위";
+  }
+
+  if (profile.waistCm !== undefined) {
+    if (profile.gender === "male" && profile.waistCm >= 90) return "복부 관리가 필요한 편";
+    if (profile.gender === "female" && profile.waistCm >= 85) return "복부 관리가 필요한 편";
+    return "복부 둘레는 안정적인 편";
   }
 
   if (profile.waistHipRatio !== undefined) {
@@ -107,10 +114,9 @@ const buildFallbackNotes = (profile: UserProfileInput) => {
   const duration = profile.exerciseDurationMin ?? 45;
   const intensity = intensityLabel[profile.exerciseIntensity ?? "medium"];
   const bodyType = getBodyTypeHint(profile);
-
-  const note = `${bodyType}, ${goalLabel[profile.primaryGoal]} 목표입니다. 주 ${sessions}회 ${intensity} ${duration}분 운동을 유지하고 단백질 달성률과 허리둘레 변화를 함께 추적하세요.`;
+  const note = `${bodyType}, ${goalLabel[profile.primaryGoal]} 목표입니다. 주 ${sessions}회 ${intensity} 운동을 유지하고 단백질 섭취와 허리둘레 변화를 함께 확인하세요.`;
   if (note.length <= 200) return note;
-  return `주 ${sessions}회 ${intensity} ${duration}분 운동, 단백질 중심 식단과 허리둘레 추적을 권장합니다.`;
+  return `주 ${sessions}회 ${intensity} 운동과 단백질 중심 식사, 허리둘레 추적을 권장합니다.`;
 };
 
 const buildFallbackFeedback = (profile: UserProfileInput): NonNullable<NutritionTargets["aiFeedback"]> => {
@@ -133,8 +139,8 @@ const buildFallbackFeedback = (profile: UserProfileInput): NonNullable<Nutrition
 
   return {
     analysis: `${bodyType}, ${goalLabel[profile.primaryGoal]} 목표 기준`,
-    exercisePlan: `주 ${sessions}회 ${intensity} ${duration}분 운동 권장`,
-    dietPlan: "단백질 중심 식단과 주간 체중/허리둘레 추적 권장",
+    exercisePlan: `주 ${sessions}회 ${intensity} ${duration}분 운동을 꾸준히 이어가세요.`,
+    dietPlan: "단백질을 우선 챙기고 허리둘레 변화를 함께 추적하세요.",
   };
 };
 

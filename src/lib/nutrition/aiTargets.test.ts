@@ -24,8 +24,8 @@ test("getAiModelCandidates includes modern defaults and deduplicates env models"
 test("normalizeAiTargetsPayload returns ai payload for valid response", () => {
   const payload = normalizeAiTargetsPayload({
     analysis: "체지방이 높은 편이며 감량 목표입니다.",
-    exercisePlan: "주 3회 중강도 45분 운동을 권장합니다.",
-    dietPlan: "단백질 중심 식단과 허리둘레 추적을 유지하세요.",
+    exercisePlan: "주 3회 중강도 운동을 꾸준히 이어가세요.",
+    dietPlan: "단백질을 우선 챙기고 허리둘레 변화를 함께 추적하세요.",
     notes: "핵심: 단백질과 허리둘레를 함께 관리하세요.",
   });
 

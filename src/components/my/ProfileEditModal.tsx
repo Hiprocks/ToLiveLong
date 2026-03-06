@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { X } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
 import { UserProfileInput } from "@/lib/types";
@@ -14,6 +14,14 @@ interface ProfileEditModalProps {
   onSave: (profile: UserProfileInput) => void;
 }
 
+const activityOptions = [
+  ["sedentary", "거의 없음"],
+  ["light", "가벼움"],
+  ["moderate", "보통"],
+  ["very", "높음"],
+  ["extra", "매우 높음"],
+] as const;
+
 const defaultProfile: UserProfileInput = {
   gender: "male",
   age: 30,
@@ -25,7 +33,6 @@ const defaultProfile: UserProfileInput = {
   exerciseIntensity: "medium",
   neatLevel: "sedentary",
   primaryGoal: "maintenance",
-  macroPreference: "balanced",
 };
 
 export default function ProfileEditModal({
@@ -58,31 +65,11 @@ export default function ProfileEditModal({
     };
   }, [isOpen]);
 
-  const activityOptions = useMemo(
-    () =>
-      [
-        ["sedentary", "거의 없음"],
-        ["light", "가벼움"],
-        ["moderate", "보통"],
-        ["very", "높음"],
-        ["extra", "매우 높음"],
-      ] as const,
-    []
-  );
-
   const requiredInvalid = {
     age: draft.age.trim() === "",
     heightCm: draft.heightCm.trim() === "",
     weightKg: draft.weightKg.trim() === "",
   };
-
-  const goalMacroWarning = useMemo(() => {
-    if (form.macroPreference !== "keto") return null;
-    if (form.primaryGoal === "bulking" || form.primaryGoal === "recomposition") {
-      return "저탄고지 식단은 증량/린매스업 목표와 상충할 수 있습니다. 균형형 또는 고단백 식단을 권장합니다.";
-    }
-    return null;
-  }, [form.macroPreference, form.primaryGoal]);
 
   const currentProfile = toProfile(form, draft);
   const hasChanges =
@@ -194,10 +181,23 @@ export default function ProfileEditModal({
               value={draft.exerciseDurationMin}
               onChange={(value) => setDraft((prev) => ({ ...prev, exerciseDurationMin: value }))}
             />
+            <Field label="운동 강도">
+              <select
+                value={form.exerciseIntensity ?? "medium"}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, exerciseIntensity: e.target.value as UserProfileInput["exerciseIntensity"] }))
+                }
+                className="w-full rounded-lg border border-border bg-input px-3 py-2"
+              >
+                <option value="low">저강도</option>
+                <option value="medium">중강도</option>
+                <option value="high">고강도</option>
+              </select>
+            </Field>
           </section>
 
           <section className="grid grid-cols-2 gap-3 rounded-2xl border border-border/70 bg-background/40 p-4">
-            <h3 className="col-span-2 text-sm font-semibold text-muted-foreground">체성분(선택)</h3>
+            <h3 className="col-span-2 text-sm font-semibold text-muted-foreground">체성분/추적(선택)</h3>
             <NumberField
               label="체지방률"
               unit="%"
@@ -209,6 +209,12 @@ export default function ProfileEditModal({
               unit="kg"
               value={draft.skeletalMuscleKg}
               onChange={(value) => setDraft((prev) => ({ ...prev, skeletalMuscleKg: value }))}
+            />
+            <NumberField
+              label="허리둘레"
+              unit="cm"
+              value={draft.waistCm}
+              onChange={(value) => setDraft((prev) => ({ ...prev, waistCm: value }))}
             />
             <NumberField
               label="허리-엉덩이 비율"
@@ -228,34 +234,20 @@ export default function ProfileEditModal({
                 className="w-full rounded-lg border border-border bg-input px-3 py-2"
               >
                 <option value="cutting">살 빼기</option>
-                <option value="maintenance">유지</option>
+                <option value="maintenance">유지하기</option>
                 <option value="bulking">근육 키우기</option>
                 <option value="recomposition">살 빼고 근육 키우기</option>
               </select>
             </Field>
-            <Field label="선호 식단">
-              <select
-                value={form.macroPreference}
-                onChange={(e) => setForm((prev) => ({ ...prev, macroPreference: e.target.value as UserProfileInput["macroPreference"] }))}
-                className="w-full rounded-lg border border-border bg-input px-3 py-2"
-              >
-                <option value="balanced">균형형</option>
-                <option value="low_carb">저탄수형</option>
-                <option value="high_protein">고단백형</option>
-                <option value="keto">저탄고지</option>
-              </select>
-            </Field>
+            <div className="rounded-lg border border-border/60 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
+              시스템이 목표에 맞춰 단백질, 지방, 탄수를 자동 계산합니다. 운동 정보는 설명과 추후 보정에만 사용됩니다.
+            </div>
           </section>
         </div>
       </div>
 
       <div className="sticky bottom-0 z-10 mt-auto border-t border-border bg-background p-4 pb-safe">
         <div className="mx-auto w-full max-w-2xl">
-          {goalMacroWarning && (
-            <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-              {goalMacroWarning}
-            </div>
-          )}
           <button
             onClick={handleSave}
             disabled={isSaveBlocked}
@@ -317,6 +309,7 @@ type NumericDraft = {
   bodyFatPct: string;
   skeletalMuscleKg: string;
   waistHipRatio: string;
+  waistCm: string;
 };
 
 const toDraft = (profile: UserProfileInput): NumericDraft => ({
@@ -328,6 +321,7 @@ const toDraft = (profile: UserProfileInput): NumericDraft => ({
   bodyFatPct: toOptionalString(profile.bodyFatPct),
   skeletalMuscleKg: toOptionalString(profile.skeletalMuscleKg),
   waistHipRatio: toOptionalString(profile.waistHipRatio),
+  waistCm: toOptionalString(profile.waistCm),
 });
 
 const toOptionalString = (value: number | undefined) => (value === undefined ? "" : String(value));
@@ -348,6 +342,7 @@ const toProfile = (base: UserProfileInput, draft: NumericDraft): UserProfileInpu
   bodyFatPct: parseOptional(draft.bodyFatPct),
   skeletalMuscleKg: parseOptional(draft.skeletalMuscleKg),
   waistHipRatio: parseOptional(draft.waistHipRatio),
+  waistCm: parseOptional(draft.waistCm),
 });
 
 const normalizeProfile = (profile: UserProfileInput): UserProfileInput => ({
@@ -357,4 +352,5 @@ const normalizeProfile = (profile: UserProfileInput): UserProfileInput => ({
   bodyFatPct: profile.bodyFatPct ?? undefined,
   skeletalMuscleKg: profile.skeletalMuscleKg ?? undefined,
   waistHipRatio: profile.waistHipRatio ?? undefined,
+  waistCm: profile.waistCm ?? undefined,
 });

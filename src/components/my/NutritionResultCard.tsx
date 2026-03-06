@@ -13,13 +13,18 @@ export default function NutritionResultCard({ computed }: NutritionResultCardPro
   const fat = computed?.fat ?? 0;
   const sugar = computed?.sugar ?? 0;
   const sodium = computed?.sodium ?? 0;
-  const sourceLabel = computed?.aiSource === "ai" ? "AI 코칭" : "기본 코칭";
   const feedback = computed?.aiFeedback;
   const fallbackNote = sanitizeLegacyAiNote(computed?.aiNotes);
+  const sourceLabel = computed?.aiSource === "ai" ? "AI 코칭" : "기본 코칭";
 
   return (
     <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
-      <h2 className="text-sm font-semibold text-muted-foreground">목표 수치</h2>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-muted-foreground">목표 수치</h2>
+          <p className="mt-1 text-xs text-muted-foreground">보수적으로 시작하는 1일 기준값입니다.</p>
+        </div>
+      </div>
 
       <div className="mt-3 grid grid-cols-2 gap-3 text-sm md:grid-cols-3">
         <Metric label="기초대사량(BMR)" value={`${bmr} kcal`} />
@@ -56,7 +61,7 @@ function sanitizeLegacyAiNote(note: string | undefined) {
     .replace(/BMR\s*\d+[^\s,]*/gi, "")
     .replace(/TDEE\s*\d+[^\s,]*/gi, "")
     .replace(/목표\s*\d+\s*kcal/gi, "")
-    .replace(/탄\s*\d+\s*\/\s*단\s*\d+\s*\/\s*지\s*\d+\s*g/gi, "")
+    .replace(/탄수\s*\d+\s*\/\s*단백질\s*\d+\s*\/\s*지방\s*\d+\s*g/gi, "")
     .replace(/\s{2,}/g, " ")
     .trim();
   return stripped || note;

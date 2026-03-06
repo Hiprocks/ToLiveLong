@@ -59,7 +59,6 @@ export async function PUT(req: NextRequest) {
       heightCm?: number;
       weightKg?: number;
       primaryGoal?: UserProfileInput["primaryGoal"];
-      macroPreference?: UserProfileInput["macroPreference"];
     };
 
     const rows = await listRows(RANGES.user);
@@ -166,11 +165,6 @@ const normalizePrimaryGoal = (value: unknown): unknown => {
   return value;
 };
 
-const normalizeMacroPreference = (value: unknown): unknown => {
-  if (value === "high_fat") return "keto";
-  return value;
-};
-
 const normalizeWaistHipRatio = (value: unknown): unknown => {
   if (value === undefined || value === null || value === "") return undefined;
   const parsed = Number(value);
@@ -190,12 +184,6 @@ const parseProfile = (payload: Partial<UserProfileInput>): UserProfileInput => {
       "maintenance",
       "bulking",
       "recomposition",
-    ] as const),
-    macroPreference: parseEnum(normalizeMacroPreference(payload.macroPreference), "macroPreference", [
-      "balanced",
-      "low_carb",
-      "high_protein",
-      "keto",
     ] as const),
     occupationalActivityLevel: parseEnum(
       payload.occupationalActivityLevel,
@@ -233,5 +221,6 @@ const parseProfile = (payload: Partial<UserProfileInput>): UserProfileInput => {
       "waistHipRatio",
       { min: 0.5, max: 2 }
     ),
+    waistCm: parseOptionalNumber(payload.waistCm, "waistCm", { min: 30, max: 300 }),
   };
 };

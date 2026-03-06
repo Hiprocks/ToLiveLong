@@ -21,13 +21,6 @@ const goalLabels: Record<UserProfileInput["primaryGoal"], string> = {
   recomposition: "살 빼고 근육 키우기",
 };
 
-const macroLabels: Record<UserProfileInput["macroPreference"], string> = {
-  balanced: "균형형",
-  low_carb: "저탄수형",
-  high_protein: "고단백형",
-  keto: "저탄고지형",
-};
-
 export default function ProfileSummarySection({ profile, computed }: ProfileSummarySectionProps) {
   return (
     <section className="space-y-4">
@@ -47,7 +40,6 @@ export default function ProfileSummarySection({ profile, computed }: ProfileSumm
         <h2 className="text-sm font-semibold text-muted-foreground">목표/활동</h2>
         <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
           <SummaryItem label="목표" value={goalLabels[profile.primaryGoal]} />
-          <SummaryItem label="식단 성향" value={macroLabels[profile.macroPreference]} />
           <SummaryItem
             label="직업 활동량"
             value={activityLabels[profile.occupationalActivityLevel ?? "sedentary"]}
@@ -57,12 +49,20 @@ export default function ProfileSummarySection({ profile, computed }: ProfileSumm
             value={activityLabels[profile.neatLevel ?? "sedentary"]}
           />
           <SummaryItem
+            label="운동 습관"
+            value={`${profile.exerciseFrequencyWeekly ?? 0}회 / ${profile.exerciseDurationMin ?? 0}분`}
+          />
+          <SummaryItem
             label="체지방률"
             value={profile.bodyFatPct === undefined ? "미입력" : `${profile.bodyFatPct}%`}
           />
           <SummaryItem
             label="골격근량"
             value={profile.skeletalMuscleKg === undefined ? "미입력" : `${profile.skeletalMuscleKg} kg`}
+          />
+          <SummaryItem
+            label="허리둘레"
+            value={profile.waistCm === undefined ? "미입력" : `${profile.waistCm} cm`}
           />
           <SummaryItem
             label="허리-엉덩이 비율"

@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:analyze": "node --import tsx --test src/lib/analyzePayload.test.ts src/lib/nutrition/aiTargets.test.ts",
+    "test:analyze": "node --import tsx --test src/lib/analyzePayload.test.ts src/lib/nutrition/aiTargets.test.ts src/lib/nutrition/calculateTargets.test.ts",
     "verify:official:protein": "node scripts/verify-official-protein.mjs"
   },
   "dependencies": {
