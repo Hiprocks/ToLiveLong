@@ -1000,7 +1000,7 @@ export default function FoodSearchModal({
               <button
                 onClick={() => void handleDeleteTemplate()}
                 disabled={deletingTemplateId === previewTemplate.id}
-                className="w-full rounded-lg border border-red-400/40 bg-red-500/10 py-2 text-sm font-semibold text-red-200 disabled:opacity-50"
+                className="w-full rounded-lg border border-red-500/60 bg-red-500/10 py-2 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none"
               >
                 {deletingTemplateId === previewTemplate.id ? "삭제 중..." : "템플릿 삭제"}
               </button>
