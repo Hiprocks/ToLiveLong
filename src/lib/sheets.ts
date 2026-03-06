@@ -5,7 +5,7 @@ const RECORDS_RANGE = "records!A:K";
 const RECORDS_ID_RANGE = "records!A:A";
 const RECORDS_DATE_RANGE = "records!B:B";
 const TEMPLATES_RANGE = "templates!A:I";
-const USER_RANGE = "user!A:AA";
+const USER_RANGE = "user!A:AB";
 
 type Primitive = string | number;
 const SHEET_NAME_RE = /^[A-Za-z0-9_]+$/;
@@ -239,12 +239,8 @@ export const parseUserProfile = (row: string[] | null): UserProfileInput | null 
     normalizedGoal,
     ["cutting", "maintenance", "bulking", "recomposition"] as const
   );
-  const macroPreference = parseOptionalString(
-    row[11],
-    ["balanced", "low_carb", "high_protein", "keto"] as const
-  );
 
-  if (!gender || !age || !heightCm || !weightKg || !primaryGoal || !macroPreference) {
+  if (!gender || !age || !heightCm || !weightKg || !primaryGoal) {
     return null;
   }
 
@@ -254,7 +250,6 @@ export const parseUserProfile = (row: string[] | null): UserProfileInput | null 
     heightCm,
     weightKg,
     primaryGoal,
-    macroPreference,
     occupationalActivityLevel: parseOptionalString(row[12], [
       "sedentary",
       "light",
@@ -269,6 +264,7 @@ export const parseUserProfile = (row: string[] | null): UserProfileInput | null 
     bodyFatPct: parseOptionalNumber(row[17]),
     skeletalMuscleKg: parseOptionalNumber(row[18]),
     waistHipRatio: parseOptionalNumber(row[19]),
+    waistCm: parseOptionalNumber(row[26]),
   };
 };
 
@@ -315,7 +311,7 @@ export const serializeUserRow = (
   profile?.heightCm ?? "",
   profile?.weightKg ?? "",
   profile?.primaryGoal ?? "",
-  profile?.macroPreference ?? "",
+  "",
   profile?.occupationalActivityLevel ?? "",
   profile?.exerciseFrequencyWeekly ?? "",
   profile?.exerciseDurationMin ?? "",
@@ -330,6 +326,7 @@ export const serializeUserRow = (
   ai?.aiNotes ?? "",
   ai?.aiSource ?? "",
   ai?.aiUpdatedAt ?? "",
+  profile?.waistCm ?? "",
 ];
 
 export const RANGES = {

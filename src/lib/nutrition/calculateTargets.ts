@@ -1,77 +1,90 @@
 import { ActivityLevel, DailyTargets, NutritionTargets, UserProfileInput } from "@/lib/types";
 
 const ACTIVITY_FACTOR: Record<ActivityLevel, number> = {
-  sedentary: 1.2,
+  sedentary: 1.35,
   light: 1.375,
   moderate: 1.55,
   very: 1.725,
   extra: 1.9,
 };
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-
-const getCalorieMultiplier = (profile: UserProfileInput) => {
-  if (profile.primaryGoal === "bulking") return 1.07;
-  if (profile.primaryGoal === "cutting") return 0.83;
-  if (profile.primaryGoal === "recomposition") return 0.97;
-  return 1.0; // maintenance
+const GOAL_MULTIPLIER: Record<UserProfileInput["primaryGoal"], number> = {
+  cutting: 0.8,
+  bulking: 1.05,
+  recomposition: 0.925,
+  maintenance: 1.0,
 };
+
+const PROTEIN_PER_KG: Record<UserProfileInput["primaryGoal"], number> = {
+  cutting: 2.0,
+  bulking: 1.8,
+  recomposition: 1.6,
+  maintenance: 1.4,
+};
+
+const FAT_RATIO: Record<UserProfileInput["primaryGoal"], number> = {
+  cutting: 0.25,
+  bulking: 0.25,
+  recomposition: 0.3,
+  maintenance: 0.3,
+};
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const roundToNearest = (value: number, unit: number) => Math.round(value / unit) * unit;
 
 const getBmr = (profile: UserProfileInput) => {
   const s = profile.gender === "male" ? 5 : -161;
   return 10 * profile.weightKg + 6.25 * profile.heightCm - 5 * profile.age + s;
 };
 
-const getExerciseBonus = (profile: UserProfileInput): number => {
-  const weeklyMinutes = (profile.exerciseFrequencyWeekly ?? 0) * (profile.exerciseDurationMin ?? 0);
-  if (weeklyMinutes >= 360) return 0.15;
-  if (weeklyMinutes >= 180) return 0.1;
-  if (weeklyMinutes >= 60) return 0.05;
-  return 0;
+const getEffectivePal = (profile: UserProfileInput) => {
+  return clamp(ACTIVITY_FACTOR[profile.occupationalActivityLevel ?? "sedentary"], 1.2, 1.9);
 };
 
-const getProteinGrams = (profile: UserProfileInput): number => {
-  const weightBased =
-    profile.primaryGoal === "bulking"
-      ? profile.weightKg * 1.8
-      : profile.primaryGoal === "maintenance"
-        ? profile.weightKg * 1.6
-        : profile.weightKg * 2.0; // cutting/recomposition
+const isLeanRecompositionProfile = (profile: UserProfileInput) => {
+  if (profile.bodyFatPct === undefined) return false;
+  if (profile.gender === "male") return profile.bodyFatPct <= 15;
+  return profile.bodyFatPct <= 23;
+};
 
-  if (profile.bodyFatPct === undefined) {
-    return Math.round(Math.min(weightBased, profile.weightKg * 2.2));
+const getGoalMultiplier = (profile: UserProfileInput) => {
+  if (profile.primaryGoal !== "recomposition") return GOAL_MULTIPLIER[profile.primaryGoal];
+  return isLeanRecompositionProfile(profile) ? 1.0 : GOAL_MULTIPLIER.recomposition;
+};
+
+const getProteinGrams = (profile: UserProfileInput, targetCalories: number) => {
+  let grams = profile.weightKg * PROTEIN_PER_KG[profile.primaryGoal];
+
+  if (profile.primaryGoal === "cutting" && profile.bodyFatPct !== undefined) {
+    const leanMassKg = profile.weightKg * (1 - profile.bodyFatPct / 100);
+    grams = clamp(leanMassKg * 2.2, leanMassKg * 1.8, leanMassKg * 2.6);
   }
 
-  const leanMassKg = profile.weightKg * (1 - profile.bodyFatPct / 100);
-  const lbmBased =
-    profile.primaryGoal === "bulking"
-      ? leanMassKg * 2.0
-      : profile.primaryGoal === "maintenance"
-        ? leanMassKg * 1.8
-        : leanMassKg * 2.2; // cutting/recomposition
-
-  return Math.round(Math.min(lbmBased, profile.weightKg * 2.2));
+  const bwCap = profile.weightKg * 2.2;
+  const kcalCap = (targetCalories * 0.35) / 4;
+  return Math.max(0, Math.round(Math.min(grams, bwCap, kcalCap)));
 };
 
-const getFatGrams = (profile: UserProfileInput): number => {
-  if (profile.primaryGoal === "maintenance") return Math.round(profile.weightKg * 0.85);
-  if (profile.primaryGoal === "bulking") return Math.round(profile.weightKg * 0.95);
-  return Math.round(profile.weightKg * 0.8); // cutting/recomposition
+const getFatGrams = (profile: UserProfileInput, targetCalories: number) => {
+  const ratioBased = (targetCalories * FAT_RATIO[profile.primaryGoal]) / 9;
+  const floorByWeight = profile.weightKg * 0.6;
+  return Math.max(ratioBased, floorByWeight);
 };
 
 export const calculateNutritionTargets = (profile: UserProfileInput): NutritionTargets => {
   const baseBmr = getBmr(profile);
+  const tdee = Math.round(baseBmr * getEffectivePal(profile));
+  const rawTargetCalories = Math.max(1000, tdee * getGoalMultiplier(profile));
+  const targetCalories = roundToNearest(rawTargetCalories, 10);
 
-  const palBase = ACTIVITY_FACTOR[profile.occupationalActivityLevel ?? "sedentary"];
-  const activityMultiplier = clamp(palBase + getExerciseBonus(profile), 1.2, 1.9);
+  const rawProteinG = getProteinGrams(profile, targetCalories);
+  const rawFatG = getFatGrams(profile, targetCalories);
+  const remainingCalories = Math.max(0, targetCalories - (rawProteinG * 4 + rawFatG * 9));
+  const rawCarbsG = remainingCalories / 4;
 
-  const tdee = Math.round(baseBmr * activityMultiplier);
-  const targetCalories = Math.max(1000, Math.round(tdee * getCalorieMultiplier(profile)));
-
-  const proteinG = getProteinGrams(profile);
-  const fatG = getFatGrams(profile);
-  const remainingCalories = targetCalories - (proteinG * 4 + fatG * 9);
-  const carbsG = Math.max(0, Math.round(remainingCalories / 4));
+  const proteinG = roundToNearest(rawProteinG, 5);
+  const fatG = roundToNearest(rawFatG, 5);
+  const carbsG = roundToNearest(rawCarbsG, 5);
 
   return {
     bmr: Math.round(baseBmr),
