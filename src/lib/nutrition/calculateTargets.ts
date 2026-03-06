@@ -55,7 +55,7 @@ const getGoalMultiplier = (profile: UserProfileInput) => {
 const getProteinGrams = (profile: UserProfileInput, targetCalories: number) => {
   let grams = profile.weightKg * PROTEIN_PER_KG[profile.primaryGoal];
 
-  if (profile.primaryGoal === "cutting" && profile.bodyFatPct !== undefined) {
+  if ((profile.primaryGoal === "cutting" || profile.primaryGoal === "recomposition") && profile.bodyFatPct !== undefined) {
     const leanMassKg = profile.weightKg * (1 - profile.bodyFatPct / 100);
     grams = clamp(leanMassKg * 2.2, leanMassKg * 1.8, leanMassKg * 2.6);
   }
