@@ -143,3 +143,13 @@
 
 - My AI 조언 결과를 `user` 시트에 저장하고 표시하도록 변경.
 - GET 시 AI 재호출하지 않고 저장된 AI 결과를 사용.
+
+## 17) Context Update (2026-03-06, AI Text Entry + Loading Overlay)
+
+- 대시보드 `+` 메뉴에 `AI 등록` 진입이 추가됨.
+- 신규 API `POST /api/analyze/text` 도입:
+  - 자연어 식사 입력을 Gemini로 분석해 `food_name`, `amount`, 영양성분, `intake_summary` 반환.
+- `TextAnalysisModal` 결과가 `FoodSearchModal` 수기 입력 prefill로 연결됨.
+- `FoodSearchModal`에 `AI 답변 요약` 박스가 추가됨 (UI 검토용, records 저장 스키마는 유지).
+- 공통 `src/components/LoadingOverlay.tsx` 도입으로 대시보드/히스토리/내정보/모달의 로딩 표시를 일관화.
+- `my` 페이지 AI 테스트 중복 요청 방지 및 사진 분석 실패 토스트 안내가 추가됨.
