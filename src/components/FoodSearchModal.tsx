@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Info, Search, X } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
 import LoadingOverlay from "@/components/LoadingOverlay";
@@ -152,6 +152,7 @@ export default function FoodSearchModal({
   const [previewSaving, setPreviewSaving] = useState(false);
   const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const isSavingRef = useRef(false);
 
   const setFormAndDraft = (nextForm: FormState) => {
     setForm(nextForm);
@@ -455,6 +456,8 @@ export default function FoodSearchModal({
   };
 
   const handleSaveRecord = async (saveTemplateWithRecord = false) => {
+    if (isSavingRef.current) return;
+
     const validationError = validate();
     if (validationError) {
       setSaveState("error");
@@ -462,6 +465,7 @@ export default function FoodSearchModal({
       return;
     }
 
+    isSavingRef.current = true;
     setSaveState("saving");
     setErrorMessage(null);
     try {
@@ -511,6 +515,8 @@ export default function FoodSearchModal({
       console.error(error);
       setSaveState("error");
       setErrorMessage(error instanceof Error ? error.message : "기록 저장에 실패했습니다.");
+    } finally {
+      isSavingRef.current = false;
     }
   };
 
