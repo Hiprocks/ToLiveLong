@@ -38,15 +38,15 @@ test("goal multipliers and fat ratios follow the rewritten plan", () => {
   const recomposition = calculateNutritionTargets({ ...baseProfile, primaryGoal: "recomposition" });
   const maintenance = calculateNutritionTargets({ ...baseProfile, primaryGoal: "maintenance" });
 
-  assert.equal(cutting.targetCalories, 2240);
-  assert.equal(bulking.targetCalories, 2940);
-  assert.equal(recomposition.targetCalories, 2590);
-  assert.equal(maintenance.targetCalories, 2800);
+  assert.equal(cutting.targetCalories, 2170);
+  assert.equal(bulking.targetCalories, 2850);
+  assert.equal(recomposition.targetCalories, 2510);
+  assert.equal(maintenance.targetCalories, 2710);
 
   assert.equal(cutting.fat, 60);
   assert.equal(bulking.fat, 80);
   assert.equal(recomposition.fat, 85);
-  assert.equal(maintenance.fat, 95);
+  assert.equal(maintenance.fat, 90);
 });
 
 test("recomposition moves lean profiles to maintenance calories", () => {
@@ -60,8 +60,8 @@ test("recomposition moves lean profiles to maintenance calories", () => {
     bodyFatPct: 12,
   });
 
-  assert.equal(withoutBodyFat.targetCalories, 2590);
-  assert.equal(leanMale.targetCalories, 2800);
+  assert.equal(withoutBodyFat.targetCalories, 2510);
+  assert.equal(leanMale.targetCalories, 2710);
 });
 
 test("cutting protein respects bodyweight and calorie caps", () => {

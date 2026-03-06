@@ -1,19 +1,11 @@
 import { ActivityLevel, DailyTargets, NutritionTargets, UserProfileInput } from "@/lib/types";
 
 const ACTIVITY_FACTOR: Record<ActivityLevel, number> = {
-  sedentary: 1.2,
+  sedentary: 1.35,
   light: 1.375,
   moderate: 1.55,
   very: 1.725,
   extra: 1.9,
-};
-
-const NEAT_ADJUSTMENT: Record<ActivityLevel, number> = {
-  sedentary: 0,
-  light: 0.05,
-  moderate: 0.1,
-  very: 0.15,
-  extra: 0.2,
 };
 
 const GOAL_MULTIPLIER: Record<UserProfileInput["primaryGoal"], number> = {
@@ -46,9 +38,7 @@ const getBmr = (profile: UserProfileInput) => {
 };
 
 const getEffectivePal = (profile: UserProfileInput) => {
-  const occupational = ACTIVITY_FACTOR[profile.occupationalActivityLevel ?? "sedentary"];
-  const neatAdjustment = NEAT_ADJUSTMENT[profile.neatLevel ?? "sedentary"];
-  return clamp(occupational + neatAdjustment, 1.2, 1.9);
+  return clamp(ACTIVITY_FACTOR[profile.occupationalActivityLevel ?? "sedentary"], 1.2, 1.9);
 };
 
 const isLeanRecompositionProfile = (profile: UserProfileInput) => {

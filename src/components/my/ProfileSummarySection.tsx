@@ -41,12 +41,8 @@ export default function ProfileSummarySection({ profile, computed }: ProfileSumm
         <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
           <SummaryItem label="목표" value={goalLabels[profile.primaryGoal]} />
           <SummaryItem
-            label="직업 활동량"
+            label="활동 수준"
             value={activityLabels[profile.occupationalActivityLevel ?? "sedentary"]}
-          />
-          <SummaryItem
-            label="일상 활동량(NEAT)"
-            value={activityLabels[profile.neatLevel ?? "sedentary"]}
           />
           <SummaryItem
             label="운동 습관"

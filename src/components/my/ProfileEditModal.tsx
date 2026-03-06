@@ -138,7 +138,7 @@ export default function ProfileEditModal({
 
           <section className="grid grid-cols-2 gap-3 rounded-2xl border border-border/70 bg-background/40 p-4">
             <h3 className="col-span-2 text-sm font-semibold text-muted-foreground">활동 정보</h3>
-            <Field label="직업 활동량">
+            <Field label="활동 수준">
               <select
                 value={form.occupationalActivityLevel ?? "sedentary"}
                 onChange={(e) =>
@@ -147,19 +147,6 @@ export default function ProfileEditModal({
                     occupationalActivityLevel: e.target.value as UserProfileInput["occupationalActivityLevel"],
                   }))
                 }
-                className="w-full rounded-lg border border-border bg-input px-3 py-2"
-              >
-                {activityOptions.map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="일상 활동량(NEAT)">
-              <select
-                value={form.neatLevel ?? "sedentary"}
-                onChange={(e) => setForm((prev) => ({ ...prev, neatLevel: e.target.value as UserProfileInput["neatLevel"] }))}
                 className="w-full rounded-lg border border-border bg-input px-3 py-2"
               >
                 {activityOptions.map(([value, label]) => (
