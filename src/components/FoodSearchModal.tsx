@@ -232,7 +232,7 @@ export default function FoodSearchModal({
       setLoading(true);
       try {
         const res = await fetch("/api/sheets/templates", { cache: "no-store" });
-        if (!res.ok) throw new Error("템플릿을 불러오지 못했습니다.");
+        if (!res.ok) throw new Error("즐겨찾기를 불러오지 못했습니다.");
         const data = (await res.json()) as TemplateItem[];
         if (!isActive) return;
         setCachedData(cacheKeys.templates, data);
@@ -241,7 +241,7 @@ export default function FoodSearchModal({
       } catch (error) {
         if (!isActive) return;
         console.error(error);
-        setErrorMessage("템플릿을 불러오지 못했습니다.");
+        setErrorMessage("즐겨찾기를 불러오지 못했습니다.");
       } finally {
         if (isActive) setLoading(false);
       }
@@ -532,7 +532,7 @@ export default function FoodSearchModal({
       markRecordCacheDirty(form.date);
       if (saveTemplateWithRecord) markCacheDirty(cacheKeys.templates);
       const message = saveTemplateWithRecord
-        ? "템플릿 저장 + 등록이 완료되었습니다."
+        ? "즐겨찾기 저장 + 등록이 완료되었습니다."
         : "식단 등록이 완료되었습니다.";
       showToast({ message, type: "success" });
       setSaveState("success");
@@ -559,7 +559,7 @@ export default function FoodSearchModal({
       });
       if (!res.ok) {
         const result = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(result?.error || "템플릿 삭제에 실패했습니다.");
+        throw new Error(result?.error || "즐겨찾기 삭제에 실패했습니다.");
       }
 
       const nextTemplates = templates.filter((item) => item.id !== target.id);
@@ -574,11 +574,11 @@ export default function FoodSearchModal({
         prev?.kind === "template" && prev.item.id === target.id ? null : prev
       );
       closeTemplatePreview();
-      showToast({ message: "템플릿 삭제가 완료되었습니다.", type: "success" });
-      onSaved?.("템플릿이 삭제되었습니다.");
+      showToast({ message: "즐겨찾기 삭제가 완료되었습니다.", type: "success" });
+      onSaved?.("즐겨찾기가 삭제되었습니다.");
     } catch (error) {
       console.error(error);
-      setErrorMessage(error instanceof Error ? error.message : "템플릿 삭제에 실패했습니다.");
+      setErrorMessage(error instanceof Error ? error.message : "즐겨찾기 삭제에 실패했습니다.");
     } finally {
       setDeletingTemplateId(null);
     }
@@ -721,7 +721,7 @@ export default function FoodSearchModal({
       });
       if (!res.ok) {
         const result = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(result?.error || "템플릿 수정에 실패했습니다.");
+        throw new Error(result?.error || "즐겨찾기 수정에 실패했습니다.");
       }
 
       const saved = (await res.json()) as TemplateItem;
@@ -744,12 +744,12 @@ export default function FoodSearchModal({
       setSelectedSource({ kind: "template", item: saved });
       setFormAndDraft(nextForm);
       setErrorMessage(null);
-      showToast({ message: "템플릿 수정이 완료되었습니다.", type: "success" });
-      onSaved?.("템플릿이 수정되었습니다.");
+      showToast({ message: "즐겨찾기 수정이 완료되었습니다.", type: "success" });
+      onSaved?.("즐겨찾기가 수정되었습니다.");
       closeTemplatePreview();
     } catch (error) {
       console.error(error);
-      setErrorMessage(error instanceof Error ? error.message : "템플릿 수정에 실패했습니다.");
+      setErrorMessage(error instanceof Error ? error.message : "즐겨찾기 수정에 실패했습니다.");
     } finally {
       setPreviewSaving(false);
     }
@@ -763,9 +763,9 @@ export default function FoodSearchModal({
     saveState === "saving"
       ? "식단을 저장하는 중입니다..."
       : previewSaving
-        ? "템플릿 수정을 반영하는 중입니다..."
-        : deletingTemplateId
-          ? "템플릿을 삭제하는 중입니다..."
+        ? "즐겨찾기 수정을 반영하는 중입니다..."
+          : deletingTemplateId
+          ? "즐겨찾기를 삭제하는 중입니다..."
           : "데이터를 불러오는 중입니다...";
 
   return (
@@ -784,7 +784,7 @@ export default function FoodSearchModal({
             수기
           </button>
           <button onClick={() => setMode("template")} className={`rounded-lg py-2 text-sm ${mode === "template" ? "bg-background" : ""}`}>
-            템플릿
+            즐겨찾기
           </button>
         </div>
       </div>
@@ -798,12 +798,12 @@ export default function FoodSearchModal({
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="템플릿 + 식품 DB 통합 검색"
+                placeholder="즐겨찾기 + 식품 DB 통합 검색"
                 className="w-full rounded-full bg-muted/50 py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              최근 사용 템플릿 우선 · 식품DB 결과 함께 표시
+              최근 사용 즐겨찾기 우선 · 식품DB 결과 함께 표시
             </p>
 
           <div
@@ -813,7 +813,7 @@ export default function FoodSearchModal({
           >
               {loading && <p className="text-sm text-muted-foreground">불러오는 중...</p>}
               {!loading && mode === "template" && filteredTemplates.length === 0 && (
-                <p className="text-sm text-muted-foreground">템플릿이 없습니다.</p>
+                <p className="text-sm text-muted-foreground">즐겨찾기가 없습니다.</p>
               )}
               {!loading && mode === "template" && query.trim() && filteredTemplates.length === 0 && dbResults.length === 0 && (
                 <p className="text-sm text-muted-foreground">식품DB 검색 결과가 없습니다.</p>
@@ -1005,7 +1005,7 @@ export default function FoodSearchModal({
           disabled={saveState === "saving"}
           className="flex items-center justify-center rounded-xl border border-border bg-muted py-3 text-sm font-semibold text-foreground disabled:opacity-50"
         >
-          {saveState === "saving" ? "저장 중..." : isTemplateMode ? "템플릿 저장 + 등록" : "등록"}
+          {saveState === "saving" ? "저장 중..." : isTemplateMode ? "즐겨찾기 저장 + 등록" : "등록"}
         </button>
         <button
           onClick={() => void handleSaveRecord(isTemplateMode ? false : true)}
@@ -1013,7 +1013,7 @@ export default function FoodSearchModal({
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-bold text-primary-foreground disabled:opacity-50"
         >
           <Check className="h-5 w-5" />
-          {saveState === "saving" ? "저장 중..." : isTemplateMode ? "등록" : "템플릿 저장 + 등록"}
+          {saveState === "saving" ? "저장 중..." : isTemplateMode ? "등록" : "즐겨찾기 저장 + 등록"}
         </button>
       </div>
 
@@ -1022,12 +1022,12 @@ export default function FoodSearchModal({
           <div className="w-full max-w-md space-y-3 rounded-xl border border-border bg-card p-4">
             <div className="flex items-start justify-between gap-3">
               <h3 className="text-lg font-semibold">
-                {previewSource.kind === "template" ? "템플릿 수정" : "식품DB 상세"}
+                {previewSource.kind === "template" ? "즐겨찾기 수정" : "식품DB 상세"}
               </h3>
               <button
                 onClick={closeTemplatePreview}
                 className="rounded-full p-1 hover:bg-muted"
-                aria-label="템플릿 상세 닫기"
+                aria-label="즐겨찾기 상세 닫기"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -1126,7 +1126,7 @@ export default function FoodSearchModal({
                   disabled={deletingTemplateId === previewSource.item.id}
                   className="w-full rounded-lg border border-red-500/60 bg-red-500/10 py-2 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none"
                 >
-                  {deletingTemplateId === previewSource.item.id ? "삭제 중..." : "템플릿 삭제"}
+                  {deletingTemplateId === previewSource.item.id ? "삭제 중..." : "즐겨찾기 삭제"}
                 </button>
               </div>
             )}

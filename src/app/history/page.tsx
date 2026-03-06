@@ -282,14 +282,14 @@ export default function HistoryPage() {
 
       if (!response.ok) {
         const result = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(result?.error || "템플릿 등록에 실패했습니다.");
+        throw new Error(result?.error || "즐겨찾기 등록에 실패했습니다.");
       }
 
       setErrorMessage(null);
-      showToast({ message: "템플릿 등록이 완료되었습니다.", type: "success" });
+      showToast({ message: "즐겨찾기 등록이 완료되었습니다.", type: "success" });
     } catch (error) {
       console.error(error);
-      setErrorMessage(error instanceof Error ? error.message : "템플릿 등록에 실패했습니다.");
+      setErrorMessage(error instanceof Error ? error.message : "즐겨찾기 등록에 실패했습니다.");
     } finally {
       setTemplateSaving(false);
     }
@@ -508,7 +508,7 @@ export default function HistoryPage() {
               disabled={templateSaving}
               className="w-full rounded-lg border border-border bg-background py-2 text-sm font-semibold text-foreground disabled:opacity-50"
             >
-              {templateSaving ? "템플릿 저장 중..." : "템플릿 등록"}
+              {templateSaving ? "즐겨찾기 저장 중..." : "즐겨찾기 등록"}
             </button>
             <div className="flex gap-2">
               <button onClick={closeEdit} className="flex-1 rounded-lg bg-muted py-2">
@@ -548,14 +548,7 @@ export default function HistoryPage() {
                 className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
               >
                 <Shapes className="h-4 w-4" />
-                <span className="text-sm">템플릿 사용</span>
-              </button>
-              <button
-                onClick={() => openFoodModal("manual")}
-                className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
-              >
-                <PencilLine className="h-4 w-4" />
-                <span className="text-sm">수기 입력</span>
+                <span className="text-sm">즐겨찾기 사용</span>
               </button>
               <button
                 onClick={openPhotoModal}
@@ -563,6 +556,13 @@ export default function HistoryPage() {
               >
                 <Camera className="h-4 w-4" />
                 <span className="text-sm">사진 등록</span>
+              </button>
+              <button
+                onClick={() => openFoodModal("manual")}
+                className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
+              >
+                <PencilLine className="h-4 w-4" />
+                <span className="text-sm">수기 입력</span>
               </button>
             </div>
           </div>

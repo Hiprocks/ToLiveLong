@@ -380,7 +380,7 @@ export default function Home() {
                 className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
               >
                 <Shapes className="h-4 w-4" />
-                <span className="text-sm">템플릿 사용</span>
+                <span className="text-sm">즐겨찾기 사용</span>
               </button>
               <button
                 onClick={openAiTextModal}
@@ -390,18 +390,18 @@ export default function Home() {
                 <span className="text-sm">AI 등록</span>
               </button>
               <button
-                onClick={() => openFoodModal("manual")}
-                className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
-              >
-                <PencilLine className="h-4 w-4" />
-                <span className="text-sm">수기 입력</span>
-              </button>
-              <button
                 onClick={openPhotoModal}
                 className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
               >
                 <Camera className="h-4 w-4" />
                 <span className="text-sm">사진 등록</span>
+              </button>
+              <button
+                onClick={() => openFoodModal("manual")}
+                className="flex w-full items-center gap-4 rounded-2xl p-4 text-left hover:bg-white/5"
+              >
+                <PencilLine className="h-4 w-4" />
+                <span className="text-sm">수기 입력</span>
               </button>
             </div>
           </div>
