@@ -85,3 +85,13 @@
 - `FoodSearchModal`에서 `AI 답변 요약` 표시를 지원(저장 스키마 변경 없음).
 - 공통 `LoadingOverlay` 도입으로 대시보드/히스토리/내정보/모달 로딩 UX 일관화.
 - `meal-entry-ai-registration` PDCA가 report까지 완료되어 archive 단계로 전환됨.
+
+---
+
+## 10) Update Log (2026-03-06, Goal System Refactor)
+
+- 목표 체계 4개 고정, 내부 계산 엔진 전면 재구성 (`calculateTargets.ts`).
+- `sedentary` 활동 계수 1.35 확정, NEAT 별도 입력 폐지 → 활동 수준 단일 드롭다운.
+- lean recomposition 분기, 단백질/지방 상한 로직, 10 kcal/5g 반올림 단위 적용.
+- 단위 테스트 신규 작성 4/4 통과, `macroPreference` 제거, `waistCm` 입력 추가.
+- `goal-system-setup-improvement` PDCA archive 완료.

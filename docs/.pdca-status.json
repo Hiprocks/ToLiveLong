@@ -1,10 +1,8 @@
 {
   "version": "2.0",
   "lastUpdated": "2026-03-06T00:40:00.000Z",
-  "activeFeatures": [
-    "goal-system-setup-improvement"
-  ],
-  "primaryFeature": "goal-system-setup-improvement",
+  "activeFeatures": [],
+  "primaryFeature": null,
   "features": {
     "meal-entry-ux": {
       "phase": "archive",
@@ -206,26 +204,27 @@
       "completedAt": "2026-03-03T10:30:00.000Z"
     },
     "goal-system-setup-improvement": {
-      "phase": "plan",
+      "phase": "archive",
       "matchRate": null,
       "iterationCount": 0,
-      "documents": {
-        "plan": "docs/01-plan/features/goal-system-setup-improvement.plan.md"
-      },
+      "documents": {},
       "legacy": {
-        "progress": 15,
-        "status": "active",
-        "next": "design",
+        "progress": 100,
+        "status": "archived",
+        "next": null,
         "checklist": {
           "plan": true,
-          "design": false,
-          "do": false,
-          "analyze": false,
+          "design": true,
+          "do": true,
+          "analyze": true,
           "iterate": false,
-          "report": false,
-          "archive": false
+          "report": true,
+          "archive": true
         }
-      }
+      },
+      "archived": true,
+      "archivedAt": "2026-03-06T16:00:00.000Z",
+      "completedAt": "2026-03-06T16:00:00.000Z"
     },
     "meal-entry-ai-registration": {
       "phase": "archive",
@@ -325,10 +324,17 @@
       "phase": "report",
       "nextPhase": "completed",
       "timestamp": "2026-03-06T00:40:00.000Z"
+    },
+    {
+      "feature": "goal-system-setup-improvement",
+      "action": "phase_complete",
+      "phase": "report",
+      "nextPhase": "completed",
+      "timestamp": "2026-03-06T16:00:00.000Z"
     }
   ],
   "legacyStatus": {
-    "current_feature": "goal-system-setup-improvement",
+    "current_feature": null,
     "level": "dynamic",
     "updated_at": "2026-03-06"
   }

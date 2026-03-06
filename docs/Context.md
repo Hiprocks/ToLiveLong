@@ -153,3 +153,21 @@
 - `FoodSearchModal`에 `AI 답변 요약` 박스가 추가됨 (UI 검토용, records 저장 스키마는 유지).
 - 공통 `src/components/LoadingOverlay.tsx` 도입으로 대시보드/히스토리/내정보/모달의 로딩 표시를 일관화.
 - `my` 페이지 AI 테스트 중복 요청 방지 및 사진 분석 실패 토스트 안내가 추가됨.
+
+---
+
+## 18) Context Update (2026-03-06, Goal System Refactor)
+
+- 목표 체계 4개 고정: `cutting / bulking / recomposition / maintenance`
+- **NEAT 별도 입력 폐지**: `neatLevel` 타입 제거, 활동 수준 단일 드롭다운("활동 수준")으로 통합
+- `sedentary` PAL 계수 1.2 → **1.35** 확정
+- `macroPreference` 타입 및 UI 제거
+- `waistCm` (optional) 신규 입력 추가 — 지방 추적 지표
+- `calculateTargets.ts` 전면 재구성:
+  - PAL = ACTIVITY_FACTOR[occupationalActivityLevel] only (NEAT_ADJUSTMENT 삭제)
+  - lean recomposition 분기 (체지방 ≤15%/23% → maintenance 칼로리)
+  - 단백질 상한: 체중×2.2g, 칼로리 35% 동시 적용
+  - 지방: 칼로리 비율(25~30%) + 최소 보장(체중×0.6g)
+  - 출력 단위: 칼로리 10 kcal, 매크로 5g 반올림
+- `calculateTargets.test.ts` 신규 작성 (4 시나리오, 4/4 PASS)
+- Google Sheets `user` 시트: `waistCm` 컬럼 추가, `macroPreference` 제거
