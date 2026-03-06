@@ -57,7 +57,10 @@ const getProteinGrams = (profile: UserProfileInput, targetCalories: number) => {
 
   if ((profile.primaryGoal === "cutting" || profile.primaryGoal === "recomposition") && profile.bodyFatPct !== undefined) {
     const leanMassKg = profile.weightKg * (1 - profile.bodyFatPct / 100);
-    grams = clamp(leanMassKg * 2.2, leanMassKg * 1.8, leanMassKg * 2.6);
+    // cutting: muscle preservation in deficit → 2.2 g/kg LBM
+    // recomposition: simultaneous fat loss + muscle gain → 2.5 g/kg LBM
+    const lbmMultiplier = profile.primaryGoal === "recomposition" ? 2.5 : 2.2;
+    grams = leanMassKg * lbmMultiplier;
   }
 
   const bwCap = profile.weightKg * 2.2;
