@@ -158,7 +158,7 @@ export default function MyPage() {
             등록하기
           </motion.button>
         </div>
-      ) : !loading ? (
+      ) : !loading && data?.profile ? (
         <>
           <ProfileSummarySection profile={data.profile} computed={data.computed ?? null} />
           <motion.button
