@@ -1,4 +1,4 @@
-const CACHE_NAME = "to-live-long-v2";
+const CACHE_NAME = "to-live-long-v3";
 const OFFLINE_CACHE = ["/", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
