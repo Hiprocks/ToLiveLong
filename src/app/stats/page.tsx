@@ -25,6 +25,8 @@ const AI_REVIEW_STORAGE_KEY = "diet-ai-review-last";
 type AiReviewCache = {
   text: string;
   generatedAt: string;
+  from?: string;
+  to?: string;
 };
 
 function loadAiReviewCache(): AiReviewCache | null {
@@ -37,13 +39,30 @@ function loadAiReviewCache(): AiReviewCache | null {
   }
 }
 
-function saveAiReviewCache(text: string) {
+function saveAiReviewCache(text: string, range?: { from: string; to: string }) {
   try {
-    const value: AiReviewCache = { text, generatedAt: new Date().toISOString() };
+    const value: AiReviewCache = {
+      text,
+      generatedAt: new Date().toISOString(),
+      from: range?.from,
+      to: range?.to,
+    };
     localStorage.setItem(AI_REVIEW_STORAGE_KEY, JSON.stringify(value));
   } catch {
     // localStorage 저장 실패 시 무시
   }
+}
+
+function sanitizeReviewText(text: string): string {
+  return text
+    .replace(/\r/g, "")
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^\s*[-*]\s+/gm, "• ")
+    .trim();
 }
 
 const DEFAULT_TARGETS: DailyTargets = {
@@ -144,7 +163,7 @@ const MiniChart = ({ data, dataKey, label, target, color }: MiniChartProps) => (
 
 export default function StatsPage() {
   const [weekStart, setWeekStart] = useState<Date>(() =>
-    startOfWeek(new Date(), { weekStartsOn: 0 })
+    startOfWeek(new Date(), { weekStartsOn: 1 })
   );
   const [targets, setTargets] = useState<DailyTargets>(DEFAULT_TARGETS);
   const [userResponse, setUserResponse] = useState<UserTargetsResponse | null>(null);
@@ -155,6 +174,7 @@ export default function StatsPage() {
 
   const [aiReviewText, setAiReviewText] = useState<string>("");
   const [aiReviewDate, setAiReviewDate] = useState<string | null>(null);
+  const [aiReviewRange, setAiReviewRange] = useState<{ from: string; to: string } | null>(null);
   const [aiStreamingText, setAiStreamingText] = useState<string>("");
   const [isAiStreaming, setIsAiStreaming] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -163,8 +183,15 @@ export default function StatsPage() {
   useEffect(() => {
     const cached = loadAiReviewCache();
     if (cached) {
-      setAiReviewText(cached.text);
+      setAiReviewText(sanitizeReviewText(cached.text));
       setAiReviewDate(cached.generatedAt);
+      if (cached.from && cached.to) {
+        setAiReviewRange({ from: cached.from, to: cached.to });
+      } else if (cached.generatedAt) {
+        const to = format(new Date(cached.generatedAt), "yyyy-MM-dd");
+        const from = format(subDays(new Date(cached.generatedAt), 6), "yyyy-MM-dd");
+        setAiReviewRange({ from, to });
+      }
     }
   }, []);
 
@@ -249,8 +276,10 @@ export default function StatsPage() {
         setAiStreamingText(accumulated);
       }
 
-      setAiReviewText(accumulated);
-      saveAiReviewCache(accumulated);
+      const cleaned = sanitizeReviewText(accumulated);
+      setAiReviewText(cleaned);
+      setAiReviewRange({ from, to });
+      saveAiReviewCache(cleaned, { from, to });
       setAiReviewDate(new Date().toISOString());
     } catch (err) {
       setAiError(err instanceof Error ? err.message : "오류가 발생했습니다. 다시 시도해주세요.");
@@ -289,7 +318,10 @@ export default function StatsPage() {
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const goalDays = monthlySummaries.filter((d) => d.calories >= targets.calories * 0.85 && d.calories <= targets.calories * 1.1).length;
   const hasAiReview = aiReviewText.trim().length > 0;
-  const modalReviewText = isAiStreaming ? (aiStreamingText || aiReviewText) : aiReviewText;
+  const modalReviewText = isAiStreaming ? sanitizeReviewText(aiStreamingText || aiReviewText) : aiReviewText;
+  const aiRangeLabel = aiReviewRange
+    ? `${format(new Date(`${aiReviewRange.from}T00:00:00`), "M/d")}~${format(new Date(`${aiReviewRange.to}T00:00:00`), "M/d")}`
+    : null;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -318,7 +350,7 @@ export default function StatsPage() {
                 onClick={() => setWeekStart((w) => addWeeks(w, 1))}
                 className="rounded-full p-2 hover:bg-muted"
                 aria-label="다음 주"
-                disabled={weekStart >= startOfWeek(new Date(), { weekStartsOn: 0 })}
+                disabled={weekStart >= startOfWeek(new Date(), { weekStartsOn: 1 })}
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -338,9 +370,12 @@ export default function StatsPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setIsAiModalOpen(true)}
-                    className="flex-1 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
+                    className="flex-1 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
                   >
-                    AI평가 보기
+                    <span className="block">AI평가 보기</span>
+                    {aiRangeLabel && (
+                      <span className="mt-0.5 block text-xs font-normal text-muted-foreground">({aiRangeLabel})</span>
+                    )}
                   </button>
                   <button
                     onClick={() => void requestAiReview(true)}
@@ -413,9 +448,9 @@ export default function StatsPage() {
 
       {isAiModalOpen && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" onClick={() => setIsAiModalOpen(false)}>
-          <div className="mx-auto flex min-h-full max-w-md items-end p-4 sm:items-center">
+          <div className="flex min-h-full items-center justify-center p-4">
             <div
-              className="max-h-[80vh] w-full overflow-hidden rounded-2xl border border-border bg-card shadow-lg"
+              className="max-h-[80vh] w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card shadow-lg"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
