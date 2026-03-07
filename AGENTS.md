@@ -58,6 +58,52 @@ ALWAYS include at the end of each response:
 - **Cost Impact**: Development time, infrastructure cost, maintenance burden
 - **Deployment Considerations**: Environment-specific notes
 
+## Deployment Workflow (MANDATORY)
+
+### 기본 원칙
+- 개발 중 커밋은 `develop` 브랜치 push까지만 수행한다.
+- `npx vercel --prod` (프로덕션 배포)는 사용자가 명시적으로 아래 표현을 사용할 때만 실행한다:
+  - "마무리해", "정리해줘", "배포해", "올려줘", "publish", "deploy"
+- 사용자가 위 표현 없이 작업을 완료해도 배포하지 말고, 마지막에 다음 문구를 표시한다:
+  > "테스트 후 '마무리해' 또는 '배포해'라고 하시면 프로덕션에 배포합니다."
+
+### 워크플로우
+1. 구현 완료 → `git commit` + `git push origin develop`
+2. 사용자 테스트
+3. 사용자 배포 요청 → `git push origin develop` (최신화) + `npx vercel --prod`
+
+---
+
+## UI/Design System Rules (MANDATORY)
+
+### 색상 하드코딩 금지
+- 색상값(`#xxxxxx`, `rgb()`, `rgba()`, `hsl()`, `oklch()`)을 컴포넌트 인라인 스타일이나 `contentStyle`에 직접 사용하지 않는다.
+- **반드시 Tailwind CSS 클래스 또는 CSS 변수를 사용한다:**
+  - 배경: `bg-background`, `bg-card`, `bg-muted` 등
+  - 텍스트: `text-foreground`, `text-muted-foreground`, `text-primary` 등
+  - 테두리: `border-border`, `border-primary` 등
+
+### Recharts 툴팁 규칙
+- `contentStyle`에 하드코딩 색상 금지
+- 반드시 `content` prop에 커스텀 컴포넌트(Tailwind 클래스 사용)를 넘긴다:
+  ```tsx
+  <Tooltip
+    content={(props) => (
+      <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-lg">
+        <p className="text-xs text-muted-foreground">{props.label}</p>
+        <p className="text-sm font-semibold text-foreground">...</p>
+      </div>
+    )}
+  />
+  ```
+
+### 신규 컴포넌트 작성 시 체크리스트
+- [ ] 색상 하드코딩 없음
+- [ ] Tailwind 유틸리티 클래스 사용
+- [ ] 외부 라이브러리(recharts 등) 스타일은 커스텀 컴포넌트로 래핑
+
+---
+
 ## Team Workflow (Multi-Role Mode)
 
 Default team roles:

@@ -180,3 +180,16 @@
   - 예) 60kg 남성 체지방 27.2% → 95g → **110g**
 - 단위 테스트 2개 추가 (총 6개): recomposition LBM×2.5, cutting LBM×2.2 경로 각각 검증
 - `calculateTargets.test.ts`에서 잔존 `neatLevel` 참조 제거
+
+---
+
+## 20) Design System Rules (2026-03-07)
+
+### 색상 하드코딩 금지 (교훈: stats 페이지 tooltip 실수)
+- Recharts `contentStyle` 등 외부 라이브러리의 인라인 스타일에 `#hex`, `rgb()`, `rgba()` 직접 사용 금지
+- 반드시 Tailwind CSS 변수 기반 클래스 사용: `bg-card`, `text-foreground`, `border-border` 등
+- Recharts `<Tooltip>`은 `content` prop에 커스텀 컴포넌트를 전달하여 디자인 시스템 적용
+
+### 배포 워크플로우 (2026-03-07~)
+- 구현 완료 후 기본 동작: `git commit` + `git push origin develop` 까지만
+- 프로덕션 배포(`npx vercel --prod`)는 사용자가 "마무리해", "정리해줘", "배포해" 등 명시적으로 요청할 때만 실행
