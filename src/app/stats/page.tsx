@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { addDays, addWeeks, format, startOfWeek, subWeeks } from "date-fns";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { addDays, addWeeks, format, startOfWeek, subDays, subWeeks } from "date-fns";
 import { ko } from "date-fns/locale";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Sparkles } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -17,8 +17,34 @@ import {
 import { motion } from "framer-motion";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import ErrorBanner from "@/components/ErrorBanner";
-import { DailyTargets } from "@/lib/types";
+import { DailyTargets, UserTargetsResponse } from "@/lib/types";
 import { DailySummary } from "@/lib/sheetsCache";
+
+const AI_REVIEW_STORAGE_KEY = "diet-ai-review-last";
+
+type AiReviewCache = {
+  text: string;
+  generatedAt: string;
+};
+
+function loadAiReviewCache(): AiReviewCache | null {
+  try {
+    const raw = localStorage.getItem(AI_REVIEW_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as AiReviewCache;
+  } catch {
+    return null;
+  }
+}
+
+function saveAiReviewCache(text: string) {
+  try {
+    const value: AiReviewCache = { text, generatedAt: new Date().toISOString() };
+    localStorage.setItem(AI_REVIEW_STORAGE_KEY, JSON.stringify(value));
+  } catch {
+    // localStorage 저장 실패 시 무시
+  }
+}
 
 const DEFAULT_TARGETS: DailyTargets = {
   calories: 2000,
@@ -121,15 +147,33 @@ export default function StatsPage() {
     startOfWeek(new Date(), { weekStartsOn: 0 })
   );
   const [targets, setTargets] = useState<DailyTargets>(DEFAULT_TARGETS);
+  const [userResponse, setUserResponse] = useState<UserTargetsResponse | null>(null);
   const [summaryMap, setSummaryMap] = useState<Map<string, DailySummary>>(new Map());
   const [monthlySummaries, setMonthlySummaries] = useState<DailySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [aiReviewText, setAiReviewText] = useState<string>("");
+  const [aiReviewDate, setAiReviewDate] = useState<string | null>(null);
+  const [isAiStreaming, setIsAiStreaming] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [showAiSection, setShowAiSection] = useState(false);
+  const aiSectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const cached = loadAiReviewCache();
+    if (cached) {
+      setAiReviewText(cached.text);
+      setAiReviewDate(cached.generatedAt);
+      setShowAiSection(true);
+    }
+  }, []);
+
   const fetchTargets = useCallback(async () => {
     const res = await fetch("/api/sheets/user", { cache: "no-store" });
     if (!res.ok) return;
-    const data = (await res.json()) as DailyTargets;
+    const data = (await res.json()) as UserTargetsResponse;
+    setUserResponse(data);
     setTargets(data);
   }, []);
 
@@ -163,6 +207,61 @@ export default function StatsPage() {
       setLoading(false);
     }
   }, [fetchSummary]);
+
+  const requestAiReview = useCallback(async () => {
+    if (isAiStreaming) return;
+    setIsAiStreaming(true);
+    setAiError(null);
+    setAiReviewText("");
+    setShowAiSection(true);
+
+    setTimeout(() => {
+      aiSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+
+    try {
+      const today = new Date();
+      const from = format(subDays(today, 6), "yyyy-MM-dd");
+      const to = format(today, "yyyy-MM-dd");
+      const res = await fetch(`/api/sheets/records/summary?from=${from}&to=${to}`, { cache: "no-store" });
+      if (!res.ok) throw new Error("식단 데이터를 불러오지 못했습니다.");
+      const recentSummaries = (await res.json()) as DailySummary[];
+
+      const reviewRes = await fetch("/api/analyze/diet-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          summaries: recentSummaries,
+          targets,
+          profile: userResponse?.profile ?? null,
+        }),
+      });
+
+      if (!reviewRes.ok || !reviewRes.body) {
+        const errText = await reviewRes.text();
+        throw new Error(errText || "AI 평가 요청에 실패했습니다.");
+      }
+
+      const reader = reviewRes.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        accumulated += chunk;
+        setAiReviewText(accumulated);
+      }
+
+      saveAiReviewCache(accumulated);
+      setAiReviewDate(new Date().toISOString());
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "오류가 발생했습니다. 다시 시도해주세요.");
+    } finally {
+      setIsAiStreaming(false);
+    }
+  }, [isAiStreaming, targets, userResponse]);
 
   useEffect(() => {
     void fetchTargets();
@@ -199,6 +298,61 @@ export default function StatsPage() {
       <div className="mx-auto max-w-md px-4 pt-8">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
           <h1 className="mb-6 text-xl font-bold">통계</h1>
+
+          {/* AI 평가 섹션 */}
+          <section className="mb-6" ref={aiSectionRef}>
+            {!showAiSection ? (
+              <button
+                onClick={() => void requestAiReview()}
+                disabled={isAiStreaming}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card px-4 py-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-60"
+              >
+                <Sparkles className="h-4 w-4 text-yellow-400" />
+                AI에게 지난 7일 식단 평가받기
+              </button>
+            ) : (
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-yellow-400" />
+                    <span className="text-sm font-semibold">AI 식단 평가</span>
+                  </div>
+                  <button
+                    onClick={() => void requestAiReview()}
+                    disabled={isAiStreaming}
+                    className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                    aria-label="재생성"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${isAiStreaming ? "animate-spin" : ""}`} />
+                    {isAiStreaming ? "생성 중..." : "재생성"}
+                  </button>
+                </div>
+
+                {aiError && (
+                  <p className="mb-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">{aiError}</p>
+                )}
+
+                {aiReviewText ? (
+                  <>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                      {aiReviewText}
+                      {isAiStreaming && <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-foreground align-middle" />}
+                    </p>
+                    {!isAiStreaming && aiReviewDate && (
+                      <p className="mt-3 text-right text-xs text-muted-foreground">
+                        {format(new Date(aiReviewDate), "M/d HH:mm 기준")}
+                      </p>
+                    )}
+                  </>
+                ) : isAiStreaming ? (
+                  <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+                    <span className="inline-block h-4 w-0.5 animate-pulse bg-muted-foreground" />
+                    <span>평가를 생성하고 있습니다...</span>
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </section>
 
           {error && <ErrorBanner message={error} />}
 
