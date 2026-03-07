@@ -38,6 +38,33 @@ type ChartDay = {
   fat: number;
 };
 
+type TooltipPayloadEntry = {
+  dataKey: string;
+  value: number;
+  color: string;
+};
+
+type CustomTooltipProps = {
+  active?: boolean;
+  payload?: TooltipPayloadEntry[];
+  label?: string;
+  unit: string;
+  nutrientLabel: string;
+};
+
+function CustomTooltip({ active, payload, label, unit, nutrientLabel }: CustomTooltipProps) {
+  if (!active || !payload?.length) return null;
+  const value = payload[0]?.value ?? 0;
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-lg">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm font-semibold text-foreground">
+        {value.toLocaleString()}{unit} <span className="text-xs font-normal text-muted-foreground">{nutrientLabel}</span>
+      </p>
+    </div>
+  );
+}
+
 const buildWeekDays = (weekStart: Date, summaryMap: Map<string, DailySummary>): ChartDay[] => {
   return Array.from({ length: 7 }, (_, i) => {
     const d = addDays(weekStart, i);
@@ -71,8 +98,13 @@ const MiniChart = ({ data, dataKey, label, target, color }: MiniChartProps) => (
         <XAxis dataKey="label" tick={{ fontSize: 9, fill: "rgba(255,255,255,0.4)" }} axisLine={false} tickLine={false} />
         <YAxis tick={{ fontSize: 9, fill: "rgba(255,255,255,0.4)" }} axisLine={false} tickLine={false} />
         <Tooltip
-          contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 11 }}
-          formatter={(v: number) => [`${v}g`, label]}
+          content={(props) => (
+            <CustomTooltip
+              {...(props as CustomTooltipProps)}
+              unit="g"
+              nutrientLabel={label}
+            />
+          )}
         />
         <ReferenceLine y={target} stroke={color} strokeDasharray="4 2" strokeOpacity={0.6} />
         <Bar dataKey={dataKey} fill={color} fillOpacity={0.8} radius={[3, 3, 0, 0]} />
@@ -200,8 +232,13 @@ export default function StatsPage() {
                   <XAxis dataKey="label" tick={{ fontSize: 11, fill: "rgba(255,255,255,0.5)" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: "rgba(255,255,255,0.4)" }} axisLine={false} tickLine={false} />
                   <Tooltip
-                    contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
-                    formatter={(v: number) => [`${v.toLocaleString()} kcal`, "칼로리"]}
+                    content={(props) => (
+                      <CustomTooltip
+                        {...(props as CustomTooltipProps)}
+                        unit=" kcal"
+                        nutrientLabel="칼로리"
+                      />
+                    )}
                   />
                   <ReferenceLine y={targets.calories} stroke="rgba(34,197,94,0.7)" strokeDasharray="4 2" label={{ value: "목표", position: "right", fontSize: 9, fill: "rgba(34,197,94,0.7)" }} />
                   <Bar dataKey="calories" fill="rgba(59,130,246,0.75)" radius={[4, 4, 0, 0]} />
