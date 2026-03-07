@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { addDays, format, parseISO } from "date-fns";
+import { ko } from "date-fns/locale";
 import { Camera, Database, Pencil, PencilLine, Plus, Shapes, Trash2 } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
 import FoodSearchModal from "@/components/FoodSearchModal";
@@ -354,7 +355,9 @@ export default function HistoryPage() {
             aria-label="날짜 선택 열기"
           >
             <p className="text-xs text-muted-foreground">조회 날짜</p>
-            <p className="text-sm font-semibold">{date}</p>
+            <p className="text-sm font-semibold">
+              {date} <span className="text-xs font-normal text-muted-foreground">({format(parseISO(date), "EEE", { locale: ko })})</span>
+            </p>
           </button>
           <button
             type="button"
