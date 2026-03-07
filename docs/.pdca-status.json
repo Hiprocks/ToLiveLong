@@ -1,9 +1,32 @@
 {
   "version": "2.0",
   "lastUpdated": "2026-03-06T00:40:00.000Z",
-  "activeFeatures": [],
-  "primaryFeature": null,
+  "activeFeatures": ["diet-ai-review"],
+  "primaryFeature": "diet-ai-review",
   "features": {
+    "diet-ai-review": {
+      "phase": "plan",
+      "matchRate": 0,
+      "iterationCount": 0,
+      "documents": {
+        "plan": "docs/01-plan/features/diet-ai-review.plan.md"
+      },
+      "legacy": {
+        "progress": 10,
+        "status": "plan-complete",
+        "next": "do",
+        "checklist": {
+          "plan": true,
+          "design": false,
+          "do": false,
+          "analyze": false,
+          "iterate": false,
+          "report": false,
+          "archive": false
+        }
+      },
+      "archived": false
+    },
     "api-response-cache": {
       "phase": "archive",
       "matchRate": 100,
