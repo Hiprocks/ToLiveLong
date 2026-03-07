@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { addDays, addWeeks, format, startOfWeek, subDays, subWeeks } from "date-fns";
 import { ko } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, RefreshCw, Sparkles, X } from "lucide-react";
+import { RefreshCw, Sparkles, X } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -15,8 +15,9 @@ import {
   YAxis,
 } from "recharts";
 import { motion } from "framer-motion";
-import LoadingOverlay from "@/components/LoadingOverlay";
+import DateNavCard from "@/components/DateNavCard";
 import ErrorBanner from "@/components/ErrorBanner";
+import LoadingOverlay from "@/components/LoadingOverlay";
 import { DailyTargets, UserTargetsResponse } from "@/lib/types";
 import { DailySummary } from "@/lib/sheetsCache";
 
@@ -366,26 +367,15 @@ export default function StatsPage() {
 
           {/* 주간 섹션 */}
           <section className="mb-8">
-            {/* 주 탐색 */}
-            <div className="mb-4 flex items-center justify-between">
-              <button
-                onClick={() => setWeekStart((w) => subWeeks(w, 1))}
-                className="rounded-full p-2 hover:bg-muted"
-                aria-label="이전 주"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="text-sm font-medium text-muted-foreground">
-                {format(weekStart, "MM.dd", { locale: ko })} ~ {format(weekEnd, "MM.dd", { locale: ko })}
-              </span>
-              <button
-                onClick={() => setWeekStart((w) => addWeeks(w, 1))}
-                className="rounded-full p-2 hover:bg-muted"
-                aria-label="다음 주"
-                disabled={weekStart >= startOfWeek(new Date(), { weekStartsOn: 1 })}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
+            <div className="mb-4">
+              <DateNavCard
+                onPrev={() => setWeekStart((w) => subWeeks(w, 1))}
+                onNext={() => setWeekStart((w) => addWeeks(w, 1))}
+                canGoNext={weekStart < startOfWeek(new Date(), { weekStartsOn: 1 })}
+                centerValue={`${format(weekStart, "MM.dd", { locale: ko })} ~ ${format(weekEnd, "MM.dd", { locale: ko })}`}
+                prevAriaLabel="이전 주"
+                nextAriaLabel="다음 주"
+              />
             </div>
 
             <div className="mb-4">

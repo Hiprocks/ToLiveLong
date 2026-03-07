@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { addDays, format, parseISO } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Bot, Camera, Database, Pencil, PencilLine, Plus, Shapes, Trash2 } from "lucide-react";
+import DateNavCard from "@/components/DateNavCard";
 import ErrorBanner from "@/components/ErrorBanner";
 import FoodSearchModal from "@/components/FoodSearchModal";
 import LoadingOverlay from "@/components/LoadingOverlay";
@@ -345,37 +346,21 @@ export default function HistoryPage() {
     >
       <h1 className="text-2xl font-bold">기록</h1>
       <ErrorBanner message={errorMessage} />
-      <div className="space-y-2 rounded-2xl border border-border/80 bg-card/70 p-3">
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => moveDateByDays(-1)}
-            className="h-9 w-9 rounded-full border border-border/80 bg-background/80 text-base font-semibold text-foreground transition-colors hover:border-primary/60 hover:text-primary"
-            aria-label="이전 날짜"
-          >
-            {"<"}
-          </button>
-          <button
-            type="button"
-            onClick={openDatePicker}
-            className="rounded-lg border border-border bg-background px-3 py-1.5 text-center transition-colors hover:border-primary/60"
-            aria-label="날짜 선택 열기"
-          >
-            <p className="text-xs text-muted-foreground">조회 날짜</p>
-            <p className="text-sm font-semibold">
-              {date} <span className="text-xs font-normal text-muted-foreground">({format(parseISO(date), "EEE", { locale: ko })})</span>
-            </p>
-          </button>
-          <button
-            type="button"
-            onClick={() => moveDateByDays(1)}
-            disabled={isAtToday}
-            className="h-9 w-9 rounded-full border border-border/80 bg-background/80 text-base font-semibold text-foreground transition-colors hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label="다음 날짜"
-          >
-            {">"}
-          </button>
-        </div>
+      <DateNavCard
+        onPrev={() => moveDateByDays(-1)}
+        onNext={() => moveDateByDays(1)}
+        canGoNext={isAtToday === false}
+        centerLabel="조회 날짜"
+        centerValue={
+          <>
+            {date} <span className="text-xs font-normal text-muted-foreground">({format(parseISO(date), "EEE", { locale: ko })})</span>
+          </>
+        }
+        onCenterClick={openDatePicker}
+        prevAriaLabel="이전 날짜"
+        nextAriaLabel="다음 날짜"
+        centerAriaLabel="날짜 선택 열기"
+      >
         <input
           ref={datePickerRef}
           type="date"
@@ -385,7 +370,7 @@ export default function HistoryPage() {
           className="sr-only"
           aria-label="날짜 바로 이동"
         />
-      </div>
+      </DateNavCard>
 
       {loading ? (
         <div className="h-14" />
