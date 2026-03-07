@@ -1,4 +1,4 @@
-﻿export interface DailyTargets {
+export interface DailyTargets {
   calories: number;
   carbs: number;
   protein: number;
@@ -52,6 +52,12 @@ export interface UserTargetsResponse extends DailyTargets {
   profileRegistered?: boolean;
   profile?: UserProfileInput | null;
   computed?: NutritionTargets | null;
+  dietReview?: {
+    text: string;
+    generatedAt: string;
+    from: string;
+    to: string;
+  } | null;
 }
 
 export interface MealRecord {

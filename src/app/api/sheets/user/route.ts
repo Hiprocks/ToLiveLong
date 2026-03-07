@@ -4,6 +4,7 @@ import {
   appendRow,
   listRows,
   parseUserAi,
+  parseUserDietReview,
   parseUserProfile,
   parseUserTargets,
   RANGES,
@@ -35,6 +36,7 @@ export async function GET(req: NextRequest) {
     const targets = parseUserTargets(row) ?? defaultTargets;
     const profile = parseUserProfile(row);
     const storedAi = parseUserAi(row);
+    const dietReview = parseUserDietReview(row);
     const computed = profile
       ? refreshAi
         ? await calculateNutritionTargetsWithAi(profile)
@@ -45,6 +47,7 @@ export async function GET(req: NextRequest) {
       profileRegistered: Boolean(profile),
       profile,
       computed,
+      dietReview,
     });
   } catch (error) {
     console.error(error);
@@ -68,6 +71,7 @@ export async function PUT(req: NextRequest) {
     const existingRow = rows[0] ?? null;
     const existingProfile = parseUserProfile(existingRow);
     const existingAi = parseUserAi(existingRow);
+    const existingDietReview = parseUserDietReview(existingRow);
 
     const rawProfile = (body.profile ?? body) as Partial<UserProfileInput>;
     const hasProfilePayload = rawProfile.gender !== undefined || rawProfile.age !== undefined;
@@ -81,7 +85,7 @@ export async function PUT(req: NextRequest) {
       const nowIso = new Date().toISOString();
       computed.aiUpdatedAt = nowIso;
       targets = toDailyTargets(computed);
-      const rowValues = serializeUserRow(targets, profile, computed);
+      const rowValues = serializeUserRow(targets, profile, computed, existingDietReview);
       if (rows.length === 0) {
         await appendRow(RANGES.user, rowValues);
       } else {
@@ -111,7 +115,7 @@ export async function PUT(req: NextRequest) {
       };
     }
 
-    const rowValues = serializeUserRow(targets, profile, existingAi);
+    const rowValues = serializeUserRow(targets, profile, existingAi, existingDietReview);
 
     if (rows.length === 0) {
       await appendRow(RANGES.user, rowValues);
@@ -125,6 +129,7 @@ export async function PUT(req: NextRequest) {
       profileRegistered: Boolean(profile),
       profile,
       computed: profile ? existingAi ?? calculateNutritionTargets(profile) : null,
+      dietReview: existingDietReview,
     });
   } catch (error) {
     console.error(error);

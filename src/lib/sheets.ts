@@ -295,10 +295,36 @@ export const parseUserAi = (row: string[] | null): NutritionTargets | null => {
   };
 };
 
+export const parseUserDietReview = (
+  row: string[] | null
+): { text: string; generatedAt: string; from: string; to: string } | null => {
+  if (!row) return null;
+  const raw = row[27];
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<{
+      text: string;
+      generatedAt: string;
+      from: string;
+      to: string;
+    }>;
+    if (!parsed.text || !parsed.generatedAt || !parsed.from || !parsed.to) return null;
+    return {
+      text: parsed.text,
+      generatedAt: parsed.generatedAt,
+      from: parsed.from,
+      to: parsed.to,
+    };
+  } catch {
+    return null;
+  }
+};
+
 export const serializeUserRow = (
   targets: DailyTargets,
   profile: UserProfileInput | null | undefined,
-  ai?: NutritionTargets | null
+  ai?: NutritionTargets | null,
+  dietReview?: { text: string; generatedAt: string; from: string; to: string } | null
 ): Array<string | number> => [
   targets.calories,
   targets.carbs,
@@ -327,6 +353,7 @@ export const serializeUserRow = (
   ai?.aiSource ?? "",
   ai?.aiUpdatedAt ?? "",
   profile?.waistCm ?? "",
+  dietReview ? JSON.stringify(dietReview) : "",
 ];
 
 export const RANGES = {

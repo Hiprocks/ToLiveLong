@@ -39,6 +39,12 @@ function loadAiReviewCache(): AiReviewCache | null {
   }
 }
 
+const reviewTimeValue = (value: string | null | undefined) => {
+  if (!value) return 0;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 function saveAiReviewCache(text: string, range?: { from: string; to: string }) {
   try {
     const value: AiReviewCache = {
@@ -201,6 +207,21 @@ export default function StatsPage() {
     const data = (await res.json()) as UserTargetsResponse;
     setUserResponse(data);
     setTargets(data);
+
+    const serverReview = data.dietReview;
+    if (serverReview?.text) {
+      const localTime = reviewTimeValue(aiReviewDate);
+      const serverTime = reviewTimeValue(serverReview.generatedAt);
+      if (serverTime >= localTime) {
+        setAiReviewText(sanitizeReviewText(serverReview.text));
+        setAiReviewDate(serverReview.generatedAt);
+        setAiReviewRange({ from: serverReview.from, to: serverReview.to });
+        saveAiReviewCache(sanitizeReviewText(serverReview.text), {
+          from: serverReview.from,
+          to: serverReview.to,
+        });
+      }
+    }
   }, []);
 
   const fetchSummary = useCallback(async (from: string, to: string): Promise<DailySummary[]> => {
@@ -277,10 +298,21 @@ export default function StatsPage() {
       }
 
       const cleaned = sanitizeReviewText(accumulated);
+      const generatedAt = new Date().toISOString();
       setAiReviewText(cleaned);
       setAiReviewRange({ from, to });
       saveAiReviewCache(cleaned, { from, to });
-      setAiReviewDate(new Date().toISOString());
+      setAiReviewDate(generatedAt);
+      await fetch("/api/sheets/user/diet-review", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: cleaned,
+          generatedAt,
+          from,
+          to,
+        }),
+      });
     } catch (err) {
       setAiError(err instanceof Error ? err.message : "오류가 발생했습니다. 다시 시도해주세요.");
     } finally {
