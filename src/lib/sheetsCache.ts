@@ -16,6 +16,14 @@ import {
 } from "@/lib/sheets";
 import { MealRecord, TemplateItem } from "@/lib/types";
 
+export type DailySummary = {
+  date: string;
+  calories: number;
+  carbs: number;
+  protein: number;
+  fat: number;
+};
+
 export const CACHE_TAGS = {
   records: "records",
   templates: "templates",
@@ -62,6 +70,32 @@ const _fetchUserRows = async (): Promise<string[][]> => {
   return listRows(RANGES.user);
 };
 
+const _fetchSummary = async (from: string, to: string): Promise<DailySummary[]> => {
+  const rows = await listRows(RANGES.records);
+  const records = rows.map(parseRecord).filter((r) => r.id && r.food_name && r.date >= from && r.date <= to);
+
+  const map = new Map<string, DailySummary>();
+  for (const r of records) {
+    const existing = map.get(r.date);
+    if (existing) {
+      existing.calories += r.calories;
+      existing.carbs += r.carbs;
+      existing.protein += r.protein;
+      existing.fat += r.fat;
+    } else {
+      map.set(r.date, {
+        date: r.date,
+        calories: r.calories,
+        carbs: r.carbs,
+        protein: r.protein,
+        fat: r.fat,
+      });
+    }
+  }
+
+  return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+};
+
 export const getCachedRecordsByDate = unstable_cache(
   _fetchRecordsByDate,
   ["sheets-records-by-date"],
@@ -84,4 +118,10 @@ export const getCachedUserRows = unstable_cache(
   _fetchUserRows,
   ["sheets-user"],
   { tags: [CACHE_TAGS.user], revalidate: USER_TTL }
+);
+
+export const getCachedSummary = unstable_cache(
+  _fetchSummary,
+  ["sheets-records-summary"],
+  { tags: [CACHE_TAGS.records], revalidate: RECORDS_TTL }
 );
