@@ -7,6 +7,7 @@ import {
   RANGES,
   updateRow,
 } from "@/lib/sheets";
+import { CACHE_TAGS, revalidateCacheTag } from "@/lib/sheetsCache";
 import { MealRecord } from "@/lib/types";
 import {
   assertFoodName,
@@ -72,6 +73,7 @@ export async function PUT(
       merged.sodium,
     ]);
 
+    revalidateCacheTag(CACHE_TAGS.records);
     return NextResponse.json(merged);
   } catch (error) {
     console.error(error);
@@ -93,6 +95,7 @@ export async function DELETE(
     if (!found) return NextResponse.json({ error: "Record not found" }, { status: 404 });
 
     await deleteRowByIndex("records", found.rowIndex);
+    revalidateCacheTag(CACHE_TAGS.records);
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error(error);

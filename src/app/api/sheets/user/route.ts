@@ -10,6 +10,7 @@ import {
   serializeUserRow,
   updateRow,
 } from "@/lib/sheets";
+import { CACHE_TAGS, getCachedUserRows, revalidateCacheTag } from "@/lib/sheetsCache";
 import { parseNonNegativeNumber, ValidationError } from "@/lib/apiValidation";
 import { assertSameOrigin, AuthorizationError } from "@/lib/apiGuard";
 import { calculateNutritionTargets, toDailyTargets } from "@/lib/nutrition/calculateTargets";
@@ -27,7 +28,9 @@ const defaultTargets: DailyTargets = {
 export async function GET(req: NextRequest) {
   try {
     const refreshAi = req.nextUrl.searchParams.get("refreshAi") === "1";
-    const rows = await listRows(RANGES.user);
+    const rows = refreshAi
+      ? await listRows(RANGES.user)
+      : await getCachedUserRows();
     const row = rows[0] ?? null;
     const targets = parseUserTargets(row) ?? defaultTargets;
     const profile = parseUserProfile(row);
@@ -84,6 +87,7 @@ export async function PUT(req: NextRequest) {
       } else {
         await updateRow(RANGES.user, 2, rowValues);
       }
+      revalidateCacheTag(CACHE_TAGS.user);
       return NextResponse.json({
         ...targets,
         profileRegistered: Boolean(profile),
@@ -115,6 +119,7 @@ export async function PUT(req: NextRequest) {
       await updateRow(RANGES.user, 2, rowValues);
     }
 
+    revalidateCacheTag(CACHE_TAGS.user);
     return NextResponse.json({
       ...targets,
       profileRegistered: Boolean(profile),

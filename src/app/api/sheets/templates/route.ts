@@ -3,7 +3,6 @@ import {
   appendRow,
   deleteRowByIndex,
   listRows,
-  parseTemplate,
   RANGES,
   updateRow,
 } from "@/lib/sheets";
@@ -14,16 +13,13 @@ import {
   ValidationError,
 } from "@/lib/apiValidation";
 import { assertSameOrigin, AuthorizationError } from "@/lib/apiGuard";
+import { CACHE_TAGS, getCachedTemplates, revalidateCacheTag } from "@/lib/sheetsCache";
 
 const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 export async function GET() {
   try {
-    const rows = await listRows(RANGES.templates);
-    const templates = rows
-      .map(parseTemplate)
-      .filter((row) => row.id && row.food_name)
-      .reverse();
+    const templates = await getCachedTemplates();
     return NextResponse.json(templates);
   } catch (error) {
     console.error(error);
@@ -63,6 +59,7 @@ export async function POST(req: NextRequest) {
       template.sodium,
     ]);
 
+    revalidateCacheTag(CACHE_TAGS.templates);
     return NextResponse.json(template, { status: 201 });
   } catch (error) {
     console.error(error);
@@ -89,6 +86,7 @@ export async function DELETE(req: NextRequest) {
 
     const rowIndex = rowOffset + 2;
     await deleteRowByIndex("templates", rowIndex);
+    revalidateCacheTag(CACHE_TAGS.templates);
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error(error);
@@ -141,6 +139,7 @@ export async function PUT(req: NextRequest) {
       template.sodium,
     ]);
 
+    revalidateCacheTag(CACHE_TAGS.templates);
     return NextResponse.json(template);
   } catch (error) {
     console.error(error);

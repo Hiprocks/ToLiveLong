@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   appendRow,
   deleteRowByIndex,
-  getRowsByIndexes,
-  listRecordDateColumn,
-  listRows,
-  parseRecord,
   RANGES,
 } from "@/lib/sheets";
 import { MealRecord } from "@/lib/types";
@@ -17,6 +13,12 @@ import {
 } from "@/lib/apiValidation";
 import { assertSameOrigin, AuthorizationError } from "@/lib/apiGuard";
 import { getLocalDateString } from "@/lib/date";
+import {
+  CACHE_TAGS,
+  getCachedAllRecords,
+  getCachedRecordsByDate,
+  revalidateCacheTag,
+} from "@/lib/sheetsCache";
 
 const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -40,31 +42,17 @@ const addTemplateIfNeeded = async (
   return { saved: true, templateId };
 };
 
-const sortRecentFirst = (records: MealRecord[]): MealRecord[] => {
-  // Sheets append order is old -> new, so reverse for latest-first UI.
-  return [...records].reverse();
-};
-
 export async function GET(req: NextRequest) {
   try {
     const date = req.nextUrl.searchParams.get("date");
     if (!date) {
-      const rows = await listRows(RANGES.records);
-      const records = rows.map(parseRecord).filter((row) => row.id && row.food_name);
-      return NextResponse.json(sortRecentFirst(records));
+      const records = await getCachedAllRecords();
+      return NextResponse.json(records);
     }
 
     const targetDate = assertIsoDate(date);
-    const dateColumn = await listRecordDateColumn();
-    const rowIndexes = dateColumn
-      .map((value, index) => (value === targetDate ? index + 2 : null))
-      .filter((rowIndex): rowIndex is number => rowIndex !== null);
-
-    if (rowIndexes.length === 0) return NextResponse.json([]);
-
-    const rows = await getRowsByIndexes("records", "K", rowIndexes);
-    const records = rows.map(parseRecord).filter((row) => row.id && row.food_name);
-    return NextResponse.json(sortRecentFirst(records));
+    const records = await getCachedRecordsByDate(targetDate);
+    return NextResponse.json(records);
   } catch (error) {
     console.error(error);
     if (error instanceof ValidationError) {
@@ -124,6 +112,9 @@ export async function POST(req: NextRequest) {
       }
       throw templateError;
     }
+
+    revalidateCacheTag(CACHE_TAGS.records);
+    if (templateSaved) revalidateCacheTag(CACHE_TAGS.templates);
 
     return NextResponse.json({ record, templateSaved, templateId }, { status: 201 });
   } catch (error) {
