@@ -42,6 +42,7 @@ type TooltipPayloadEntry = {
   dataKey: string;
   value: number;
   color: string;
+  payload: ChartDay;
 };
 
 type CustomTooltipProps = {
@@ -52,12 +53,14 @@ type CustomTooltipProps = {
   nutrientLabel: string;
 };
 
-function CustomTooltip({ active, payload, label, unit, nutrientLabel }: CustomTooltipProps) {
+function CustomTooltip({ active, payload, unit, nutrientLabel }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
   const value = payload[0]?.value ?? 0;
+  const day = payload[0]?.payload;
+  const dateLabel = day ? format(new Date(day.date + "T00:00:00"), "M/d (EEE)", { locale: ko }) : "";
   return (
     <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-lg">
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mb-0.5 text-xs text-muted-foreground">{dateLabel}</p>
       <p className="text-sm font-semibold text-foreground">
         {value.toLocaleString()}{unit} <span className="text-xs font-normal text-muted-foreground">{nutrientLabel}</span>
       </p>
