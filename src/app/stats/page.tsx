@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { addDays, addWeeks, format, startOfWeek, subDays, subWeeks } from "date-fns";
 import { ko } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, RefreshCw, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Sparkles, X } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -155,17 +155,16 @@ export default function StatsPage() {
 
   const [aiReviewText, setAiReviewText] = useState<string>("");
   const [aiReviewDate, setAiReviewDate] = useState<string | null>(null);
+  const [aiStreamingText, setAiStreamingText] = useState<string>("");
   const [isAiStreaming, setIsAiStreaming] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
-  const [showAiSection, setShowAiSection] = useState(false);
-  const aiSectionRef = useRef<HTMLDivElement>(null);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
   useEffect(() => {
     const cached = loadAiReviewCache();
     if (cached) {
       setAiReviewText(cached.text);
       setAiReviewDate(cached.generatedAt);
-      setShowAiSection(true);
     }
   }, []);
 
@@ -208,16 +207,12 @@ export default function StatsPage() {
     }
   }, [fetchSummary]);
 
-  const requestAiReview = useCallback(async () => {
+  const requestAiReview = useCallback(async (openModal = true) => {
     if (isAiStreaming) return;
     setIsAiStreaming(true);
     setAiError(null);
-    setAiReviewText("");
-    setShowAiSection(true);
-
-    setTimeout(() => {
-      aiSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
+    setAiStreamingText("");
+    if (openModal) setIsAiModalOpen(true);
 
     try {
       const today = new Date();
@@ -251,14 +246,16 @@ export default function StatsPage() {
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
         accumulated += chunk;
-        setAiReviewText(accumulated);
+        setAiStreamingText(accumulated);
       }
 
+      setAiReviewText(accumulated);
       saveAiReviewCache(accumulated);
       setAiReviewDate(new Date().toISOString());
     } catch (err) {
       setAiError(err instanceof Error ? err.message : "오류가 발생했습니다. 다시 시도해주세요.");
     } finally {
+      setAiStreamingText("");
       setIsAiStreaming(false);
     }
   }, [isAiStreaming, targets, userResponse]);
@@ -291,6 +288,8 @@ export default function StatsPage() {
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const goalDays = monthlySummaries.filter((d) => d.calories >= targets.calories * 0.85 && d.calories <= targets.calories * 1.1).length;
+  const hasAiReview = aiReviewText.trim().length > 0;
+  const modalReviewText = isAiStreaming ? (aiStreamingText || aiReviewText) : aiReviewText;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -298,61 +297,6 @@ export default function StatsPage() {
       <div className="mx-auto max-w-md px-4 pt-8">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
           <h1 className="mb-6 text-xl font-bold">통계</h1>
-
-          {/* AI 평가 섹션 */}
-          <section className="mb-6" ref={aiSectionRef}>
-            {!showAiSection ? (
-              <button
-                onClick={() => void requestAiReview()}
-                disabled={isAiStreaming}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card px-4 py-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-60"
-              >
-                <Sparkles className="h-4 w-4 text-yellow-400" />
-                AI에게 지난 7일 식단 평가받기
-              </button>
-            ) : (
-              <div className="rounded-2xl border border-border bg-card p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-yellow-400" />
-                    <span className="text-sm font-semibold">AI 식단 평가</span>
-                  </div>
-                  <button
-                    onClick={() => void requestAiReview()}
-                    disabled={isAiStreaming}
-                    className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
-                    aria-label="재생성"
-                  >
-                    <RefreshCw className={`h-3 w-3 ${isAiStreaming ? "animate-spin" : ""}`} />
-                    {isAiStreaming ? "생성 중..." : "재생성"}
-                  </button>
-                </div>
-
-                {aiError && (
-                  <p className="mb-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">{aiError}</p>
-                )}
-
-                {aiReviewText ? (
-                  <>
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                      {aiReviewText}
-                      {isAiStreaming && <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-foreground align-middle" />}
-                    </p>
-                    {!isAiStreaming && aiReviewDate && (
-                      <p className="mt-3 text-right text-xs text-muted-foreground">
-                        {format(new Date(aiReviewDate), "M/d HH:mm 기준")}
-                      </p>
-                    )}
-                  </>
-                ) : isAiStreaming ? (
-                  <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
-                    <span className="inline-block h-4 w-0.5 animate-pulse bg-muted-foreground" />
-                    <span>평가를 생성하고 있습니다...</span>
-                  </div>
-                ) : null}
-              </div>
-            )}
-          </section>
 
           {error && <ErrorBanner message={error} />}
 
@@ -378,6 +322,36 @@ export default function StatsPage() {
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
+            </div>
+
+            <div className="mb-4">
+              {!hasAiReview ? (
+                <button
+                  onClick={() => void requestAiReview(true)}
+                  disabled={isAiStreaming}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-60"
+                >
+                  <Sparkles className="h-4 w-4 text-muted-foreground" />
+                  {isAiStreaming ? "AI 평가 생성 중..." : "AI 평가 받기"}
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsAiModalOpen(true)}
+                    className="flex-1 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
+                  >
+                    AI평가 보기
+                  </button>
+                  <button
+                    onClick={() => void requestAiReview(true)}
+                    disabled={isAiStreaming}
+                    className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-3 text-sm text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isAiStreaming ? "animate-spin" : ""}`} />
+                    재생성
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* 칼로리 메인 차트 */}
@@ -436,6 +410,64 @@ export default function StatsPage() {
           </section>
         </motion.div>
       </div>
+
+      {isAiModalOpen && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" onClick={() => setIsAiModalOpen(false)}>
+          <div className="mx-auto flex min-h-full max-w-md items-end p-4 sm:items-center">
+            <div
+              className="max-h-[80vh] w-full overflow-hidden rounded-2xl border border-border bg-card shadow-lg"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-muted-foreground" />
+                  <h2 className="text-sm font-semibold text-foreground">AI 식단 평가</h2>
+                </div>
+                <button
+                  onClick={() => setIsAiModalOpen(false)}
+                  className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  aria-label="닫기"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="max-h-[60vh] overflow-y-auto px-4 py-4">
+                {aiError && (
+                  <p className="mb-3 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">{aiError}</p>
+                )}
+
+                {modalReviewText ? (
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                    {modalReviewText}
+                    {isAiStreaming && (
+                      <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-foreground align-middle" />
+                    )}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {isAiStreaming ? "평가를 생성하고 있습니다..." : "아직 생성된 평가가 없습니다."}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between border-t border-border px-4 py-3">
+                <p className="text-xs text-muted-foreground">
+                  {aiReviewDate ? `${format(new Date(aiReviewDate), "M/d HH:mm")} 기준` : "최근 7일 기준"}
+                </p>
+                <button
+                  onClick={() => void requestAiReview(false)}
+                  disabled={isAiStreaming}
+                  className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${isAiStreaming ? "animate-spin" : ""}`} />
+                  재생성
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
