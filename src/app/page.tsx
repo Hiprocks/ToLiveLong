@@ -281,7 +281,7 @@ export default function Home() {
 
         <section className="rounded-2xl border border-border/80 bg-card p-4">
           <h2 className="mb-3 text-base font-semibold">식단 기록</h2>
-          {!loadingRecords && records.length === 0 ? <p className="text-sm text-muted-foreground">선택한 날짜에 등록된 식단이 없습니다.</p> : <div className="space-y-3">{records.map((record) => <article key={record.id} className="rounded-xl border border-border/70 bg-background/70 p-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-baseline gap-x-3 gap-y-1"><h3 className="max-w-[65%] truncate text-sm font-semibold sm:text-base">{record.food_name}</h3><span className="text-xs text-muted-foreground">{record.amount}g</span><span className="text-sm font-bold text-primary">{record.calories} kcal</span></div></div><button onClick={() => openEdit(record)} className="rounded-lg border border-border/80 bg-background/60 p-2 text-muted-foreground hover:border-primary/60 hover:text-foreground" aria-label={`${record.food_name} 수정`}><Pencil className="h-4 w-4" /></button></div><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5"><MetricChip label="탄수" value={`${record.carbs}g`} /><MetricChip label="단백질" value={`${record.protein}g`} /><MetricChip label="지방" value={`${record.fat}g`} /><MetricChip label="당" value={`${record.sugar}g`} /><MetricChip label="나트륨" value={`${record.sodium}mg`} /></div></article>)}</div>}
+          {!loadingRecords && records.length === 0 ? <p className="text-sm text-muted-foreground">선택한 날짜에 등록된 식단이 없습니다.</p> : <div className="space-y-3">{records.map((record) => <article key={record.id} className="rounded-xl border border-border/70 bg-background/70 p-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-baseline gap-x-3 gap-y-1"><h3 className="max-w-[65%] truncate text-sm font-semibold sm:text-base">{record.food_name}</h3><span className="text-xs text-muted-foreground">{record.amount}g</span><span className="text-sm font-bold text-primary">{record.calories} kcal</span></div></div><button onClick={() => openEdit(record)} className="rounded-lg border border-border/80 bg-background/60 p-2 text-muted-foreground hover:border-primary/60 hover:text-foreground" aria-label={`${record.food_name} 수정`}><Pencil className="h-4 w-4" /></button></div><div className="mt-2 grid grid-cols-3 gap-2"><MetricChip label="탄수" value={`${record.carbs}g`} /><MetricChip label="단백질" value={`${record.protein}g`} /><MetricChip label="지방" value={`${record.fat}g`} /></div></article>)}</div>}
         </section>
       </div>
 
@@ -309,7 +309,7 @@ function LabeledNumberInput({ label, value, onChange, className = "" }: { label:
 
 function MetricChip({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border/70 bg-background/60 px-2 py-1.5">
+    <div className="rounded-lg border border-border/70 bg-background/60 px-2 py-1">
       <div className="text-[10px] text-muted-foreground">{label}</div>
       <div className="text-xs font-semibold text-foreground">{value}</div>
     </div>
