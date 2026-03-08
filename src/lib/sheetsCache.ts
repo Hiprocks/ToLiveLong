@@ -34,6 +34,13 @@ const RECORDS_TTL = 30;
 const TEMPLATES_TTL = 300;
 const USER_TTL = 300;
 
+const getTemplateSortTime = (template: TemplateItem): number => {
+  const raw = template.last_used_at;
+  if (!raw) return 0;
+  const parsed = new Date(raw).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 const sortRecentFirst = (records: MealRecord[]): MealRecord[] =>
   [...records].reverse();
 
@@ -60,10 +67,17 @@ const _fetchAllRecords = async (): Promise<MealRecord[]> => {
 
 const _fetchTemplates = async (): Promise<TemplateItem[]> => {
   const rows = await listRows(RANGES.templates);
-  return rows
-    .map(parseTemplate)
-    .filter((row) => row.id && row.food_name)
-    .reverse();
+  const parsed = rows
+    .map((row, index) => ({ item: parseTemplate(row), index }))
+    .filter(({ item }) => item.id && item.food_name);
+
+  return parsed
+    .sort((a, b) => {
+      const timeDiff = getTemplateSortTime(b.item) - getTemplateSortTime(a.item);
+      if (timeDiff !== 0) return timeDiff;
+      return b.index - a.index;
+    })
+    .map(({ item }) => item);
 };
 
 const _fetchUserRows = async (): Promise<string[][]> => {

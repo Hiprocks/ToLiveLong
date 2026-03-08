@@ -592,7 +592,10 @@ export default function FoodSearchModal({
     setSaveState("saving");
     setErrorMessage(null);
     try {
-      const payload: Partial<MealRecord> & { saveAsTemplate?: boolean } = {
+      const payload: Partial<MealRecord> & {
+        saveAsTemplate?: boolean;
+        usedTemplateId?: string;
+      } = {
         date: adjustedForm.date,
         food_name: adjustedForm.food_name.trim(),
         intakeMeta: adjustedForm.intakeMeta,
@@ -604,6 +607,7 @@ export default function FoodSearchModal({
         sugar: parseNumber(draft.sugar),
         sodium: parseNumber(draft.sodium),
         saveAsTemplate: saveTemplateWithRecord,
+        usedTemplateId: selectedSource?.kind === "template" ? selectedSource.item.id : undefined,
       };
 
       const res = await fetch("/api/sheets/records", {
@@ -626,7 +630,9 @@ export default function FoodSearchModal({
         rememberTemplate(result.templateId);
       }
       markRecordCacheDirty(adjustedForm.date);
-      if (saveTemplateWithRecord) markCacheDirty(cacheKeys.templates);
+      if (saveTemplateWithRecord || selectedSource?.kind === "template") {
+        markCacheDirty(cacheKeys.templates);
+      }
       const message = saveTemplateWithRecord
         ? "즐겨찾기 저장 + 등록이 완료되었습니다."
         : "식단 등록이 완료되었습니다.";

@@ -96,6 +96,7 @@ export interface TemplateItem {
   fat: number;
   sugar: number;
   sodium: number;
+  last_used_at?: string | null;
 }
 
 export interface FoodIndexItem {

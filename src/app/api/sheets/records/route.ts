@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   appendRow,
   deleteRowByIndex,
+  listRows,
+  parseTemplate,
   RANGES,
+  updateRow,
 } from "@/lib/sheets";
 import { MealRecord } from "@/lib/types";
 import {
@@ -25,7 +28,8 @@ const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
 const addTemplateIfNeeded = async (
   record: MealRecord,
-  saveAsTemplate: boolean
+  saveAsTemplate: boolean,
+  lastUsedAt: string
 ): Promise<{ saved: boolean; templateId: string | null }> => {
   if (!saveAsTemplate) return { saved: false, templateId: null };
   const templateId = createId();
@@ -39,8 +43,32 @@ const addTemplateIfNeeded = async (
     record.fat,
     record.sugar,
     record.sodium,
+    lastUsedAt,
   ]);
   return { saved: true, templateId };
+};
+
+const markTemplateAsUsed = async (templateId: string, lastUsedAt: string) => {
+  const trimmedId = templateId.trim();
+  if (!trimmedId) return;
+
+  const rows = await listRows(RANGES.templates);
+  const rowOffset = rows.findIndex((row) => (row[0] ?? "").trim() === trimmedId);
+  if (rowOffset < 0) return;
+
+  const template = parseTemplate(rows[rowOffset] ?? []);
+  await updateRow(RANGES.templates, rowOffset + 2, [
+    template.id,
+    template.food_name,
+    template.base_amount,
+    template.calories,
+    template.carbs,
+    template.protein,
+    template.fat,
+    template.sugar,
+    template.sodium,
+    lastUsedAt,
+  ]);
 };
 
 export async function GET(req: NextRequest) {
@@ -66,10 +94,16 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     assertSameOrigin(req);
-    const body = (await req.json()) as Partial<MealRecord> & { saveAsTemplate?: boolean };
+    const body = (await req.json()) as Partial<MealRecord> & {
+      saveAsTemplate?: boolean;
+      usedTemplateId?: string;
+    };
     const foodName = assertFoodName(body.food_name);
     const date = assertIsoDate(body.date ?? getLocalDateString());
     const intakeMeta = normalizeIntakeMeta(body.intakeMeta);
+    const usedTemplateId =
+      typeof body.usedTemplateId === "string" ? body.usedTemplateId.trim() : "";
+    const lastUsedAt = new Date().toISOString();
 
     const record: MealRecord = {
       id: body.id ?? createId(),
@@ -102,9 +136,12 @@ export async function POST(req: NextRequest) {
     let templateSaved = false;
     let templateId: string | null = null;
     try {
-      const result = await addTemplateIfNeeded(record, Boolean(body.saveAsTemplate));
+      const result = await addTemplateIfNeeded(record, Boolean(body.saveAsTemplate), lastUsedAt);
       templateSaved = result.saved;
       templateId = result.templateId;
+      if (usedTemplateId) {
+        await markTemplateAsUsed(usedTemplateId, lastUsedAt);
+      }
     } catch (templateError) {
       if (rowIndex) {
         try {

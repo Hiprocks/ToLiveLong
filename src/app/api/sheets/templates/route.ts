@@ -16,6 +16,13 @@ import { assertSameOrigin, AuthorizationError } from "@/lib/apiGuard";
 import { CACHE_TAGS, getCachedTemplates, revalidateCacheTag } from "@/lib/sheetsCache";
 
 const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const normalizeLastUsedAt = (value: unknown): string | null => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = new Date(trimmed).getTime();
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : null;
+};
 
 export async function GET() {
   try {
@@ -45,6 +52,7 @@ export async function POST(req: NextRequest) {
       fat: parseNonNegativeNumber(body.fat ?? 0, "fat", { max: 5000 }),
       sugar: parseNonNegativeNumber(body.sugar ?? 0, "sugar", { max: 5000 }),
       sodium: parseNonNegativeNumber(body.sodium ?? 0, "sodium", { max: 100000 }),
+      last_used_at: normalizeLastUsedAt(body.last_used_at),
     };
 
     await appendRow(RANGES.templates, [
@@ -57,6 +65,7 @@ export async function POST(req: NextRequest) {
       template.fat,
       template.sugar,
       template.sodium,
+      template.last_used_at ?? "",
     ]);
 
     revalidateCacheTag(CACHE_TAGS.templates);
@@ -125,6 +134,7 @@ export async function PUT(req: NextRequest) {
       fat: parseNonNegativeNumber(body.fat ?? 0, "fat", { max: 5000 }),
       sugar: parseNonNegativeNumber(body.sugar ?? 0, "sugar", { max: 5000 }),
       sodium: parseNonNegativeNumber(body.sodium ?? 0, "sodium", { max: 100000 }),
+      last_used_at: normalizeLastUsedAt(body.last_used_at) ?? ((rows[rowOffset]?.[9] ?? "").trim() || null),
     };
 
     await updateRow(RANGES.templates, rowOffset + 2, [
@@ -137,6 +147,7 @@ export async function PUT(req: NextRequest) {
       template.fat,
       template.sugar,
       template.sodium,
+      template.last_used_at ?? "",
     ]);
 
     revalidateCacheTag(CACHE_TAGS.templates);

@@ -5,7 +5,7 @@ import { parseIntakeMeta } from "@/lib/mealAdjustments";
 const RECORDS_RANGE = "records!A:K";
 const RECORDS_ID_RANGE = "records!A:A";
 const RECORDS_DATE_RANGE = "records!B:B";
-const TEMPLATES_RANGE = "templates!A:I";
+const TEMPLATES_RANGE = "templates!A:J";
 const USER_RANGE = "user!A:AB";
 
 type Primitive = string | number;
@@ -195,6 +195,7 @@ export const parseTemplate = (row: string[]): TemplateItem => ({
   fat: toNumber(row[6]),
   sugar: toNumber(row[7]),
   sodium: toNumber(row[8]),
+  last_used_at: row[9]?.trim() ? row[9].trim() : null,
 });
 
 export const parseUserTargets = (row: string[] | null): DailyTargets | null => {
