@@ -18,10 +18,13 @@ import { motion } from "framer-motion";
 import DateNavCard from "@/components/DateNavCard";
 import ErrorBanner from "@/components/ErrorBanner";
 import LoadingOverlay from "@/components/LoadingOverlay";
+import MealEntryFab from "@/components/MealEntryFab";
+import { getLocalDateString } from "@/lib/date";
 import { DailyTargets, UserTargetsResponse } from "@/lib/types";
 import { DailySummary } from "@/lib/sheetsCache";
 
 const AI_REVIEW_STORAGE_KEY = "diet-ai-review-last";
+const today = getLocalDateString();
 
 type AiReviewCache = {
   text: string;
@@ -330,6 +333,10 @@ export default function StatsPage() {
     void loadData(weekStart);
   }, [weekStart, loadData]);
 
+  const refreshStats = useCallback(async () => {
+    await Promise.all([fetchTargets(), loadData(weekStart)]);
+  }, [fetchTargets, loadData, weekStart]);
+
   const weekDays = buildWeekDays(weekStart, summaryMap);
   const weekEnd = addDays(weekStart, 6);
 
@@ -522,6 +529,8 @@ export default function StatsPage() {
           </div>
         </div>
       )}
+
+      <MealEntryFab selectedDate={today} onSuccess={refreshStats} />
     </motion.main>
   );
 }
