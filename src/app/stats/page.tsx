@@ -357,28 +357,27 @@ export default function StatsPage() {
     : null;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <motion.main className="space-y-4 p-4 pb-24" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <LoadingOverlay active={loading} />
-      <div className="mx-auto max-w-md px-4 pt-8">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-          <h1 className="mb-6 text-xl font-bold">통계</h1>
+      <h1 className="text-2xl font-bold">통계</h1>
 
-          {error && <ErrorBanner message={error} />}
+      {error && <ErrorBanner message={error} />}
 
-          {/* 주간 섹션 */}
-          <section className="mb-8">
-            <div className="mb-4">
-              <DateNavCard
-                onPrev={() => setWeekStart((w) => subWeeks(w, 1))}
-                onNext={() => setWeekStart((w) => addWeeks(w, 1))}
-                canGoNext={weekStart < startOfWeek(new Date(), { weekStartsOn: 1 })}
-                centerValue={`${format(weekStart, "MM.dd", { locale: ko })} ~ ${format(weekEnd, "MM.dd", { locale: ko })}`}
-                prevAriaLabel="이전 주"
-                nextAriaLabel="다음 주"
-              />
-            </div>
+      {/* 주간 섹션 */}
+      <section className="space-y-3">
+        <div>
+          <DateNavCard
+            onPrev={() => setWeekStart((w) => subWeeks(w, 1))}
+            onNext={() => setWeekStart((w) => addWeeks(w, 1))}
+            canGoNext={weekStart < startOfWeek(new Date(), { weekStartsOn: 1 })}
+            centerLabel="조회 주간"
+            centerValue={`${format(weekStart, "MM.dd", { locale: ko })} ~ ${format(weekEnd, "MM.dd", { locale: ko })}`}
+            prevAriaLabel="이전 주"
+            nextAriaLabel="다음 주"
+          />
+        </div>
 
-            <div className="mb-4">
+            <div>
               {!hasAiReview ? (
                 <button
                   onClick={() => void requestAiReview(true)}
@@ -412,7 +411,7 @@ export default function StatsPage() {
             </div>
 
             {/* 칼로리 메인 차트 */}
-            <div className="mb-2 rounded-2xl border border-border bg-card p-4">
+            <div className="rounded-2xl border border-border bg-card p-4">
               <p className="mb-3 text-sm font-semibold">칼로리 <span className="text-xs font-normal text-muted-foreground">목표 {targets.calories.toLocaleString()} kcal</span></p>
               <ResponsiveContainer width="100%" height={140}>
                 <BarChart data={weekDays} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
@@ -445,28 +444,26 @@ export default function StatsPage() {
             </div>
           </section>
 
-          {/* 월간 요약 */}
-          <section>
-            <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
-              {format(now, "yyyy년 M월")} 요약
-            </h2>
-            <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-              <SummaryRow label="평균 칼로리" value={`${monthAvgCalories.toLocaleString()} kcal`} target={`목표 ${targets.calories.toLocaleString()}`} ratio={monthAvgCalories / targets.calories} />
-              <SummaryRow label="평균 탄수" value={`${monthAvgCarbs}g`} target={`목표 ${targets.carbs}g`} ratio={monthAvgCarbs / targets.carbs} />
-              <SummaryRow label="평균 단백질" value={`${monthAvgProtein}g`} target={`목표 ${targets.protein}g`} ratio={monthAvgProtein / targets.protein} />
-              <SummaryRow label="평균 지방" value={`${monthAvgFat}g`} target={`목표 ${targets.fat}g`} ratio={monthAvgFat / targets.fat} />
-              <div className="border-t border-border pt-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">칼로리 목표 달성일</span>
-                  <span className="text-sm font-semibold">
-                    {goalDays} <span className="font-normal text-muted-foreground">/ {daysInMonth}일</span>
-                  </span>
-                </div>
-              </div>
+      {/* 월간 요약 */}
+      <section>
+        <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
+          {format(now, "yyyy년 M월")} 요약
+        </h2>
+        <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+          <SummaryRow label="평균 칼로리" value={`${monthAvgCalories.toLocaleString()} kcal`} target={`목표 ${targets.calories.toLocaleString()}`} ratio={monthAvgCalories / targets.calories} />
+          <SummaryRow label="평균 탄수" value={`${monthAvgCarbs}g`} target={`목표 ${targets.carbs}g`} ratio={monthAvgCarbs / targets.carbs} />
+          <SummaryRow label="평균 단백질" value={`${monthAvgProtein}g`} target={`목표 ${targets.protein}g`} ratio={monthAvgProtein / targets.protein} />
+          <SummaryRow label="평균 지방" value={`${monthAvgFat}g`} target={`목표 ${targets.fat}g`} ratio={monthAvgFat / targets.fat} />
+          <div className="border-t border-border pt-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">칼로리 목표 달성일</span>
+              <span className="text-sm font-semibold">
+                {goalDays} <span className="font-normal text-muted-foreground">/ {daysInMonth}일</span>
+              </span>
             </div>
-          </section>
-        </motion.div>
-      </div>
+          </div>
+        </div>
+      </section>
 
       {isAiModalOpen && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" onClick={() => setIsAiModalOpen(false)}>
@@ -525,7 +522,7 @@ export default function StatsPage() {
           </div>
         </div>
       )}
-    </div>
+    </motion.main>
   );
 }
 
