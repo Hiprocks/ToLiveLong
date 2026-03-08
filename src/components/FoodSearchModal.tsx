@@ -12,8 +12,16 @@ import {
   setCachedData,
 } from "@/lib/clientSyncCache";
 import { getLocalDateString } from "@/lib/date";
+import {
+  applyIntakeAdjustments,
+  DEFAULT_INTAKE_META,
+  invertAdjustedValue,
+  isSoupyMeal,
+  MealNutritionFields,
+  RATIO_OPTIONS,
+} from "@/lib/mealAdjustments";
 import { showToast } from "@/lib/toast";
-import { FoodIndexItem, MealRecord, TemplateItem } from "@/lib/types";
+import { FoodIndexItem, IntakeMeta, MealRecord, TemplateItem } from "@/lib/types";
 
 interface FoodSearchModalProps {
   isOpen: boolean;
@@ -29,6 +37,7 @@ interface FormState {
   date: string;
   food_name: string;
   ai_summary: string;
+  intakeMeta: IntakeMeta;
   amount: number;
   calories: number;
   carbs: number;
@@ -77,6 +86,7 @@ const getInitialForm = (initialDate?: string): FormState => ({
   date: initialDate ?? getLocalDateString(),
   food_name: "",
   ai_summary: "",
+  intakeMeta: DEFAULT_INTAKE_META,
   amount: 100,
   calories: 0,
   carbs: 0,
@@ -132,6 +142,16 @@ const scaleWithAmount = (
   };
 };
 
+const getNutritionFields = (form: FormState): MealNutritionFields => ({
+  amount: form.amount,
+  calories: form.calories,
+  carbs: form.carbs,
+  protein: form.protein,
+  fat: form.fat,
+  sugar: form.sugar,
+  sodium: form.sodium,
+});
+
 export default function FoodSearchModal({
   isOpen,
   onClose,
@@ -159,11 +179,26 @@ export default function FoodSearchModal({
   const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const isSavingRef = useRef(false);
+  const selectionSummaryRef = useRef<HTMLDivElement | null>(null);
+  const isSoupyCandidate = useMemo(
+    () => isSoupyMeal(form.food_name, form.ai_summary),
+    [form.ai_summary, form.food_name]
+  );
+  const adjustedForm = useMemo(
+    () => ({
+      ...form,
+      ...applyIntakeAdjustments(getNutritionFields(form), form.intakeMeta, isSoupyCandidate),
+    }),
+    [form, isSoupyCandidate]
+  );
 
   const setFormAndDraft = (nextForm: FormState) => {
     setForm(nextForm);
-    setDraft(toDraft(nextForm));
   };
+
+  useEffect(() => {
+    setDraft(toDraft(adjustedForm));
+  }, [adjustedForm]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -201,6 +236,7 @@ export default function FoodSearchModal({
     const nextForm: FormState = {
       ...initialForm,
       ...initialPrefill,
+      intakeMeta: DEFAULT_INTAKE_META,
       amount: prefillAmount,
       ai_summary:
         typeof initialPrefill.ai_summary === "string" ? initialPrefill.ai_summary.trim() : "",
@@ -226,6 +262,26 @@ export default function FoodSearchModal({
     setSelectedSource(null);
     setFormAndDraft(initialForm);
   }, [initialForm, initialPrefill, isOpen]);
+
+  useEffect(() => {
+    if (isSoupyCandidate) return;
+    if (form.intakeMeta.adjustments?.soupPreference !== "solids_only") return;
+    setForm((prev) => ({
+      ...prev,
+      intakeMeta: {
+        ...prev.intakeMeta,
+        adjustments: {
+          ...prev.intakeMeta.adjustments,
+          soupPreference: "normal",
+        },
+      },
+    }));
+  }, [form.intakeMeta.adjustments, isSoupyCandidate]);
+
+  useEffect(() => {
+    if (mode !== "template" || !selectedSource || !selectionSummaryRef.current) return;
+    selectionSummaryRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [mode, selectedSource]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -336,6 +392,7 @@ export default function FoodSearchModal({
     setFormAndDraft({
       ...initialForm,
       ...scaled,
+      intakeMeta: DEFAULT_INTAKE_META,
       food_name: template.food_name,
       amount,
     });
@@ -356,6 +413,7 @@ export default function FoodSearchModal({
     setFormAndDraft({
       ...initialForm,
       ...scaled,
+      intakeMeta: DEFAULT_INTAKE_META,
       food_name: food.name,
       amount,
     });
@@ -432,21 +490,24 @@ export default function FoodSearchModal({
   const handleAmountChange = (raw: string) => {
     setDraft((prev) => ({ ...prev, amount: raw }));
     const parsed = parsePositiveAmount(raw);
+    const nextBaseAmount =
+      parsed === null
+        ? 0
+        : invertAdjustedValue("amount", parsed, form.intakeMeta, isSoupyCandidate);
 
-    if (parsed === null) {
+    if (nextBaseAmount === 0) {
       setForm((prev) => ({ ...prev, amount: 0 }));
       return;
     }
 
     if (!selectedSource) {
-      setForm((prev) => ({ ...prev, amount: parsed }));
+      setForm((prev) => ({ ...prev, amount: nextBaseAmount }));
       return;
     }
 
-    const scaled = recalcFromSelectedSource(parsed, selectedSource);
+    const scaled = recalcFromSelectedSource(nextBaseAmount, selectedSource);
     setForm((prev) => {
-      const next = { ...prev, amount: parsed, ...scaled };
-      setDraft((draftPrev) => ({ ...draftPrev, ...toDraft(next) }));
+      const next = { ...prev, amount: nextBaseAmount, ...scaled };
       return next;
     });
   };
@@ -454,7 +515,34 @@ export default function FoodSearchModal({
   const handleNutrientChange = (key: Exclude<NumericKey, "amount">, raw: string) => {
     setDraft((prev) => ({ ...prev, [key]: raw }));
     const parsed = parseNumber(raw);
-    setForm((prev) => ({ ...prev, [key]: parsed }));
+    const baseValue = invertAdjustedValue(key, parsed, form.intakeMeta, isSoupyCandidate);
+    setForm((prev) => ({ ...prev, [key]: baseValue }));
+  };
+
+  const handleSoupPreferenceChange = (checked: boolean) => {
+    setForm((prev) => ({
+      ...prev,
+      intakeMeta: {
+        ...prev.intakeMeta,
+        adjustments: {
+          ...prev.intakeMeta.adjustments,
+          soupPreference: checked ? "solids_only" : "normal",
+        },
+      },
+    }));
+  };
+
+  const handleConsumptionRatioChange = (ratio: number) => {
+    setForm((prev) => ({
+      ...prev,
+      intakeMeta: {
+        ...prev.intakeMeta,
+        adjustments: {
+          ...prev.intakeMeta.adjustments,
+          consumptionRatio: ratio,
+        },
+      },
+    }));
   };
 
   const resetForm = useCallback(() => {
@@ -463,7 +551,6 @@ export default function FoodSearchModal({
     setDbResults([]);
     setSelectedSource(null);
     setForm(initialForm);
-    setDraft(toDraft(initialForm));
     setErrorMessage(null);
     setSaveState("idle");
     closeTemplatePreview();
@@ -506,8 +593,9 @@ export default function FoodSearchModal({
     setErrorMessage(null);
     try {
       const payload: Partial<MealRecord> & { saveAsTemplate?: boolean } = {
-        date: form.date,
-        food_name: form.food_name.trim(),
+        date: adjustedForm.date,
+        food_name: adjustedForm.food_name.trim(),
+        intakeMeta: adjustedForm.intakeMeta,
         amount: parseNumber(draft.amount),
         calories: parseNumber(draft.calories),
         carbs: parseNumber(draft.carbs),
@@ -537,7 +625,7 @@ export default function FoodSearchModal({
       if (saveTemplateWithRecord && result?.templateId) {
         rememberTemplate(result.templateId);
       }
-      markRecordCacheDirty(form.date);
+      markRecordCacheDirty(adjustedForm.date);
       if (saveTemplateWithRecord) markCacheDirty(cacheKeys.templates);
       const message = saveTemplateWithRecord
         ? "즐겨찾기 저장 + 등록이 완료되었습니다."
@@ -765,7 +853,6 @@ export default function FoodSearchModal({
 
   if (!isOpen) return null;
 
-  const isTemplateMode = mode === "template";
   const isBusy = loading || saveState === "saving" || previewSaving || Boolean(deletingTemplateId);
   const busyLabel =
     saveState === "saving"
@@ -775,6 +862,17 @@ export default function FoodSearchModal({
           : deletingTemplateId
           ? "즐겨찾기를 삭제하는 중입니다..."
           : "데이터를 불러오는 중입니다...";
+
+  const shouldShowSelectionSummary = mode === "template" && selectedSource !== null;
+  const shouldShowForm = mode === "manual" || shouldShowSelectionSummary;
+  const selectedSourceLabel =
+    selectedSource?.kind === "template"
+      ? "즐겨찾기"
+      : selectedSource?.kind === "database"
+        ? "음식DB"
+        : selectedSource?.kind === "prefill"
+          ? "AI/사진 분석값"
+          : null;
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col animate-in slide-in-from-bottom duration-300 bg-background">
@@ -939,8 +1037,69 @@ export default function FoodSearchModal({
           </div>
         )}
 
-        {mode !== "template" && (
+        {mode === "template" && !selectedSource && (
+          <div className="p-4">
+            <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-5 text-center">
+              <p className="text-sm font-medium text-foreground">먼저 음식을 선택하세요</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                즐겨찾기나 음식DB에서 항목을 고르면 아래에 보정과 등록 단계가 열립니다.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {shouldShowSelectionSummary && (
+          <div ref={selectionSummaryRef} className="border-b border-border bg-card/40 p-4">
+            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">1. 선택한 음식</p>
+                  <h3 className="mt-1 truncate text-base font-semibold text-foreground">{form.food_name || "선택된 음식"}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {selectedSourceLabel} 기준값을 가져왔고, 아래에서 이번 기록용으로만 보정합니다.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedSource(null)}
+                  className="shrink-0 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  다른 음식 선택
+                </button>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground sm:grid-cols-4">
+                <div className="rounded-lg bg-background/70 px-3 py-2">
+                  <span className="block">기준량</span>
+                  <span className="mt-1 block text-sm font-semibold text-foreground">{draft.amount}g</span>
+                </div>
+                <div className="rounded-lg bg-background/70 px-3 py-2">
+                  <span className="block">칼로리</span>
+                  <span className="mt-1 block text-sm font-semibold text-foreground">{draft.calories} kcal</span>
+                </div>
+                <div className="rounded-lg bg-background/70 px-3 py-2">
+                  <span className="block">탄수 / 단백질</span>
+                  <span className="mt-1 block text-sm font-semibold text-foreground">{draft.carbs}g / {draft.protein}g</span>
+                </div>
+                <div className="rounded-lg bg-background/70 px-3 py-2">
+                  <span className="block">지방 / 나트륨</span>
+                  <span className="mt-1 block text-sm font-semibold text-foreground">{draft.fat}g / {draft.sodium}mg</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {shouldShowForm && (
         <div className="space-y-4 p-4">
+        {mode === "template" && (
+          <div className="rounded-2xl border border-border bg-muted/20 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">2. 보정 후 등록</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              선택한 음식의 기준값을 이번 식사에 맞게 조정한 뒤 저장합니다.
+            </p>
+          </div>
+        )}
         <div>
           <label className="text-sm text-muted-foreground">섭취 날짜 *</label>
           <input
@@ -968,6 +1127,57 @@ export default function FoodSearchModal({
             </div>
           </div>
         )}
+
+        <div className="rounded-xl border border-border bg-muted/30 p-3">
+          <p className="text-sm font-medium text-foreground">섭취 보정</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            옵션 선택 시 현재 영양값에 바로 반영되고 기록에도 함께 저장됩니다.
+          </p>
+
+          <label className={`mt-3 flex items-start gap-2 rounded-lg border px-3 py-2 text-sm ${
+            isSoupyCandidate
+              ? "border-border bg-background/60"
+              : "border-border/60 bg-background/30 text-muted-foreground"
+          }`}>
+            <input
+              type="checkbox"
+              checked={form.intakeMeta.adjustments?.soupPreference === "solids_only"}
+              disabled={!isSoupyCandidate}
+              onChange={(e) => handleSoupPreferenceChange(e.target.checked)}
+            />
+            <span>
+              건더기 위주로 먹음
+              <span className="mt-1 block text-xs text-muted-foreground">
+                {isSoupyCandidate
+                  ? "국물 비중을 줄여 칼로리와 나트륨을 더 낮게 계산합니다."
+                  : "국/탕/찌개/면류처럼 국물형 음식일 때만 사용할 수 있습니다."}
+              </span>
+            </span>
+          </label>
+
+          <div className="mt-3">
+            <p className="text-xs font-medium text-muted-foreground">섭취 비율</p>
+            <div className="mt-2 grid grid-cols-4 gap-2">
+              {RATIO_OPTIONS.map((ratio) => {
+                const isActive = (form.intakeMeta.adjustments?.consumptionRatio ?? 1) === ratio;
+                return (
+                  <button
+                    key={ratio}
+                    type="button"
+                    onClick={() => handleConsumptionRatioChange(ratio)}
+                    className={`rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
+                      isActive
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-background text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {Math.round(ratio * 100)}%
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
         <div>
           <label className="text-sm text-muted-foreground">중량(g) *</label>
@@ -1007,6 +1217,7 @@ export default function FoodSearchModal({
         )}
       </div>
 
+      {shouldShowForm && (
       <div className="sticky bottom-0 z-10 mt-auto grid grid-cols-2 gap-2 border-t border-border bg-background p-4 pb-safe">
         <button
           onClick={() => void handleSaveRecord(true)}
@@ -1024,6 +1235,7 @@ export default function FoodSearchModal({
           {saveState === "saving" ? "저장 중..." : "등록"}
         </button>
       </div>
+      )}
 
       {previewSource && previewDraft && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4">

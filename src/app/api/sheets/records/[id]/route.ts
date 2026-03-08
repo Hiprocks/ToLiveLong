@@ -16,6 +16,7 @@ import {
   ValidationError,
 } from "@/lib/apiValidation";
 import { assertSameOrigin, AuthorizationError } from "@/lib/apiGuard";
+import { normalizeIntakeMeta, serializeIntakeMeta } from "@/lib/mealAdjustments";
 
 const findRecordById = async (id: string) => {
   const ids = await listRecordIdColumn();
@@ -45,11 +46,13 @@ export async function PUT(
       ...body,
       id,
     };
+    const intakeMeta = normalizeIntakeMeta(mergedWithBody.intakeMeta);
 
     const merged: MealRecord = {
       id,
       date: assertIsoDate(mergedWithBody.date),
       food_name: assertFoodName(mergedWithBody.food_name),
+      intakeMeta,
       amount: parseNonNegativeNumber(mergedWithBody.amount, "amount", { min: 1, max: 10000 }),
       calories: parseNonNegativeNumber(mergedWithBody.calories, "calories", { max: 20000 }),
       carbs: parseNonNegativeNumber(mergedWithBody.carbs, "carbs", { max: 5000 }),
@@ -62,7 +65,7 @@ export async function PUT(
     await updateRow(RANGES.records, found.rowIndex, [
       merged.id,
       merged.date,
-      "",
+      serializeIntakeMeta(merged.intakeMeta),
       merged.food_name,
       merged.amount,
       merged.calories,

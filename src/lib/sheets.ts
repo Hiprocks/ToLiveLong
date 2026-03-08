@@ -1,5 +1,6 @@
 import { google, sheets_v4 } from "googleapis";
 import { DailyTargets, MealRecord, NutritionTargets, TemplateItem, UserProfileInput } from "@/lib/types";
+import { parseIntakeMeta } from "@/lib/mealAdjustments";
 
 const RECORDS_RANGE = "records!A:K";
 const RECORDS_ID_RANGE = "records!A:A";
@@ -173,6 +174,7 @@ export const getRowsByIndexes = async (
 export const parseRecord = (row: string[]): MealRecord => ({
   id: row[0] ?? "",
   date: row[1] ?? "",
+  intakeMeta: parseIntakeMeta(row[2]),
   food_name: row[3] ?? "",
   amount: toNumber(row[4]),
   calories: toNumber(row[5]),

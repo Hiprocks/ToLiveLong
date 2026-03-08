@@ -13,6 +13,7 @@ import {
 } from "@/lib/apiValidation";
 import { assertSameOrigin, AuthorizationError } from "@/lib/apiGuard";
 import { getLocalDateString } from "@/lib/date";
+import { normalizeIntakeMeta, serializeIntakeMeta } from "@/lib/mealAdjustments";
 import {
   CACHE_TAGS,
   getCachedAllRecords,
@@ -68,11 +69,13 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as Partial<MealRecord> & { saveAsTemplate?: boolean };
     const foodName = assertFoodName(body.food_name);
     const date = assertIsoDate(body.date ?? getLocalDateString());
+    const intakeMeta = normalizeIntakeMeta(body.intakeMeta);
 
     const record: MealRecord = {
       id: body.id ?? createId(),
       date,
       food_name: foodName,
+      intakeMeta,
       amount: parseNonNegativeNumber(body.amount ?? 0, "amount", { min: 1, max: 10000 }),
       calories: parseNonNegativeNumber(body.calories ?? 0, "calories", { max: 20000 }),
       carbs: parseNonNegativeNumber(body.carbs ?? 0, "carbs", { max: 5000 }),
@@ -85,7 +88,7 @@ export async function POST(req: NextRequest) {
     const { rowIndex } = await appendRow(RANGES.records, [
       record.id,
       record.date,
-      "",
+      serializeIntakeMeta(record.intakeMeta),
       record.food_name,
       record.amount,
       record.calories,

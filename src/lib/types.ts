@@ -60,10 +60,23 @@ export interface UserTargetsResponse extends DailyTargets {
   } | null;
 }
 
+export type SoupPreference = "normal" | "solids_only";
+
+export interface IntakeAdjustments {
+  soupPreference?: SoupPreference;
+  consumptionRatio?: number | null;
+}
+
+export interface IntakeMeta {
+  version: number;
+  adjustments?: IntakeAdjustments;
+}
+
 export interface MealRecord {
   id: string;
   date: string;
   food_name: string;
+  intakeMeta?: IntakeMeta | null;
   amount: number;
   calories: number;
   carbs: number;
