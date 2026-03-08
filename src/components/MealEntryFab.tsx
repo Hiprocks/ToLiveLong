@@ -39,6 +39,7 @@ export default function MealEntryFab({ selectedDate, onSuccess }: MealEntryFabPr
     setIsEntrySheetOpen(false);
     setIsCreateOpen(true);
   };
+  const handleSuccess = onSuccess ?? (() => undefined);
 
   return (
     <>
@@ -113,7 +114,7 @@ export default function MealEntryFab({ selectedDate, onSuccess }: MealEntryFabPr
         initialMode={foodModalMode}
         initialDate={selectedDate}
         initialPrefill={foodModalMode === "manual" ? mealPrefill : null}
-        onSuccess={onSuccess}
+        onSuccess={handleSuccess}
       />
       <PhotoAnalysisModal
         isOpen={isPhotoModalOpen}

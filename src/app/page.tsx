@@ -526,8 +526,9 @@ export default function Home() {
                   }
 
                   const nextFoodName = e.target.value;
-                  const nextIntakeMeta =
-                    editDraft.intakeMeta.adjustments.soupPreference === "solids_only" &&
+                  const soupPreference = editDraft.intakeMeta.adjustments?.soupPreference;
+                  const nextIntakeMeta: IntakeMeta =
+                    soupPreference === "solids_only" &&
                     !isSoupyMeal(nextFoodName)
                       ? {
                           ...editDraft.intakeMeta,
@@ -557,7 +558,7 @@ export default function Home() {
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  checked={editDraft.intakeMeta.adjustments.soupPreference === "solids_only"}
+                  checked={editDraft.intakeMeta.adjustments?.soupPreference === "solids_only"}
                   disabled={!isSoupyMeal(editDraft.food_name)}
                   onChange={(e) => handleEditSoupPreferenceChange(e.target.checked)}
                 />
@@ -575,7 +576,7 @@ export default function Home() {
                 <div className="grid grid-cols-4 gap-2">
                   {RATIO_OPTIONS.map((ratio) => {
                     const isSelected =
-                      editDraft.intakeMeta.adjustments.consumptionRatio === ratio;
+                      editDraft.intakeMeta.adjustments?.consumptionRatio === ratio;
 
                     return (
                       <button
