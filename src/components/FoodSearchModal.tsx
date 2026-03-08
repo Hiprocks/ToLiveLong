@@ -904,6 +904,13 @@ export default function FoodSearchModal({
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.currentTarget.blur();
+                  }
+                }}
+                enterKeyHint="search"
                 placeholder="즐겨찾기 + 식품 DB 통합 검색"
                 className="w-full rounded-full bg-muted/50 py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
@@ -1092,7 +1099,7 @@ export default function FoodSearchModal({
 
         {shouldShowForm && (
         <div className="space-y-4 p-4">
-        {mode === "template" && (
+        {false && (
           <div className="rounded-2xl border border-border bg-muted/20 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">2. 보정 후 등록</p>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -1130,9 +1137,11 @@ export default function FoodSearchModal({
 
         <div className="rounded-xl border border-border bg-muted/30 p-3">
           <p className="text-sm font-medium text-foreground">섭취 보정</p>
+          {false && (
           <p className="mt-1 text-xs text-muted-foreground">
             옵션 선택 시 현재 영양값에 바로 반영되고 기록에도 함께 저장됩니다.
           </p>
+          )}
 
           <label className={`mt-3 flex items-start gap-2 rounded-lg border px-3 py-2 text-sm ${
             isSoupyCandidate
@@ -1147,11 +1156,13 @@ export default function FoodSearchModal({
             />
             <span>
               건더기 위주로 먹음
+              {false && (
               <span className="mt-1 block text-xs text-muted-foreground">
                 {isSoupyCandidate
                   ? "국물 비중을 줄여 칼로리와 나트륨을 더 낮게 계산합니다."
                   : "국/탕/찌개/면류처럼 국물형 음식일 때만 사용할 수 있습니다."}
               </span>
+              )}
             </span>
           </label>
 
