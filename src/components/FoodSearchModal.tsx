@@ -20,6 +20,7 @@ interface FoodSearchModalProps {
   onClose: () => void;
   onSuccess: () => Promise<void> | void;
   initialMode?: "manual" | "template";
+  initialDate?: string;
   onSaved?: (message: string) => void;
   initialPrefill?: Partial<FormState> | null;
 }
@@ -72,8 +73,8 @@ type SelectedSource =
       };
     };
 
-const getInitialForm = (): FormState => ({
-  date: getLocalDateString(),
+const getInitialForm = (initialDate?: string): FormState => ({
+  date: initialDate ?? getLocalDateString(),
   food_name: "",
   ai_summary: "",
   amount: 100,
@@ -136,10 +137,11 @@ export default function FoodSearchModal({
   onClose,
   onSuccess,
   initialMode = "manual",
+  initialDate,
   onSaved,
   initialPrefill = null,
 }: FoodSearchModalProps) {
-  const initialForm = useMemo(() => getInitialForm(), []);
+  const initialForm = useMemo(() => getInitialForm(initialDate), [initialDate]);
   const [mode, setMode] = useState<"manual" | "template">(initialMode);
   const [loading, setLoading] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -217,6 +219,12 @@ export default function FoodSearchModal({
       },
     });
     setFormAndDraft(nextForm);
+  }, [initialForm, initialPrefill, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || initialPrefill) return;
+    setSelectedSource(null);
+    setFormAndDraft(initialForm);
   }, [initialForm, initialPrefill, isOpen]);
 
   useEffect(() => {
@@ -1001,19 +1009,19 @@ export default function FoodSearchModal({
 
       <div className="sticky bottom-0 z-10 mt-auto grid grid-cols-2 gap-2 border-t border-border bg-background p-4 pb-safe">
         <button
-          onClick={() => void handleSaveRecord(isTemplateMode ? true : false)}
+          onClick={() => void handleSaveRecord(true)}
           disabled={saveState === "saving"}
           className="flex items-center justify-center rounded-xl border border-border bg-muted py-3 text-sm font-semibold text-foreground disabled:opacity-50"
         >
-          {saveState === "saving" ? "저장 중..." : isTemplateMode ? "즐겨찾기 저장 + 등록" : "등록"}
+          {saveState === "saving" ? "저장 중..." : "즐겨찾기 저장 + 등록"}
         </button>
         <button
-          onClick={() => void handleSaveRecord(isTemplateMode ? false : true)}
+          onClick={() => void handleSaveRecord(false)}
           disabled={saveState === "saving"}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-bold text-primary-foreground disabled:opacity-50"
         >
           <Check className="h-5 w-5" />
-          {saveState === "saving" ? "저장 중..." : isTemplateMode ? "등록" : "즐겨찾기 저장 + 등록"}
+          {saveState === "saving" ? "저장 중..." : "등록"}
         </button>
       </div>
 

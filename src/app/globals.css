@@ -36,15 +36,20 @@
 
   --popover-foreground: oklch(0.129 0.042 264.695);
 
-  --chart-1: oklch(0.646 0.222 41.116);
+  /* Dashboard/Stats legacy palette (2026-03-07 baseline) */
+  --dashboard-tone-low-rgb: 59 130 246;
+  --dashboard-tone-ok-rgb: 34 197 94;
+  --dashboard-tone-high-rgb: 239 68 68;
+  --dashboard-tone-neutral-rgb: 148 163 184;
 
-  --chart-2: oklch(0.6 0.118 184.704);
+  --stats-grid-color: rgb(255 255 255 / 0.06);
+  --stats-axis-color: rgb(255 255 255 / 0.4);
 
-  --chart-3: oklch(0.398 0.07 227.392);
-
-  --chart-4: oklch(0.828 0.189 84.429);
-
-  --chart-5: oklch(0.769 0.188 70.08);
+  --chart-1: rgb(59 130 246);
+  --chart-2: rgb(34 197 94);
+  --chart-3: rgb(251 191 36);
+  --chart-4: rgb(168 85 247);
+  --chart-5: rgb(239 68 68);
 
   --sidebar: oklch(0.984 0.003 247.858);
 
@@ -170,11 +175,19 @@ input[type="number"] {
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
+  --dashboard-tone-low-rgb: 59 130 246;
+  --dashboard-tone-ok-rgb: 34 197 94;
+  --dashboard-tone-high-rgb: 239 68 68;
+  --dashboard-tone-neutral-rgb: 148 163 184;
+
+  --stats-grid-color: rgb(255 255 255 / 0.06);
+  --stats-axis-color: rgb(255 255 255 / 0.4);
+
+  --chart-1: rgb(59 130 246);
+  --chart-2: rgb(34 197 94);
+  --chart-3: rgb(251 191 36);
+  --chart-4: rgb(168 85 247);
+  --chart-5: rgb(239 68 68);
   --sidebar: oklch(0.208 0.042 265.755);
   --sidebar-foreground: oklch(0.984 0.003 247.858);
   --sidebar-primary: oklch(0.488 0.243 264.376);

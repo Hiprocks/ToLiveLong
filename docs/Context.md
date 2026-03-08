@@ -189,6 +189,7 @@
 - Recharts `contentStyle` 등 외부 라이브러리의 인라인 스타일에 `#hex`, `rgb()`, `rgba()` 직접 사용 금지
 - 반드시 Tailwind CSS 변수 기반 클래스 사용: `bg-card`, `text-foreground`, `border-border` 등
 - Recharts `<Tooltip>`은 `content` prop에 커스텀 컴포넌트를 전달하여 디자인 시스템 적용
+- **예외:** 통계/대시보드 차트의 막대·목표선·격자·축 등 데이터 시각화 색상은 기존 rgba 팔레트 사용 허용
 
 ### 배포 워크플로우 (2026-03-07~)
 - 구현 완료 후 기본 동작: `git commit` + `git push origin develop` 까지만

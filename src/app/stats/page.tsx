@@ -161,7 +161,7 @@ const MiniChart = ({ data, dataKey, label, target, color }: MiniChartProps) => (
             />
           )}
         />
-        <ReferenceLine y={target} stroke={color} strokeDasharray="4 2" strokeOpacity={0.6} />
+        <ReferenceLine y={target} stroke="rgba(34,197,94,0.6)" strokeDasharray="4 2" strokeOpacity={0.6} />
         <Bar dataKey={dataKey} fill={color} fillOpacity={0.8} radius={[3, 3, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>

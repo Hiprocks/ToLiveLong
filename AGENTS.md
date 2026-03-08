@@ -82,6 +82,7 @@ ALWAYS include at the end of each response:
   - 배경: `bg-background`, `bg-card`, `bg-muted` 등
   - 텍스트: `text-foreground`, `text-muted-foreground`, `text-primary` 등
   - 테두리: `border-border`, `border-primary` 등
+- **예외:** 통계/대시보드 차트(Recharts)의 막대·목표선·격자·축 눈금 등 데이터 시각화용 색상은 기존 rgba 팔레트 사용을 허용한다.
 
 ### Recharts 툴팁 규칙
 - `contentStyle`에 하드코딩 색상 금지

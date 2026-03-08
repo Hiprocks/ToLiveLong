@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart2, CalendarDays, Home, User } from "lucide-react";
+import { BarChart2, Home, User } from "lucide-react";
 
 export default function BottomNav() {
   const pathname = usePathname();
 
   const navItems = [
-    { href: "/", label: "오늘", icon: Home },
-    { href: "/history", label: "기록", icon: CalendarDays },
+    { href: "/", label: "홈", icon: Home },
     { href: "/stats", label: "통계", icon: BarChart2 },
     { href: "/my", label: "내정보", icon: User },
   ];
