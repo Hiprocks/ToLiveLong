@@ -862,12 +862,12 @@ export default function FoodSearchModal({
   const isBusy = loading || saveState === "saving" || previewSaving || Boolean(deletingTemplateId);
   const busyLabel =
     saveState === "saving"
-      ? "식단을 저장하는 중입니다..."
+      ? "\uc2dd\ub2e8\uc744 \uc800\uc7a5\ud558\ub294 \uc911\uc785\ub2c8\ub2e4..."
       : previewSaving
-        ? "즐겨찾기 수정을 반영하는 중입니다..."
-          : deletingTemplateId
-          ? "즐겨찾기를 삭제하는 중입니다..."
-          : "데이터를 불러오는 중입니다...";
+        ? "\uc990\uaca8\ucc3e\uae30 \uc218\uc815\uc744 \ubc18\uc601\ud558\ub294 \uc911\uc785\ub2c8\ub2e4..."
+        : deletingTemplateId
+          ? "\uc990\uaca8\ucc3e\uae30\ub97c \uc0ad\uc81c\ud558\ub294 \uc911\uc785\ub2c8\ub2e4..."
+          : "\ub370\uc774\ud130\ub97c \ubd88\ub7ec\uc624\ub294 \uc911\uc785\ub2c8\ub2e4...";
 
   const shouldShowSelectionSummary = mode === "template" && selectedSource !== null;
   const shouldShowForm = mode === "manual" || shouldShowSelectionSummary;

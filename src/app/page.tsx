@@ -677,7 +677,20 @@ export default function Home() {
       )}
 
       <MealEntryFab selectedDate={selectedDate} onSuccess={refreshSelectedDate} />
-      <LoadingOverlay active={loadingRecords || loadingTargets || templateSaving || updating || deleting} label={loadingRecords || loadingTargets ? "?곗씠?곕? 遺덈윭?ㅻ뒗 以묒엯?덈떎..." : deleting ? "湲곕줉????젣?섎뒗 以묒엯?덈떎..." : updating ? "湲곕줉???섏젙?섎뒗 以묒엯?덈떎..." : "泥섎━ 以묒엯?덈떎..."} />
+      <LoadingOverlay
+        active={loadingRecords || loadingTargets || templateSaving || updating || deleting}
+        label={
+          loadingRecords || loadingTargets
+            ? "데이터를 불러오는 중입니다..."
+            : deleting
+              ? "기록을 삭제하는 중입니다..."
+              : updating
+                ? "기록을 수정하는 중입니다..."
+                : templateSaving
+                  ? "즐겨찾기를 저장하는 중입니다..."
+                  : "처리 중입니다..."
+        }
+      />
     </motion.main>
   );
 }

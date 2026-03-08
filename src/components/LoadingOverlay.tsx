@@ -11,7 +11,7 @@ interface LoadingOverlayProps {
 
 export default function LoadingOverlay({
   active,
-  label = "로딩 중입니다...",
+  label = "\ub85c\ub529 \uc911\uc785\ub2c8\ub2e4...",
   fixed = true,
   className = "",
 }: LoadingOverlayProps) {
@@ -26,7 +26,7 @@ export default function LoadingOverlay({
       <div className="flex flex-col items-center gap-3">
         <div className="relative h-14 w-14">
           <div className="absolute inset-0 rounded-full border border-cyan-300/35" />
-          <div className="absolute inset-0 rounded-full border-4 border-cyan-300/20 border-t-cyan-300 animate-spin" />
+          <div className="absolute inset-0 animate-spin rounded-full border-4 border-cyan-300/20 border-t-cyan-300" />
           <div className="absolute inset-2 rounded-full bg-cyan-300/10 blur-sm" />
           <div className="absolute inset-0 flex items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-cyan-300" />

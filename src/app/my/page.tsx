@@ -221,10 +221,10 @@ export default function MyPage() {
         active={loading || saveState === "saving" || isAiTesting}
         label={
           loading
-            ? "내정보를 불러오는 중입니다..."
+            ? "\ub0b4\uc815\ubcf4\ub97c \ubd88\ub7ec\uc624\ub294 \uc911\uc785\ub2c8\ub2e4..."
             : saveState === "saving"
-              ? "저장 처리 중입니다..."
-              : "AI 응답을 확인하는 중입니다..."
+              ? "\uc800\uc7a5 \ucc98\ub9ac \uc911\uc785\ub2c8\ub2e4..."
+              : "AI \uc751\ub2f5\uc744 \ud655\uc778\ud558\ub294 \uc911\uc785\ub2c8\ub2e4..."
         }
       />
     </motion.main>
