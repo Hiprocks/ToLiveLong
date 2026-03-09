@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { addDays, format, parseISO } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Pencil } from "lucide-react";
@@ -112,6 +112,11 @@ export default function Home() {
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isChartReady, setIsChartReady] = useState(false);
+  const [editSheetMetrics, setEditSheetMetrics] = useState({
+    isMobile: false,
+    viewportHeight: 0,
+    bottomInset: 0,
+  });
   const datePickerRef = useRef<HTMLInputElement>(null);
 
   const loadRecords = useCallback(async (targetDate: string, force = false) => {
@@ -144,6 +149,67 @@ export default function Home() {
 
   useEffect(() => void loadRecords(selectedDate), [loadRecords, selectedDate]);
   useEffect(() => setIsChartReady(true), []);
+  useEffect(() => {
+    if (!editing) return;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+    };
+  }, [editing]);
+  useEffect(() => {
+    if (!editing) return;
+
+    const updateViewport = () => {
+      const viewport = window.visualViewport;
+      const windowHeight = window.innerHeight;
+      const viewportHeight = Math.round(viewport?.height ?? windowHeight);
+      const offsetTop = viewport?.offsetTop ?? 0;
+      const bottomInset = Math.max(0, Math.round(windowHeight - (viewportHeight + offsetTop)));
+      const isMobile = window.matchMedia("(max-width: 640px)").matches;
+
+      setEditSheetMetrics({ isMobile, viewportHeight, bottomInset });
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    window.visualViewport?.addEventListener("resize", updateViewport);
+    window.visualViewport?.addEventListener("scroll", updateViewport);
+
+    return () => {
+      window.removeEventListener("resize", updateViewport);
+      window.visualViewport?.removeEventListener("resize", updateViewport);
+      window.visualViewport?.removeEventListener("scroll", updateViewport);
+    };
+  }, [editing]);
+  useEffect(() => {
+    if (!editing) return;
+
+    const updateViewport = () => {
+      const viewport = window.visualViewport;
+      const windowHeight = window.innerHeight;
+      const viewportHeight = Math.round(viewport?.height ?? windowHeight);
+      const offsetTop = viewport?.offsetTop ?? 0;
+      const bottomInset = Math.max(0, Math.round(windowHeight - (viewportHeight + offsetTop)));
+      const isMobile = window.matchMedia("(max-width: 640px)").matches;
+
+      setEditSheetMetrics({ isMobile, viewportHeight, bottomInset });
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    window.visualViewport?.addEventListener("resize", updateViewport);
+    window.visualViewport?.addEventListener("scroll", updateViewport);
+
+    return () => {
+      window.removeEventListener("resize", updateViewport);
+      window.visualViewport?.removeEventListener("resize", updateViewport);
+      window.visualViewport?.removeEventListener("scroll", updateViewport);
+    };
+  }, [editing]);
   useEffect(() => {
     let isActive = true;
     const load = async () => {
@@ -359,6 +425,15 @@ export default function Home() {
     datePicker.focus();
     datePicker.click();
   };
+  const isMobileEditSheet = editSheetMetrics.isMobile;
+  const mobileSheetStyle: CSSProperties | undefined =
+    editing && isMobileEditSheet && editSheetMetrics.viewportHeight > 0
+      ? { height: `${editSheetMetrics.viewportHeight}px` }
+      : undefined;
+  const mobileFooterStyle: CSSProperties | undefined =
+    editing && isMobileEditSheet
+      ? { paddingBottom: `${editSheetMetrics.bottomInset + 16}px` }
+      : undefined;
 
   return (
     <motion.main
@@ -501,14 +576,26 @@ export default function Home() {
       </section>
 
       {editing && editDraft && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-          <div className="flex min-h-full items-start justify-center py-2 sm:items-center">
-            <div className="flex max-h-[calc(100vh-2rem-env(safe-area-inset-bottom))] w-full max-w-md flex-col rounded-xl border border-border bg-card">
-              <div className="border-b border-border px-4 py-4">
+        <div
+          className={
+            isMobileEditSheet
+              ? "fixed inset-0 z-[60] overflow-hidden bg-black/70"
+              : "fixed inset-0 z-[60] flex items-end justify-center overflow-hidden bg-black/70 p-4 sm:items-center"
+          }
+        >
+            <div
+              className={
+                isMobileEditSheet
+                  ? "flex h-full min-h-0 w-full flex-col bg-card"
+                  : "flex max-h-[calc(100dvh-2rem)] min-h-0 w-full max-w-md flex-col rounded-xl border border-border bg-card"
+              }
+              style={mobileSheetStyle}
+            >
+              <div className={`border-b border-border px-4 py-4 ${isMobileEditSheet ? "shrink-0 pt-[max(1rem,env(safe-area-inset-top))]" : ""}`}>
                 <h2 className="text-lg font-semibold">기록 수정</h2>
               </div>
 
-              <div className="space-y-4 overflow-y-auto px-4 py-4">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 [overscroll-behavior:contain] [touch-action:pan-y] [-webkit-overflow-scrolling:touch]">
                 <label className="space-y-1 text-sm">
               <span className="text-muted-foreground">기록 날짜</span>
               <input
@@ -654,7 +741,10 @@ export default function Home() {
                 </button>
               </div>
 
-              <div className="border-t border-border px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+              <div
+                className={`border-t border-border px-4 pt-4 ${isMobileEditSheet ? "shrink-0" : "pb-4"}`}
+                style={mobileFooterStyle}
+              >
                 <div className="flex gap-2">
                   <button
                     onClick={() => void handleDeleteRecord(editing.id, editing.date)}
@@ -680,7 +770,6 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          </div>
         </div>
       )}
 
