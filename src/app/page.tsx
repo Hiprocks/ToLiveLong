@@ -501,9 +501,9 @@ export default function Home() {
       </section>
 
       {editing && editDraft && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 p-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <div className="flex min-h-full items-start justify-center py-2 sm:items-center">
-            <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-md flex-col rounded-xl border border-border bg-card">
+            <div className="flex max-h-[calc(100vh-2rem-env(safe-area-inset-bottom))] w-full max-w-md flex-col rounded-xl border border-border bg-card">
               <div className="border-b border-border px-4 py-4">
                 <h2 className="text-lg font-semibold">기록 수정</h2>
               </div>
@@ -654,7 +654,7 @@ export default function Home() {
                 </button>
               </div>
 
-              <div className="border-t border-border px-4 py-4">
+              <div className="border-t border-border px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
                 <div className="flex gap-2">
                   <button
                     onClick={() => void handleDeleteRecord(editing.id, editing.date)}
