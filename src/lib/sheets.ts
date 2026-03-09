@@ -44,16 +44,17 @@ const buildAuth = () => {
     throw new Error("Missing Google service account credentials");
   }
 
-  return new google.auth.JWT({
-    email: clientEmail,
-    key: escapePrivateKey(privateKey),
+  return new google.auth.GoogleAuth({
+    credentials: {
+      client_email: clientEmail,
+      private_key: escapePrivateKey(privateKey),
+    },
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
 };
 
 export const getSheets = async (): Promise<sheets_v4.Sheets> => {
   const auth = buildAuth();
-  await auth.authorize();
   return google.sheets({ version: "v4", auth });
 };
 
