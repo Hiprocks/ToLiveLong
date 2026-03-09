@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { addDays, format, parseISO } from "date-fns";
@@ -502,8 +502,12 @@ export default function Home() {
 
       {editing && editDraft && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-md space-y-4 rounded-xl border border-border bg-card p-4">
-            <h2 className="text-lg font-semibold">기록 수정</h2>
+          <div className="flex max-h-[90vh] w-full max-w-md flex-col rounded-xl border border-border bg-card">
+            <div className="shrink-0 px-4 pt-4 pb-2">
+              <h2 className="text-lg font-semibold">기록 수정</h2>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
 
             <label className="space-y-1 text-sm">
               <span className="text-muted-foreground">기록 날짜</span>
@@ -649,28 +653,32 @@ export default function Home() {
               {templateSaving ? "즐겨찾기 저장 중..." : "즐겨찾기 등록"}
             </button>
 
-            <div className="flex gap-2">
-              <button
-                onClick={() => void handleDeleteRecord(editing.id, editing.date)}
-                disabled={deleting || updating || templateSaving}
-                className="flex-1 rounded-lg border border-destructive/40 bg-destructive/10 py-2 text-destructive disabled:opacity-50"
-              >
-                {deleting ? "삭제 중..." : "삭제"}
-              </button>
-              <button
-                onClick={closeEdit}
-                disabled={deleting || updating || templateSaving}
-                className="flex-1 rounded-lg bg-muted py-2 disabled:opacity-50"
-              >
-                취소
-              </button>
-              <button
-                onClick={() => void handleUpdateRecord()}
-                disabled={updating || deleting || templateSaving}
-                className="flex-1 rounded-lg bg-primary py-2 text-primary-foreground disabled:opacity-50"
-              >
-                {updating ? "저장 중..." : "저장"}
-              </button>
+            </div>
+
+            <div className="shrink-0 border-t border-border px-4 py-3">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => void handleDeleteRecord(editing.id, editing.date)}
+                  disabled={deleting || updating || templateSaving}
+                  className="flex-1 rounded-lg border border-destructive/40 bg-destructive/10 py-2 text-destructive disabled:opacity-50"
+                >
+                  {deleting ? "삭제 중..." : "삭제"}
+                </button>
+                <button
+                  onClick={closeEdit}
+                  disabled={deleting || updating || templateSaving}
+                  className="flex-1 rounded-lg bg-muted py-2 disabled:opacity-50"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={() => void handleUpdateRecord()}
+                  disabled={updating || deleting || templateSaving}
+                  className="flex-1 rounded-lg bg-primary py-2 text-primary-foreground disabled:opacity-50"
+                >
+                  {updating ? "저장 중..." : "저장"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
