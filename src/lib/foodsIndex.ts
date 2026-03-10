@@ -162,6 +162,108 @@ const FOODS_INDEX: RawFood[] = [
   { id: "mfds-148", name: "육회비빔밥", source: "korean_standard_food", baseAmount: 100, defaultAmount: 450, defaultAmountSource: "estimated_serving", calories: 182, carbs: 23, protein: 10, fat: 6, sugar: 3, sodium: 330 },
   { id: "mfds-149", name: "쭈꾸미볶음", source: "korean_standard_food", baseAmount: 100, defaultAmount: 230, defaultAmountSource: "official_serving", calories: 128, carbs: 8, protein: 14, fat: 4, sugar: 3, sodium: 520, aliases: ["주꾸미볶음"] },
   { id: "mfds-150", name: "차돌된장찌개", source: "korean_standard_food", baseAmount: 100, defaultAmount: 350, defaultAmountSource: "estimated_serving", calories: 96, carbs: 5, protein: 7, fat: 5, sugar: 1, sodium: 430 },
+
+  // --- 한식 국/탕 ---
+  { id: "mfds-151", name: "돼지국밥", source: "korean_standard_food", baseAmount: 100, defaultAmount: 600, defaultAmountSource: "official_serving", calories: 85, carbs: 5, protein: 7, fat: 4, sugar: 1, sodium: 350, aliases: ["국밥"] },
+  { id: "mfds-152", name: "소머리국밥", source: "korean_standard_food", baseAmount: 100, defaultAmount: 600, defaultAmountSource: "official_serving", calories: 70, carbs: 3, protein: 7, fat: 3, sugar: 0, sodium: 310 },
+  { id: "mfds-153", name: "해장국", source: "korean_standard_food", baseAmount: 100, defaultAmount: 500, defaultAmountSource: "official_serving", calories: 72, carbs: 5, protein: 6, fat: 3, sugar: 1, sodium: 380, aliases: ["뼈해장국"] },
+  { id: "mfds-154", name: "감자탕", source: "korean_standard_food", baseAmount: 100, defaultAmount: 600, defaultAmountSource: "official_serving", calories: 95, carbs: 8, protein: 7, fat: 4, sugar: 2, sodium: 360 },
+  { id: "mfds-155", name: "매운탕", source: "korean_standard_food", baseAmount: 100, defaultAmount: 500, defaultAmountSource: "official_serving", calories: 58, carbs: 3, protein: 7, fat: 2, sugar: 1, sodium: 330 },
+  { id: "mfds-156", name: "추어탕", source: "korean_standard_food", baseAmount: 100, defaultAmount: 500, defaultAmountSource: "official_serving", calories: 75, carbs: 6, protein: 6, fat: 3, sugar: 1, sodium: 340 },
+  { id: "mfds-157", name: "닭백숙", source: "korean_standard_food", baseAmount: 100, defaultAmount: 800, defaultAmountSource: "official_serving", calories: 78, carbs: 2, protein: 10, fat: 3, sugar: 0, sodium: 150, aliases: ["백숙"] },
+  { id: "mfds-158", name: "소고기무국", source: "korean_standard_food", baseAmount: 100, defaultAmount: 350, defaultAmountSource: "official_serving", calories: 35, carbs: 3, protein: 3, fat: 1, sugar: 0, sodium: 280 },
+
+  // --- 한식 볶음/구이/찜 ---
+  { id: "mfds-159", name: "순대볶음", source: "korean_standard_food", baseAmount: 100, defaultAmount: 300, defaultAmountSource: "estimated_serving", calories: 195, carbs: 22, protein: 8, fat: 8, sugar: 5, sodium: 480 },
+  { id: "mfds-160", name: "곱창볶음", source: "korean_standard_food", baseAmount: 100, defaultAmount: 250, defaultAmountSource: "estimated_serving", calories: 210, carbs: 8, protein: 14, fat: 13, sugar: 3, sodium: 450 },
+  { id: "mfds-161", name: "곱창구이", source: "korean_standard_food", baseAmount: 100, defaultAmount: 200, defaultAmountSource: "estimated_serving", calories: 195, carbs: 2, protein: 15, fat: 14, sugar: 0, sodium: 85, aliases: ["곱창"] },
+  { id: "mfds-162", name: "낙곱새", source: "korean_standard_food", baseAmount: 100, defaultAmount: 300, defaultAmountSource: "estimated_serving", calories: 155, carbs: 8, protein: 13, fat: 8, sugar: 3, sodium: 480 },
+  { id: "mfds-163", name: "떡갈비", source: "korean_standard_food", baseAmount: 100, defaultAmount: 200, defaultAmountSource: "estimated_serving", calories: 230, carbs: 12, protein: 13, fat: 14, sugar: 4, sodium: 380 },
+  { id: "mfds-164", name: "아귀찜", source: "korean_standard_food", baseAmount: 100, defaultAmount: 350, defaultAmountSource: "official_serving", calories: 105, carbs: 6, protein: 12, fat: 4, sugar: 2, sodium: 450, aliases: ["아구찜"] },
+
+  // --- 한식 전 ---
+  { id: "mfds-165", name: "부추전", source: "korean_standard_food", baseAmount: 100, defaultAmount: 200, defaultAmountSource: "official_serving", calories: 195, carbs: 20, protein: 5, fat: 10, sugar: 2, sodium: 420 },
+  { id: "mfds-166", name: "감자전", source: "korean_standard_food", baseAmount: 100, defaultAmount: 180, defaultAmountSource: "official_serving", calories: 180, carbs: 24, protein: 4, fat: 8, sugar: 1, sodium: 350 },
+
+  // --- 덮밥 ---
+  { id: "mfds-167", name: "소불고기덮밥", source: "korean_standard_food", baseAmount: 100, defaultAmount: 450, defaultAmountSource: "estimated_serving", calories: 162, carbs: 22, protein: 8, fat: 5, sugar: 3, sodium: 340, aliases: ["불고기덮밥"] },
+  { id: "mfds-168", name: "제육덮밥", source: "korean_standard_food", baseAmount: 100, defaultAmount: 450, defaultAmountSource: "estimated_serving", calories: 172, carbs: 22, protein: 9, fat: 6, sugar: 3, sodium: 380 },
+  { id: "mfds-169", name: "치킨마요덮밥", source: "fallback", baseAmount: 100, defaultAmount: 400, defaultAmountSource: "estimated_serving", calories: 208, carbs: 25, protein: 8, fat: 8, sugar: 2, sodium: 350, aliases: ["치마덮밥"] },
+  { id: "mfds-170", name: "카레라이스", source: "korean_standard_food", baseAmount: 100, defaultAmount: 450, defaultAmountSource: "official_serving", calories: 142, carbs: 22, protein: 4, fat: 4, sugar: 3, sodium: 310, aliases: ["카레", "카레밥"] },
+
+  // --- 분식 ---
+  { id: "mfds-171", name: "라볶이", source: "korean_standard_food", baseAmount: 100, defaultAmount: 400, defaultAmountSource: "estimated_serving", calories: 162, carbs: 26, protein: 4, fat: 5, sugar: 5, sodium: 420 },
+  { id: "mfds-172", name: "모듬튀김", source: "korean_standard_food", baseAmount: 100, defaultAmount: 200, defaultAmountSource: "estimated_serving", calories: 280, carbs: 25, protein: 7, fat: 16, sugar: 2, sodium: 380, aliases: ["튀김"] },
+  { id: "mfds-173", name: "떡꼬치", source: "korean_standard_food", baseAmount: 100, defaultAmount: 150, defaultAmountSource: "estimated_serving", calories: 235, carbs: 38, protein: 4, fat: 7, sugar: 10, sodium: 350 },
+
+  // --- 치킨/배달 ---
+  { id: "mfds-174", name: "양념치킨", source: "fallback", baseAmount: 100, defaultAmount: 300, defaultAmountSource: "estimated_serving", calories: 285, carbs: 16, protein: 17, fat: 17, sugar: 8, sodium: 550, aliases: ["양치"] },
+  { id: "mfds-175", name: "간장치킨", source: "fallback", baseAmount: 100, defaultAmount: 300, defaultAmountSource: "estimated_serving", calories: 265, carbs: 13, protein: 18, fat: 15, sugar: 6, sodium: 540 },
+  { id: "mfds-176", name: "마라탕", source: "fallback", baseAmount: 100, defaultAmount: 600, defaultAmountSource: "estimated_serving", calories: 95, carbs: 6, protein: 6, fat: 5, sugar: 1, sodium: 480, aliases: ["마라"] },
+  { id: "mfds-177", name: "마라샹궈", source: "fallback", baseAmount: 100, defaultAmount: 400, defaultAmountSource: "estimated_serving", calories: 165, carbs: 8, protein: 10, fat: 10, sugar: 2, sodium: 520 },
+
+  // --- 중식 ---
+  { id: "mfds-178", name: "탕수육", source: "korean_standard_food", baseAmount: 100, defaultAmount: 250, defaultAmountSource: "official_serving", calories: 265, carbs: 28, protein: 10, fat: 12, sugar: 12, sodium: 350 },
+  { id: "mfds-179", name: "깐풍기", source: "korean_standard_food", baseAmount: 100, defaultAmount: 250, defaultAmountSource: "estimated_serving", calories: 290, carbs: 18, protein: 16, fat: 17, sugar: 7, sodium: 480 },
+  { id: "mfds-180", name: "유린기", source: "korean_standard_food", baseAmount: 100, defaultAmount: 250, defaultAmountSource: "estimated_serving", calories: 275, carbs: 15, protein: 17, fat: 16, sugar: 5, sodium: 450 },
+  { id: "mfds-181", name: "깐쇼새우", source: "korean_standard_food", baseAmount: 100, defaultAmount: 250, defaultAmountSource: "estimated_serving", calories: 245, carbs: 22, protein: 11, fat: 13, sugar: 8, sodium: 420 },
+  { id: "mfds-182", name: "간짜장", source: "korean_standard_food", baseAmount: 100, defaultAmount: 600, defaultAmountSource: "official_serving", calories: 158, carbs: 20, protein: 6, fat: 6, sugar: 3, sodium: 400 },
+  { id: "mfds-183", name: "짬뽕밥", source: "korean_standard_food", baseAmount: 100, defaultAmount: 550, defaultAmountSource: "estimated_serving", calories: 128, carbs: 16, protein: 5, fat: 4, sugar: 2, sodium: 360 },
+  { id: "mfds-184", name: "잡채밥", source: "korean_standard_food", baseAmount: 100, defaultAmount: 500, defaultAmountSource: "estimated_serving", calories: 168, carbs: 24, protein: 4, fat: 6, sugar: 4, sodium: 320 },
+
+  // --- 일식 ---
+  { id: "mfds-185", name: "초밥", source: "fallback", baseAmount: 100, defaultAmount: 350, defaultAmountSource: "estimated_serving", calories: 155, carbs: 25, protein: 7, fat: 3, sugar: 4, sodium: 340, aliases: ["스시", "모듬초밥"] },
+  { id: "mfds-186", name: "사시미", source: "fallback", baseAmount: 100, defaultAmount: 200, defaultAmountSource: "estimated_serving", calories: 98, carbs: 0, protein: 20, fat: 2, sugar: 0, sodium: 50, aliases: ["회", "모듬회", "생선회"] },
+  { id: "mfds-187", name: "규동", source: "fallback", baseAmount: 100, defaultAmount: 400, defaultAmountSource: "estimated_serving", calories: 155, carbs: 20, protein: 7, fat: 5, sugar: 4, sodium: 360, aliases: ["소고기덮밥", "규동덮밥"] },
+  { id: "mfds-188", name: "가츠동", source: "fallback", baseAmount: 100, defaultAmount: 400, defaultAmountSource: "estimated_serving", calories: 198, carbs: 23, protein: 9, fat: 7, sugar: 4, sodium: 380, aliases: ["돈까스덮밥", "카츠동"] },
+  { id: "mfds-189", name: "라멘", source: "fallback", baseAmount: 100, defaultAmount: 600, defaultAmountSource: "estimated_serving", calories: 108, carbs: 14, protein: 5, fat: 3, sugar: 2, sodium: 500, aliases: ["일본라면", "돈코츠라멘"] },
+  { id: "mfds-190", name: "텐동", source: "fallback", baseAmount: 100, defaultAmount: 400, defaultAmountSource: "estimated_serving", calories: 210, carbs: 28, protein: 7, fat: 8, sugar: 3, sodium: 350, aliases: ["튀김덮밥"] },
+  { id: "mfds-191", name: "타코야끼", source: "fallback", baseAmount: 100, defaultAmount: 200, defaultAmountSource: "estimated_serving", calories: 210, carbs: 28, protein: 7, fat: 8, sugar: 3, sodium: 480, aliases: ["문어빵"] },
+
+  // --- 양식 ---
+  { id: "mfds-192", name: "스테이크", source: "fallback", baseAmount: 100, defaultAmount: 200, defaultAmountSource: "estimated_serving", calories: 250, carbs: 2, protein: 25, fat: 16, sugar: 0, sodium: 95, aliases: ["소고기스테이크", "립아이"] },
+  { id: "mfds-193", name: "리조또", source: "fallback", baseAmount: 100, defaultAmount: 350, defaultAmountSource: "estimated_serving", calories: 155, carbs: 20, protein: 4, fat: 6, sugar: 1, sodium: 280, aliases: ["리조토"] },
+  { id: "mfds-194", name: "오므라이스", source: "fallback", baseAmount: 100, defaultAmount: 400, defaultAmountSource: "estimated_serving", calories: 162, carbs: 22, protein: 6, fat: 5, sugar: 3, sodium: 330, aliases: ["오무라이스"] },
+  { id: "mfds-195", name: "시저샐러드", source: "fallback", baseAmount: 100, defaultAmount: 250, defaultAmountSource: "estimated_serving", calories: 135, carbs: 8, protein: 5, fat: 9, sugar: 2, sodium: 380 },
+  { id: "mfds-196", name: "포케볼", source: "fallback", baseAmount: 100, defaultAmount: 400, defaultAmountSource: "estimated_serving", calories: 140, carbs: 18, protein: 8, fat: 4, sugar: 3, sodium: 320, aliases: ["포케"] },
+  { id: "mfds-197", name: "감바스", source: "fallback", baseAmount: 100, defaultAmount: 200, defaultAmountSource: "estimated_serving", calories: 185, carbs: 5, protein: 12, fat: 13, sugar: 1, sodium: 350, aliases: ["감바스알아히요"] },
+  { id: "mfds-198", name: "쌀국수", source: "fallback", baseAmount: 100, defaultAmount: 600, defaultAmountSource: "estimated_serving", calories: 85, carbs: 12, protein: 5, fat: 2, sugar: 2, sodium: 350, aliases: ["포", "베트남쌀국수"] },
+
+  // --- 음료 ---
+  { id: "mfds-199", name: "콜라", source: "fallback", baseAmount: 100, defaultAmount: 355, defaultAmountSource: "official_serving", calories: 42, carbs: 11, protein: 0, fat: 0, sugar: 11, sodium: 4, aliases: ["코카콜라", "펩시"] },
+  { id: "mfds-200", name: "사이다", source: "fallback", baseAmount: 100, defaultAmount: 355, defaultAmountSource: "official_serving", calories: 40, carbs: 10, protein: 0, fat: 0, sugar: 10, sodium: 8, aliases: ["칠성사이다", "스프라이트"] },
+  { id: "mfds-201", name: "오렌지주스", source: "fallback", baseAmount: 100, defaultAmount: 250, defaultAmountSource: "official_serving", calories: 45, carbs: 11, protein: 1, fat: 0, sugar: 9, sodium: 2, aliases: ["오주", "주스"] },
+  { id: "mfds-202", name: "카페모카", source: "fallback", baseAmount: 100, defaultAmount: 355, defaultAmountSource: "estimated_serving", calories: 82, carbs: 12, protein: 3, fat: 3, sugar: 10, sodium: 55, aliases: ["모카"] },
+  { id: "mfds-203", name: "맥주", source: "fallback", baseAmount: 100, defaultAmount: 500, defaultAmountSource: "official_serving", calories: 43, carbs: 4, protein: 0, fat: 0, sugar: 0, sodium: 4, aliases: ["생맥주", "캔맥주"] },
+  { id: "mfds-204", name: "소주", source: "fallback", baseAmount: 100, defaultAmount: 50, defaultAmountSource: "official_serving", calories: 131, carbs: 0, protein: 0, fat: 0, sugar: 0, sodium: 1, aliases: ["참이슬", "처음처럼"] },
+  { id: "mfds-205", name: "막걸리", source: "fallback", baseAmount: 100, defaultAmount: 300, defaultAmountSource: "official_serving", calories: 56, carbs: 5, protein: 1, fat: 0, sugar: 3, sodium: 3, aliases: ["탁주"] },
+  { id: "mfds-206", name: "하이볼", source: "fallback", baseAmount: 100, defaultAmount: 355, defaultAmountSource: "estimated_serving", calories: 55, carbs: 8, protein: 0, fat: 0, sugar: 7, sodium: 5 },
+
+  // --- 카페 디저트/빵 ---
+  { id: "mfds-207", name: "크로와상", source: "fallback", baseAmount: 100, defaultAmount: 70, defaultAmountSource: "official_serving", calories: 406, carbs: 46, protein: 8, fat: 21, sugar: 8, sodium: 420 },
+  { id: "mfds-208", name: "베이글", source: "fallback", baseAmount: 100, defaultAmount: 100, defaultAmountSource: "official_serving", calories: 270, carbs: 53, protein: 10, fat: 2, sugar: 5, sodium: 480 },
+  { id: "mfds-209", name: "마카롱", source: "fallback", baseAmount: 100, defaultAmount: 18, defaultAmountSource: "official_serving", calories: 400, carbs: 55, protein: 7, fat: 17, sugar: 45, sodium: 65 },
+  { id: "mfds-210", name: "케이크", source: "fallback", baseAmount: 100, defaultAmount: 120, defaultAmountSource: "estimated_serving", calories: 320, carbs: 40, protein: 4, fat: 16, sugar: 28, sodium: 180, aliases: ["조각케이크", "생크림케이크"] },
+  { id: "mfds-211", name: "와플", source: "fallback", baseAmount: 100, defaultAmount: 150, defaultAmountSource: "estimated_serving", calories: 290, carbs: 38, protein: 6, fat: 13, sugar: 15, sodium: 350 },
+  { id: "mfds-212", name: "팬케이크", source: "fallback", baseAmount: 100, defaultAmount: 200, defaultAmountSource: "estimated_serving", calories: 225, carbs: 35, protein: 5, fat: 7, sugar: 12, sodium: 380, aliases: ["핫케이크"] },
+  { id: "mfds-213", name: "호떡", source: "korean_standard_food", baseAmount: 100, defaultAmount: 100, defaultAmountSource: "official_serving", calories: 285, carbs: 42, protein: 5, fat: 11, sugar: 18, sodium: 280 },
+  { id: "mfds-214", name: "붕어빵", source: "korean_standard_food", baseAmount: 100, defaultAmount: 40, defaultAmountSource: "official_serving", calories: 275, carbs: 45, protein: 6, fat: 7, sugar: 15, sodium: 180 },
+  { id: "mfds-215", name: "약과", source: "korean_standard_food", baseAmount: 100, defaultAmount: 30, defaultAmountSource: "official_serving", calories: 430, carbs: 60, protein: 5, fat: 19, sugar: 30, sodium: 85 },
+  { id: "mfds-216", name: "도넛", source: "fallback", baseAmount: 100, defaultAmount: 70, defaultAmountSource: "official_serving", calories: 420, carbs: 48, protein: 6, fat: 22, sugar: 20, sodium: 350 },
+  { id: "mfds-217", name: "에그타르트", source: "fallback", baseAmount: 100, defaultAmount: 80, defaultAmountSource: "official_serving", calories: 270, carbs: 28, protein: 5, fat: 15, sugar: 13, sodium: 170 },
+  { id: "mfds-218", name: "식빵", source: "fallback", baseAmount: 100, defaultAmount: 60, defaultAmountSource: "official_serving", calories: 265, carbs: 49, protein: 8, fat: 3, sugar: 5, sodium: 430 },
+
+  // --- 편의점/간편식 ---
+  { id: "mfds-219", name: "삼각김밥", source: "fallback", baseAmount: 100, defaultAmount: 110, defaultAmountSource: "official_serving", calories: 175, carbs: 32, protein: 4, fat: 3, sugar: 1, sodium: 350, aliases: ["오니기리", "편의점김밥"] },
+  { id: "mfds-220", name: "편의점도시락", source: "fallback", baseAmount: 100, defaultAmount: 400, defaultAmountSource: "estimated_serving", calories: 160, carbs: 22, protein: 7, fat: 5, sugar: 2, sodium: 380, aliases: ["도시락"] },
+  { id: "mfds-221", name: "핫바", source: "fallback", baseAmount: 100, defaultAmount: 80, defaultAmountSource: "official_serving", calories: 230, carbs: 18, protein: 11, fat: 12, sugar: 3, sodium: 620 },
+  { id: "mfds-222", name: "컵라면", source: "fallback", baseAmount: 100, defaultAmount: 500, defaultAmountSource: "estimated_serving", calories: 108, carbs: 16, protein: 3, fat: 4, sugar: 2, sodium: 580, aliases: ["컵누들"] },
+
+  // --- 기타 간식 ---
+  { id: "mfds-223", name: "아이스크림", source: "fallback", baseAmount: 100, defaultAmount: 120, defaultAmountSource: "estimated_serving", calories: 210, carbs: 24, protein: 3, fat: 11, sugar: 20, sodium: 80, aliases: ["빙과", "젤라또"] },
+  { id: "mfds-224", name: "팥빙수", source: "korean_standard_food", baseAmount: 100, defaultAmount: 350, defaultAmountSource: "estimated_serving", calories: 125, carbs: 24, protein: 3, fat: 2, sugar: 18, sodium: 30, aliases: ["빙수"] },
+  { id: "mfds-225", name: "감자튀김", source: "fallback", baseAmount: 100, defaultAmount: 120, defaultAmountSource: "estimated_serving", calories: 312, carbs: 41, protein: 3, fat: 15, sugar: 1, sodium: 280, aliases: ["프렌치프라이", "후렌치프라이"] },
+  { id: "mfds-226", name: "츄러스", source: "fallback", baseAmount: 100, defaultAmount: 100, defaultAmountSource: "estimated_serving", calories: 380, carbs: 45, protein: 5, fat: 20, sugar: 18, sodium: 300, aliases: ["추러스"] },
 ];
 
 const normalizeForMatch = (value: string) =>
