@@ -28,11 +28,12 @@
     - `POST /records` -> `GET /records?date=` -> `PUT /records/[id]` -> `DELETE /records/[id]`
 
 ## 4) 기능-문서 반영 플로우
-1. 기능/상태 변경 시 `docs/overview.md` 업데이트
-2. 기술구조/API 변경 시 `docs/Context.md` 업데이트
-3. 작업 항목 변경 시 `docs/Todo.md` 업데이트
-4. 회귀/실수 발생 시 `docs/MistakeNote.md` 기록
-5. 시트 컬럼/매핑 변경 시 `docs/Schema.md` 업데이트
+1. 기능 변경 발생 시 `docs/CHANGELOG.md`를 먼저 업데이트
+2. 기능/상태 요약 변경 시 `docs/overview.md` 업데이트
+3. 기술구조/API 변경 시 `docs/Context.md` 업데이트
+4. 작업 항목 변경 시 `docs/Todo.md` 업데이트
+5. 회귀/실수 발생 시 `docs/MistakeNote.md` 기록
+6. 시트 컬럼/매핑 변경 시 `docs/Schema.md` 업데이트
 
 ## 5) 다음 구현 우선순위
 - 등록 과정 UX 개선 (수기/템플릿/사진분석 진입 흐름 단순화)

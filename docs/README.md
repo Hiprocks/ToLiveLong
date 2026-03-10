@@ -1,12 +1,13 @@
 # Docs Index
 
-Last Updated: 2026-03-03
+Last Updated: 2026-03-10
 
 ## Start Here
 - [`SESSION-HANDOFF-2026-03-03.md`](./SESSION-HANDOFF-2026-03-03.md): latest release handoff, dashboard rule updates, and next-session quick start.
 - [`SESSION-HANDOFF-2026-03-02.md`](./SESSION-HANDOFF-2026-03-02.md): latest release handoff, QA checklist, and next-session quick start.
 - [`SESSION-HANDOFF-2026-03-01.md`](./SESSION-HANDOFF-2026-03-01.md): previous handoff.
 - [`Todo.md`](./Todo.md): active backlog and priorities.
+- [`CHANGELOG.md`](./CHANGELOG.md): global feature update timeline (single entry point).
 - [`Context.md`](./Context.md): architecture, API, and operational context.
 - [`overview.md`](./overview.md): project overview and change logs.
 
@@ -25,3 +26,4 @@ Last Updated: 2026-03-03
 
 ## Maintenance Rule
 - Update this index when adding a new top-level docs file.
+- Feature changes must be recorded in `docs/CHANGELOG.md` first, then reflected in `overview`/`Context`/PDCA docs as needed.

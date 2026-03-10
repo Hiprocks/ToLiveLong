@@ -1,8 +1,15 @@
-﻿# Todo
+# Todo
 
-Last Updated: 2026-03-03
+Last Updated: 2026-03-10
 
 Session Handoff: `docs/SESSION-HANDOFF-2026-03-03.md`
+
+## 관리 기준 (Source of Truth)
+- Todo 단일 관리 문서: `docs/Todo.md`
+- 스펙/설계 기준 문서: `docs/.pdca-status.json` + `docs/01-plan/features/*.plan.md`
+- 전체 기능 업데이트 로그: `docs/CHANGELOG.md`
+- 프로젝트 전역 요약/인덱스: `docs/overview.md`, `docs/Context.md`, `docs/README.md`
+- 운영 원칙: 할 일 상태 변경 시 이 문서를 먼저 갱신하고, 스펙 변경이 있으면 PDCA 문서도 함께 갱신
 
 ## P0 (Critical / 운영 안정성)
 - [x] Google Sheets API 라우트 구현 (`records`, `records/[id]`, `templates`, `user`)
@@ -76,6 +83,20 @@ Session Handoff: `docs/SESSION-HANDOFF-2026-03-03.md`
 - [ ] PWA 오프라인 정책 고도화 (페이지별 캐시 전략 세분화)
 - [ ] E2E 스모크 테스트 자동화 (등록/수정/삭제 주요 시나리오)
 
+## P4 (Low / 추후 고도화 검토)
+- [ ] 빠른 입력 고도화 (상용 기능 갭 축소)
+  - [ ] 바코드 스캔 기반 음식 등록
+  - [ ] 음성 입력 기반 음식 등록 초안 생성
+  - [ ] 반복식(요일/시간대) 원탭 등록
+- [ ] 주간 인사이트 리포트
+  - [ ] 주간 평균 섭취/목표 달성률 요약 카드
+  - [ ] 지난주 대비 증감(칼로리/탄단지) 표시
+  - [ ] 이탈 구간(과다/부족) 자동 하이라이트
+- [ ] 스트릭/리마인드 기능
+  - [ ] 연속 기록 일수(스트릭) 표시
+  - [ ] 사용자 설정 리마인드(아침/점심/저녁/취침 전)
+  - [ ] 주간 목표 달성 뱃지/요약 피드백
+
 ## 이번 턴 기준 잔여 우선순위 (추천)
 1. [P1] 템플릿/DB/수기 등록 플로우 통합 QA
    - 모드 전환, 저장 버튼 정책, 날짜 반영, 템플릿 삭제 회귀 점검
@@ -85,11 +106,14 @@ Session Handoff: `docs/SESSION-HANDOFF-2026-03-03.md`
    - 설치 유도, 아이콘/캐시 무효화 가이드 자동화
 4. [P3] 테스트 자동화
    - 핵심 사용자 여정 e2e 스모크 구축
+5. [P4] 상용 기능 갭 축소 백로그 검토
+   - 여유 시간 확보 시 앱 전환 전 사전 기능 검토
 
 ## 운영 규칙
-- [ ] 작업 완료 시 체크박스 갱신
-- [x] 작업 완료 시 체크박스 갱신
+- [ ] 작업 완료 시 체크박스 즉시 갱신
 - [ ] 장애/실수 발생 시 `docs/MistakeNote.md` 기록
+- [ ] 스펙 변경 발생 시 `docs/.pdca-status.json` + 관련 `plan.md` 동기화
+- [ ] 기능 변경 발생 시 `docs/CHANGELOG.md` 선반영
 
 ## 배포 메모
 - Production: https://to-live-long.vercel.app

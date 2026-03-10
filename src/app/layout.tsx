@@ -1,4 +1,4 @@
-﻿import type { Metadata, Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import BottomNav from "@/components/BottomNav";
 import PwaServiceWorker from "@/components/PwaServiceWorker";
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   applicationName: "투리브롱",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "투리브롱",
   },
   formatDetection: {
@@ -38,7 +38,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#080f1a",
+  themeColor: "#f8fafc",
 };
 
 export default function RootLayout({
