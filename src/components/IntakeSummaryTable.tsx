@@ -1,5 +1,6 @@
-﻿"use client";
+"use client";
 
+import { getProgressTone, isAchieved, TONE_CHART_COLOR, TONE_TEXT_COLOR } from "@/lib/nutritionTone";
 import { DailyTargets } from "@/lib/types";
 
 interface IntakeSummaryTableProps {
@@ -15,6 +16,8 @@ interface IntakeSummaryTableProps {
 }
 
 type MetricKey = keyof DailyTargets;
+
+const CEILING_KEYS = new Set<string>(["sugar", "sodium"]);
 
 const metrics: Array<{ key: MetricKey; label: string; unit: string }> = [
   { key: "calories", label: "칼로리", unit: "kcal" },
@@ -33,22 +36,27 @@ export default function IntakeSummaryTable({ targets, totals }: IntakeSummaryTab
         {metrics.map((metric) => {
           const target = Math.max(0, targets[metric.key]);
           const current = Math.max(0, totals[metric.key]);
-          const ratio = target > 0 ? (current / target) * 100 : 0;
-          const width = Math.min(100, ratio);
-          const isOver = current > target && target > 0;
+          const ratioRaw = target > 0 ? current / target : 0;
+          const width = Math.min(100, ratioRaw * 100);
+          const ceiling = CEILING_KEYS.has(metric.key);
+          const tone = getProgressTone(ratioRaw, { ceiling });
+          const achieved = isAchieved(tone);
 
           return (
             <div key={metric.key} className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-medium">{metric.label}</span>
-                <span className={isOver ? "font-semibold text-red-500" : "text-muted-foreground"}>
+                <span
+                  className={achieved ? "text-muted-foreground" : ""}
+                  style={achieved ? undefined : { color: TONE_TEXT_COLOR[tone] }}
+                >
                   {current} / {target} {metric.unit}
                 </span>
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all ${isOver ? "bg-red-500" : "bg-primary"}`}
-                  style={{ width: `${width}%` }}
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${width}%`, backgroundColor: TONE_CHART_COLOR[tone] }}
                 />
               </div>
             </div>

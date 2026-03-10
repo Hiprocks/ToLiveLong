@@ -1,5 +1,6 @@
-﻿"use client";
+"use client";
 
+import { getProgressTone, type ProgressTone } from "@/lib/nutritionTone";
 import { MealRecord } from "@/lib/types";
 import { DailyTargets } from "@/lib/types";
 
@@ -8,25 +9,20 @@ interface MealTableProps {
   targets?: DailyTargets;
 }
 
-type Tone = "normal" | "low" | "high";
+const CEILING_KEYS = new Set(["sugar", "sodium"]);
 
 const getTone = (
   key: "carbs" | "protein" | "fat" | "sugar" | "sodium",
   value: number,
-  targets?: DailyTargets
-): Tone => {
+  targets?: DailyTargets,
+): ProgressTone | "normal" => {
   if (!targets) return "normal";
   const target = targets[key];
   if (!target || target <= 0) return "normal";
   const ratio = value / target;
-
-  if (key === "sugar" || key === "sodium") {
-    return ratio > 1 ? "high" : "normal";
-  }
-
-  if (ratio < 0.85) return "low";
-  if (ratio > 1.05) return "high";
-  return "normal";
+  const tone = getProgressTone(ratio, { ceiling: CEILING_KEYS.has(key) });
+  if (tone === "ok") return "normal";
+  return tone;
 };
 
 export default function MealTable({ logs, targets }: MealTableProps) {
@@ -83,6 +79,20 @@ export default function MealTable({ logs, targets }: MealTableProps) {
   );
 }
 
+const CHIP_BORDER: Record<string, string> = {
+  low: "border-sky-400/40 bg-sky-500/10",
+  slight: "border-amber-400/40 bg-amber-500/10",
+  high: "border-rose-400/40 bg-rose-500/10",
+  normal: "border-border/70 bg-background/60",
+};
+
+const CHIP_TEXT: Record<string, string> = {
+  low: "text-sky-300",
+  slight: "text-amber-300",
+  high: "text-rose-300",
+  normal: "text-foreground",
+};
+
 function MetricChip({
   label,
   value,
@@ -90,24 +100,12 @@ function MetricChip({
 }: {
   label: string;
   value: string;
-  tone?: Tone;
+  tone?: ProgressTone | "normal";
 }) {
   return (
-    <div
-      className={`rounded-lg border px-2 py-1.5 ${
-        tone === "low"
-          ? "border-sky-400/40 bg-sky-500/10"
-          : tone === "high"
-            ? "border-rose-400/40 bg-rose-500/10"
-            : "border-border/70 bg-background/60"
-      }`}
-    >
+    <div className={`rounded-lg border px-2 py-1.5 ${CHIP_BORDER[tone] ?? CHIP_BORDER.normal}`}>
       <div className="text-[10px] text-muted-foreground">{label}</div>
-      <div
-        className={`text-xs font-semibold ${
-          tone === "low" ? "text-sky-300" : tone === "high" ? "text-rose-300" : "text-foreground"
-        }`}
-      >
+      <div className={`text-xs font-semibold ${CHIP_TEXT[tone] ?? CHIP_TEXT.normal}`}>
         {value}
       </div>
     </div>

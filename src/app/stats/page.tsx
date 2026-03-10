@@ -20,6 +20,7 @@ import ErrorBanner from "@/components/ErrorBanner";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import MealEntryFab from "@/components/MealEntryFab";
 import { getLocalDateString } from "@/lib/date";
+import { getProgressTone, TONE_CHART_COLOR } from "@/lib/nutritionTone";
 import { DailyTargets, UserTargetsResponse } from "@/lib/types";
 import { DailySummary } from "@/lib/sheetsCache";
 
@@ -543,13 +544,8 @@ type SummaryRowProps = {
 };
 
 function SummaryRow({ label, value, target, ratio }: SummaryRowProps) {
-  const color =
-    !Number.isFinite(ratio) || ratio <= 0
-      ? "bg-muted"
-      : ratio <= 1.1
-      ? "bg-green-500/70"
-      : "bg-red-500/70";
-
+  const tone = getProgressTone(ratio);
+  const barColor = !Number.isFinite(ratio) || ratio <= 0 ? "rgba(148,163,184,0.4)" : TONE_CHART_COLOR[tone];
   const pct = Math.min(Math.round((Number.isFinite(ratio) ? ratio : 0) * 100), 100);
 
   return (
@@ -562,7 +558,7 @@ function SummaryRow({ label, value, target, ratio }: SummaryRowProps) {
         </div>
       </div>
       <div className="h-1.5 w-full rounded-full bg-muted">
-        <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: barColor }} />
       </div>
     </div>
   );

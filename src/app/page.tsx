@@ -3,7 +3,7 @@
 import { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { addDays, format, parseISO } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Pencil } from "lucide-react";
+import { Check, Pencil } from "lucide-react";
 import { motion } from "framer-motion";
 import { Cell, Pie, PieChart } from "recharts";
 import DateNavCard from "@/components/DateNavCard";
@@ -22,10 +22,12 @@ import {
   isSoupyMeal,
 } from "@/lib/mealAdjustments";
 import { showToast } from "@/lib/toast";
+import { getProgressTone, isAchieved, TONE_CHART_COLOR, TONE_TEXT_COLOR } from "@/lib/nutritionTone";
 import { DailyTargets, IntakeMeta, MealRecord } from "@/lib/types";
 
 const today = getLocalDateString();
 const DEFAULT_TARGETS: DailyTargets = { calories: 2300, carbs: 320, protein: 120, fat: 60, sugar: 30, sodium: 2000 };
+const CEILING_NUTRIENTS = new Set<string>(["sugar", "sodium"]);
 const NUTRIENTS: Array<{ key: keyof DailyTargets; label: string; unit: string }> = [
   { key: "carbs", label: "탄수", unit: "g" },
   { key: "protein", label: "단백질", unit: "g" },
@@ -33,22 +35,6 @@ const NUTRIENTS: Array<{ key: keyof DailyTargets; label: string; unit: string }>
   { key: "sugar", label: "당", unit: "g" },
   { key: "sodium", label: "나트륨", unit: "mg" },
 ];
-type ProgressTone = "low" | "ok" | "high";
-const getProgressTone = (ratio: number): ProgressTone => {
-  if (!Number.isFinite(ratio) || ratio <= 0.8) return "low";
-  if (ratio <= 1) return "ok";
-  return "high";
-};
-const TONE_CHART_COLOR: Record<ProgressTone, string> = {
-  low: "rgba(59,130,246,0.75)",
-  ok: "rgba(34,197,94,0.75)",
-  high: "rgba(239,68,68,0.75)",
-};
-const TONE_TEXT_COLOR: Record<ProgressTone, string> = {
-  low: "rgb(59,130,246)",
-  ok: "rgb(34,197,94)",
-  high: "rgb(239,68,68)",
-};
 
 type EditDraft = {
   date: string;
@@ -497,8 +483,9 @@ export default function Home() {
               <div className="h-[220px] w-[220px] rounded-full border border-border bg-muted/40" />
             )}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <p className="text-3xl font-bold" style={{ color: TONE_TEXT_COLOR[calorieTone] }}>
+              <p className="flex items-center gap-1 text-3xl font-bold" style={{ color: TONE_TEXT_COLOR[calorieTone] }}>
                 {totals.calories}
+                {isAchieved(calorieTone) && <Check className="h-5 w-5" strokeWidth={3} />}
               </p>
               <p className="text-sm text-muted-foreground">/ {targets.calories} kcal</p>
             </div>
@@ -513,12 +500,17 @@ export default function Home() {
             const current = Math.max(0, totals[item.key]);
             const ratioRaw = target > 0 ? current / target : 0;
             const r = Math.min(1, Math.max(0, ratioRaw));
-            const tone = getProgressTone(ratioRaw);
+            const ceiling = CEILING_NUTRIENTS.has(item.key);
+            const tone = getProgressTone(ratioRaw, { ceiling });
+            const achieved = isAchieved(tone);
 
             return (
               <div key={item.key}>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">{item.label}</span>
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    {item.label}
+                    {achieved && <Check className="h-3 w-3" strokeWidth={3} style={{ color: TONE_TEXT_COLOR[tone] }} />}
+                  </span>
                   <span style={{ color: TONE_TEXT_COLOR[tone] }}>
                     {current} / {target} {item.unit}
                   </span>
