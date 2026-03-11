@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useModalHistory } from "@/hooks/useModalHistory";
 import { Check, Info, Search, X } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
 import LoadingOverlay from "@/components/LoadingOverlay";
@@ -561,14 +562,19 @@ export default function FoodSearchModal({
     onClose();
   }, [onClose, resetForm]);
 
+  useModalHistory(!!previewSource, closeTemplatePreview);
+  useModalHistory(isOpen, handleClose);
+
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") handleClose();
+      if (event.key !== "Escape") return;
+      if (previewSource) closeTemplatePreview();
+      else handleClose();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleClose, isOpen]);
+  }, [closeTemplatePreview, handleClose, isOpen, previewSource]);
 
   const validate = () => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date)) return "섭취 날짜를 확인해 주세요.";

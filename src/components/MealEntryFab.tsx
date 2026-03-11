@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useModalHistory } from "@/hooks/useModalHistory";
 import { Bot, Camera, PencilLine, Plus, Shapes } from "lucide-react";
 import FoodSearchModal from "@/components/FoodSearchModal";
 import PhotoAnalysisModal, { PhotoAnalysisPrefill } from "@/components/PhotoAnalysisModal";
@@ -23,6 +24,8 @@ export default function MealEntryFab({ selectedDate, onSuccess }: MealEntryFabPr
   const [isAiTextModalOpen, setIsAiTextModalOpen] = useState(false);
   const [foodModalMode, setFoodModalMode] = useState<"manual" | "template">("manual");
   const [mealPrefill, setMealPrefill] = useState<MealPrefill>(null);
+
+  useModalHistory(isEntrySheetOpen, () => setIsEntrySheetOpen(false));
 
   useEffect(() => {
     if (!isEntrySheetOpen) return;

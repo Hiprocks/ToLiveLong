@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useModalHistory } from "@/hooks/useModalHistory";
 import Image from "next/image";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import { showToast } from "@/lib/toast";
@@ -117,6 +118,8 @@ export default function PhotoAnalysisModal({ isOpen, onClose, onAnalyzed }: Phot
     };
     reader.readAsDataURL(file);
   };
+
+  useModalHistory(isOpen, handleClose);
 
   useEffect(() => {
     if (!isOpen) return;

@@ -1,6 +1,7 @@
 "use client";
 
 import { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useModalHistory } from "@/hooks/useModalHistory";
 import { addDays, format, parseISO } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Check, Pencil } from "lucide-react";
@@ -249,13 +250,24 @@ export default function Home() {
     setEditDraft(buildAdjustedDraft(record.date, record.food_name, baseNutrition, intakeMeta));
     setSyncByAmount(true);
   };
-  const closeEdit = () => {
+  const closeEdit = useCallback(() => {
     setEditing(null);
     setEditBase(null);
     setEditBaseNutrition(null);
     setEditDraft(null);
     setSyncByAmount(true);
-  };
+  }, []);
+
+  useModalHistory(!!editing, closeEdit);
+
+  useEffect(() => {
+    if (!editing) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeEdit();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [closeEdit, editing]);
   const handleAmountChange = (raw: string) => {
     if (!editDraft || !editBaseNutrition) return;
     const amount = parsePositive(raw);

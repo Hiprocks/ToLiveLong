@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
+import { useModalHistory } from "@/hooks/useModalHistory";
 import { X } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
 import { UserProfileInput } from "@/lib/types";
@@ -46,6 +47,8 @@ export default function ProfileEditModal({
   const [form, setForm] = useState<UserProfileInput>(initialProfile ?? defaultProfile);
   const [draft, setDraft] = useState<NumericDraft>(() => toDraft(initialProfile ?? defaultProfile));
   const [initialSnapshot] = useState<UserProfileInput>(initialProfile ?? defaultProfile);
+
+  useModalHistory(isOpen, onClose);
 
   useEffect(() => {
     if (!isOpen) return;

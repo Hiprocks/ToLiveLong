@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useModalHistory } from "@/hooks/useModalHistory";
 import { X } from "lucide-react";
 import LoadingOverlay from "@/components/LoadingOverlay";
 
@@ -29,6 +30,8 @@ export default function TextAnalysisModal({ isOpen, onClose, onAnalyzed }: TextA
   const [input, setInput] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useModalHistory(isOpen, onClose);
 
   useEffect(() => {
     if (!isOpen) return;

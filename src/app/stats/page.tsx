@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useModalHistory } from "@/hooks/useModalHistory";
 import { addDays, addWeeks, format, startOfWeek, subDays, subWeeks } from "date-fns";
 import { ko } from "date-fns/locale";
 import { RefreshCw, Sparkles, X } from "lucide-react";
@@ -190,6 +191,17 @@ export default function StatsPage() {
   const [isAiStreaming, setIsAiStreaming] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+
+  useModalHistory(isAiModalOpen, () => setIsAiModalOpen(false));
+
+  useEffect(() => {
+    if (!isAiModalOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsAiModalOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isAiModalOpen]);
 
   useEffect(() => {
     const cached = loadAiReviewCache();
