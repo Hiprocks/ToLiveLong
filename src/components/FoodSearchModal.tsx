@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useModalHistory } from "@/hooks/useModalHistory";
-import { Check, Info, Search, X } from "lucide-react";
+import { Check, Info, Loader2, Plus, Search, X } from "lucide-react";
 import ErrorBanner from "@/components/ErrorBanner";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import {
@@ -178,6 +178,7 @@ export default function FoodSearchModal({
   const [previewSyncByAmount, setPreviewSyncByAmount] = useState(true);
   const [previewSaving, setPreviewSaving] = useState(false);
   const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
+  const [quickSavingId, setQuickSavingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const isSavingRef = useRef(false);
   const selectionSummaryRef = useRef<HTMLDivElement | null>(null);
@@ -656,6 +657,44 @@ export default function FoodSearchModal({
     }
   };
 
+  const handleQuickRegister = async (template: TemplateItem) => {
+    if (quickSavingId) return;
+    setQuickSavingId(template.id);
+    try {
+      const res = await fetch("/api/sheets/records", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: initialDate || getLocalDateString(),
+          food_name: template.food_name,
+          amount: template.base_amount,
+          calories: template.calories,
+          carbs: template.carbs,
+          protein: template.protein,
+          fat: template.fat,
+          sugar: template.sugar,
+          sodium: template.sodium,
+          usedTemplateId: template.id,
+        }),
+      });
+      if (!res.ok) {
+        const result = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(result?.error || "등록에 실패했습니다.");
+      }
+      rememberTemplate(template.id);
+      markRecordCacheDirty(initialDate || getLocalDateString());
+      showToast({ message: `${template.food_name} 등록 완료`, type: "success" });
+      await onSuccess();
+    } catch (err) {
+      showToast({
+        message: err instanceof Error ? err.message : "등록에 실패했습니다.",
+        type: "error",
+      });
+    } finally {
+      setQuickSavingId(null);
+    }
+  };
+
   const handleDeleteTemplate = async () => {
     if (!previewSource || previewSource.kind !== "template") return;
     const target = previewSource.item;
@@ -953,8 +992,10 @@ export default function FoodSearchModal({
                   return (
                 <div
                   key={template.id}
-                  onClick={() => applyTemplate(template)}
+                  onClick={() => { if (!quickSavingId) applyTemplate(template); }}
                   className={`w-full cursor-pointer rounded-lg border p-3 text-left transition-colors ${
+                    quickSavingId ? "pointer-events-none opacity-70" : ""
+                  } ${
                     isSelected
                       ? "border-primary bg-primary/10"
                       : "border-border hover:bg-muted/40"
@@ -962,7 +1003,7 @@ export default function FoodSearchModal({
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") applyTemplate(template);
+                    if (!quickSavingId && (e.key === "Enter" || e.key === " ")) applyTemplate(template);
                   }}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -975,19 +1016,35 @@ export default function FoodSearchModal({
                         탄수 {template.carbs}g · 단백질 {template.protein}g · 지방 {template.fat}g
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      aria-label={`${template.food_name} 상세 보기`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openTemplatePreview(template);
-                      }}
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border bg-background/60 hover:text-foreground ${
-                        isSelected ? "border-primary/60 text-primary" : "border-border/80 text-muted-foreground"
-                      }`}
-                    >
-                      <Info className="h-4 w-4" />
-                    </button>
+                    <div className="flex shrink-0 gap-1.5">
+                      <button
+                        type="button"
+                        aria-label={`${template.food_name} 바로 등록`}
+                        disabled={quickSavingId !== null}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleQuickRegister(template);
+                        }}
+                        className="flex h-11 w-11 items-center justify-center rounded-lg border border-green-500/60 bg-background/60 text-green-500 transition-colors hover:bg-green-500/10 disabled:opacity-50"
+                      >
+                        {quickSavingId === template.id
+                          ? <Loader2 className="h-4 w-4 animate-spin" />
+                          : <Plus className="h-4 w-4" />}
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`${template.food_name} 상세 보기`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openTemplatePreview(template);
+                        }}
+                        className={`flex h-11 w-11 items-center justify-center rounded-lg border bg-background/60 hover:text-foreground ${
+                          isSelected ? "border-primary/60 text-primary" : "border-border/80 text-muted-foreground"
+                        }`}
+                      >
+                        <Info className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
                   );
