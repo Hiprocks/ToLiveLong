@@ -30,15 +30,15 @@ export const isAchieved = (tone: ProgressTone): boolean =>
   tone === "ok" || tone === "slight";
 
 export const TONE_CHART_COLOR: Record<ProgressTone, string> = {
-  low: "rgba(59,130,246,0.75)",
+  low: "rgba(245,158,11,0.75)",
   ok: "rgba(34,197,94,0.75)",
-  slight: "rgba(245,158,11,0.75)",
+  slight: "rgba(34,197,94,0.75)",
   high: "rgba(239,68,68,0.75)",
 };
 
 export const TONE_TEXT_COLOR: Record<ProgressTone, string> = {
-  low: "rgb(59,130,246)",
+  low: "rgb(245,158,11)",
   ok: "rgb(34,197,94)",
-  slight: "rgb(245,158,11)",
+  slight: "rgb(34,197,94)",
   high: "rgb(239,68,68)",
 };
