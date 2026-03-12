@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 
 /**
  * PWA 뒤로가기 정책 훅
@@ -14,6 +14,7 @@ import { useEffect, useRef } from "react";
 type ModalHandler = () => void;
 
 const modalStack: ModalHandler[] = [];
+const MODAL_STATE_KEY = "__modalHistoryKey";
 let suppressNextPopState = false;
 let listenerInstalled = false;
 
@@ -31,8 +32,7 @@ function installGlobalListener() {
 }
 
 export function useModalHistory(isOpen: boolean, onClose: () => void): void {
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  const handleClose = useEffectEvent(onClose);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -40,20 +40,36 @@ export function useModalHistory(isOpen: boolean, onClose: () => void): void {
     if (!isOpen) return;
 
     const stateKey = `__modal_${Date.now()}_${Math.random()}`;
-    window.history.pushState({ modalKey: stateKey }, "");
+    const currentState =
+      window.history.state && typeof window.history.state === "object"
+        ? (window.history.state as Record<string, unknown>)
+        : {};
 
-    const handler: ModalHandler = () => onCloseRef.current();
+    window.history.pushState(
+      {
+        ...currentState,
+        [MODAL_STATE_KEY]: stateKey,
+      },
+      ""
+    );
+
+    const handler: ModalHandler = () => handleClose();
     modalStack.push(handler);
 
     return () => {
       const index = modalStack.lastIndexOf(handler);
       if (index !== -1) {
         modalStack.splice(index, 1);
-        // 버튼/Escape로 닫힌 경우: 더미 히스토리 엔트리 제거
-        if ((window.history.state as Record<string, unknown> | null)?.modalKey === stateKey) {
+        // 버튼/Escape로 닫힌 경우에는 history.back()으로 더미 엔트리를 정리한다.
+        // 다만 같은 커밋에서 다른 모달이 즉시 열리는 전환 흐름이 있어,
+        // 현재 엔트리가 그대로 유지되는 경우에만 back을 실행해야 한다.
+        queueMicrotask(() => {
+          if ((window.history.state as Record<string, unknown> | null)?.[MODAL_STATE_KEY] !== stateKey) {
+            return;
+          }
           suppressNextPopState = true;
           window.history.back();
-        }
+        });
       }
     };
   }, [isOpen]);
