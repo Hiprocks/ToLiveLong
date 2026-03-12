@@ -61,16 +61,24 @@ ALWAYS include at the end of each response:
 ## Deployment Workflow (MANDATORY)
 
 ### 기본 원칙
-- 개발 중 커밋은 `develop` 브랜치 push까지만 수행한다.
-- `npx vercel --prod` (프로덕션 배포)는 사용자가 명시적으로 아래 표현을 사용할 때만 실행한다:
-  - "마무리해", "정리해줘", "배포해", "올려줘", "publish", "deploy"
-- 사용자가 위 표현 없이 작업을 완료해도 배포하지 말고, 마지막에 다음 문구를 표시한다:
-  > "테스트 후 '마무리해' 또는 '배포해'라고 하시면 프로덕션에 배포합니다."
+- 개발은 `develop` 브랜치에서만 한다. `main`은 직접 수정하지 않는다.
+- 프로덕션 배포 = `main` 브랜치 push. Vercel이 자동 감지해서 배포한다.
+- `npx vercel --prod`는 **절대 사용하지 않는다.**
+- 사용자가 배포 요청 없이 작업을 완료하면 마지막에 다음 문구를 표시한다:
+  > "테스트 후 '배포해'라고 하시면 프로덕션에 배포합니다."
 
 ### 워크플로우
 1. 구현 완료 → `git commit` + `git push origin develop`
-2. 사용자 테스트
-3. 사용자 배포 요청 → `git push origin develop` (최신화) + `npx vercel --prod`
+   - Vercel이 프리뷰 URL 자동 생성 (테스트용)
+2. 사용자가 프리뷰에서 테스트
+3. 사용자 배포 요청 ("마무리해", "배포해", "올려줘", "deploy") →
+   ```bash
+   git checkout main
+   git merge develop --ff-only
+   git push origin main
+   git checkout develop
+   ```
+   - `git push origin main` 이 Vercel 프로덕션 자동 배포를 트리거한다.
 
 ---
 
