@@ -11,7 +11,7 @@ import DateNavCard from "@/components/DateNavCard";
 import ErrorBanner from "@/components/ErrorBanner";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import MealEntryFab from "@/components/MealEntryFab";
-import { cacheKeys, getCachedData, markRecordCacheDirty, setCachedData } from "@/lib/clientSyncCache";
+import { cacheKeys, getCachedData, markCacheDirty, markRecordCacheDirty, setCachedData } from "@/lib/clientSyncCache";
 import { getLocalDateString } from "@/lib/date";
 import {
   applyIntakeAdjustments,
@@ -124,7 +124,7 @@ export default function Home() {
       setErrorMessage(null);
     } catch (error) {
       console.error(error);
-      setErrorMessage("湲곕줉 議고쉶???ㅽ뙣?덉뒿?덈떎.");
+      setErrorMessage("기록 조회에 실패했습니다.");
     } finally {
       setLoadingRecords(false);
     }
@@ -214,7 +214,7 @@ export default function Home() {
         if (isActive) setTargets(data);
       } catch (error) {
         console.error(error);
-        if (isActive) setErrorMessage("紐⑺몴 ?뺣낫瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??");
+        if (isActive) setErrorMessage("목표 정보를 불러오지 못했습니다.");
       } finally {
         if (isActive) setLoadingTargets(false);
       }
@@ -237,8 +237,8 @@ export default function Home() {
   const progress = Math.min(1, Math.max(0, ratio));
   const calorieTone = getProgressTone(ratio);
   const donutData = [
-    { name: "??랬", value: progress, color: TONE_CHART_COLOR[calorieTone] },
-    { name: "?붿뿬", value: Math.max(0, 1 - progress), color: "rgba(148,163,184,0.22)" },
+    { name: "섭취", value: progress, color: TONE_CHART_COLOR[calorieTone] },
+    { name: "잔여", value: Math.max(0, 1 - progress), color: "rgba(148,163,184,0.22)" },
   ];
 
   const openEdit = (record: MealRecord) => {
@@ -342,19 +342,19 @@ export default function Home() {
     setEditDraft(buildAdjustedDraft(editDraft.date, editDraft.food_name, editBaseNutrition, intakeMeta));
   };
   const handleDeleteRecord = async (id: string, targetDate: string) => {
-    if (!confirm("??湲곕줉????젣?섏떆寃좎뒿?덇퉴?")) return;
+    if (!confirm("이 기록을 삭제하시겠습니까?")) return;
     setDeleting(true);
     try {
       const response = await fetch(`/api/sheets/records/${id}`, { method: "DELETE" });
       if (!response.ok) {
-        setErrorMessage("??젣???ㅽ뙣?덉뒿?덈떎.");
+        setErrorMessage("삭제에 실패했습니다.");
         return;
       }
       markRecordCacheDirty(targetDate);
       closeEdit();
       setErrorMessage(null);
       await refreshSelectedDate();
-      showToast({ message: "湲곕줉 ??젣媛 ?꾨즺?섏뿀?듬땲??", type: "success" });
+      showToast({ message: "기록 삭제가 완료되었습니다.", type: "success" });
     } finally {
       setDeleting(false);
     }
@@ -362,9 +362,9 @@ export default function Home() {
   const handleUpdateRecord = async () => {
     if (!editing || !editDraft) return;
     const amount = parsePositive(editDraft.amount);
-    if (!editDraft.food_name.trim()) return setErrorMessage("?뚯떇紐낆? ?꾩닔?낅땲??");
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(editDraft.date)) return setErrorMessage("?좎쭨瑜??뺤씤??二쇱꽭??");
-    if (!amount) return setErrorMessage("??랬?됱? 1g ?댁긽?댁뼱???⑸땲??");
+    if (!editDraft.food_name.trim()) return setErrorMessage("음식명은 필수입니다.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(editDraft.date)) return setErrorMessage("날짜를 확인해 주세요.");
+    if (!amount) return setErrorMessage("섭취량은 1g 이상이어야 합니다.");
     setUpdating(true);
     try {
       const payload: MealRecord = {
@@ -381,13 +381,13 @@ export default function Home() {
         sodium: parseNumber(editDraft.sodium),
       };
       const response = await fetch(`/api/sheets/records/${editing.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      if (!response.ok) return setErrorMessage("?섏젙???ㅽ뙣?덉뒿?덈떎.");
+      if (!response.ok) return setErrorMessage("수정에 실패했습니다.");
       markRecordCacheDirty(editing.date);
       markRecordCacheDirty(editDraft.date);
       setErrorMessage(null);
       closeEdit();
       await refreshSelectedDate();
-      showToast({ message: "湲곕줉 ?섏젙???꾨즺?섏뿀?듬땲??", type: "success" });
+      showToast({ message: "기록 수정이 완료되었습니다.", type: "success" });
     } finally {
       setUpdating(false);
     }
@@ -395,17 +395,21 @@ export default function Home() {
   const handleSaveTemplateFromEdit = async () => {
     if (!editDraft) return;
     const amount = parsePositive(editDraft.amount);
-    if (!editDraft.food_name.trim()) return setErrorMessage("?뚯떇紐낆? ?꾩닔?낅땲??");
-    if (!amount) return setErrorMessage("??랬?됱? 1g ?댁긽?댁뼱???⑸땲??");
+    if (!editDraft.food_name.trim()) return setErrorMessage("음식명은 필수입니다.");
+    if (!amount) return setErrorMessage("섭취량은 1g 이상이어야 합니다.");
     setTemplateSaving(true);
     setErrorMessage(null);
     try {
       const response = await fetch("/api/sheets/templates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ food_name: editDraft.food_name.trim(), base_amount: amount, calories: parseNumber(editDraft.calories), carbs: parseNumber(editDraft.carbs), protein: parseNumber(editDraft.protein), fat: parseNumber(editDraft.fat), sugar: parseNumber(editDraft.sugar), sodium: parseNumber(editDraft.sodium) }) });
-      if (!response.ok) throw new Error("template");
-      showToast({ message: "利먭꺼李얘린 ?깅줉???꾨즺?섏뿀?듬땲??", type: "success" });
+      const result = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (!response.ok) throw new Error(result?.error || "즐겨찾기 등록에 실패했습니다.");
+      markCacheDirty(cacheKeys.templates);
+      showToast({ message: "즐겨찾기 등록이 완료되었습니다.", type: "success" });
     } catch (error) {
       console.error(error);
-      setErrorMessage("利먭꺼李얘린 ?깅줉???ㅽ뙣?덉뒿?덈떎.");
+      const message = error instanceof Error ? error.message : "즐겨찾기 등록에 실패했습니다.";
+      setErrorMessage(message);
+      showToast({ message, type: "error" });
     } finally {
       setTemplateSaving(false);
     }
